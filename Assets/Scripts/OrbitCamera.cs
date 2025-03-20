@@ -32,12 +32,18 @@ public class OrbitCamera : MonoBehaviour
     [SerializeField] AnimationCurve rotationCurve = AnimationCurve.EaseInOut(0, 0, 1, 1);
     #endregion
 
+    #region Rotation_Settings
+    [Header("Rotation Settings")]
+    [SerializeField] private float rotationSpeed = 10f;
+    #endregion
+
     private float zoomFactor = 1f;
     private float zoomRange = 0f;
     private float rotationRange = 0f;
-    private float rotation = 0f;
 
     private float moveTime = 0f;
+
+    private Vector3 velocity = Vector3.zero;
 
     private void Awake()
     {
@@ -70,15 +76,21 @@ public class OrbitCamera : MonoBehaviour
         Vector2 movementInput = InputManager.Instance.MovementInput;
 
         if (movementInput.magnitude >= 0.1f)
-            moveTime += Time.deltaTime;    
-        else   
+            moveTime += Time.deltaTime;
+        else
             moveTime = 0f;
-        
-        float speed = moveCurve.Evaluate(moveTime);
 
-        Vector3 offset = new Vector3(movementInput.x, 0, movementInput.y) * moveSpeed;
+        float speed = moveCurve.Evaluate(moveTime) * moveSpeed;
 
-        transform.position = Vector3.Lerp(transform.position, transform.position + offset, Time.deltaTime);
+        Vector3 forward = cameraHolder.forward;
+        Vector3 right = cameraHolder.right;
+        Vector3 moveDirection = (forward * movementInput.y + right * movementInput.x).normalized;
+        moveDirection = Vector3.ProjectOnPlane(moveDirection, Vector3.up);
+
+        Vector3 targetOffset = moveDirection * speed;
+        Vector3 targetPosition = transform.position + targetOffset;
+
+        transform.position = Vector3.SmoothDamp(transform.position, targetPosition, ref velocity, 0.2f);
     }
 
     private void ZoomCamera()
@@ -101,22 +113,19 @@ public class OrbitCamera : MonoBehaviour
 
         float rotationValue = rotationCurve.Evaluate(zoomFactor);
         float rotationLevel = rotationRange * rotationValue + minZoomRotation;
-        cameraHolder.localRotation = Quaternion.Slerp(cameraHolder.rotation, Quaternion.Euler(rotationLevel, cameraHolder.rotation.y, 0), Time.deltaTime * zoomRotationSmoothing);
+        cameraHolder.localRotation = Quaternion.Slerp(cameraHolder.localRotation, Quaternion.Euler(rotationLevel, cameraHolder.localRotation.y, 0), Time.deltaTime * zoomRotationSmoothing);
     }
 
     private void RotateCamera()
     {
-        //broken
-        if (Input.GetKey(KeyCode.E))
+        float rotateInput = -InputManager.Instance.CameraRotate;
+
+        if (Mathf.Abs(rotateInput) > 0.01f)
         {
-            float rotationSpeed = 50f; // You can adjust this value to control the speed of rotation
-            float rotationAmount = rotationSpeed * Time.deltaTime;
-
-            //transform.rotation += Quaternion.Euler(0, rotationAmount, 0);
-
-            // Rotate the camera holder around the Y-axis (vertical axis) for camera rotation
-            cameraHolder.Rotate(Vector3.up, rotationAmount);
+            float rotationAmount = rotateInput * rotationSpeed * Time.deltaTime;
+            transform.rotation = Quaternion.Euler(0, transform.rotation.eulerAngles.y + rotationAmount, 0);
         }
     }
+
 
 }

@@ -6,6 +6,8 @@ public class InputManager : MonoBehaviour
     public Vector2 LookInput { get; private set; }
     public float ZoomInputDelta { get; private set; }
 
+    public float CameraRotate { get; private set; }
+
     private static InputManager instance;
     private InputSystem_Actions inputActions;
 
@@ -70,6 +72,9 @@ public class InputManager : MonoBehaviour
 
         inputActions.Player.Zoom.performed += ctx => ZoomInputDelta = ctx.ReadValue<Vector2>().y;
         inputActions.Player.Zoom.canceled += ctx => ZoomInputDelta = 0f;
+
+        inputActions.Player.OrbitRotate.performed += ctx => CameraRotate = ctx.ReadValue<float>();
+        inputActions.Player.OrbitRotate.canceled += ctx => CameraRotate = 0f;
     }
 
     private void Unsubscribe()
@@ -82,5 +87,8 @@ public class InputManager : MonoBehaviour
 
         inputActions.Player.Zoom.performed -= ctx => ZoomInputDelta = ctx.ReadValue<Vector2>().y;
         inputActions.Player.Zoom.canceled -= ctx => ZoomInputDelta = 0f;
+
+        inputActions.Player.OrbitRotate.performed -= ctx => CameraRotate = ctx.ReadValue<float>();
+        inputActions.Player.OrbitRotate.canceled -= ctx => CameraRotate = 0f;
     }
 }
