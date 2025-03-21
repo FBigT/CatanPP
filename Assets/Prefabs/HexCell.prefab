@@ -99,3 +99,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0ff96e57886a0d94f8ad22065b17c170, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  coordinates:
+    x: 4
+    z: 4

@@ -1,4 +1,6 @@
+using TMPro;
 using UnityEngine;
+using UnityEngine.UI;
 
 public class HexGrid : MonoBehaviour
 {
@@ -11,8 +13,13 @@ public class HexGrid : MonoBehaviour
     HexMesh hexMesh;
     HexCell[] cells;
 
+    public TMP_Text cellLabelPrefab;
+
+    Canvas gridCanvas;
+
     void Awake()
     {
+        gridCanvas = GetComponentInChildren<Canvas>();
         hexMesh = GetComponentInChildren<HexMesh>();
 
         cells = new HexCell[height * width];
@@ -41,5 +48,12 @@ public class HexGrid : MonoBehaviour
         HexCell cell = cells[i] = Instantiate<HexCell>(cellPrefab);
         cell.transform.SetParent(transform, false);
         cell.transform.localPosition = position;
+        cell.coordinates = HexCoordinates.FromOffsetCoordinates(x, z);
+
+        TMP_Text label = Instantiate<TMP_Text>(cellLabelPrefab);
+        label.rectTransform.SetParent(gridCanvas.transform, false);
+        label.rectTransform.anchoredPosition =
+            new Vector2(position.x, position.z);
+        label.text = cell.coordinates.ToStringOnSeparateLines();
     }
 }

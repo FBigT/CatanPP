@@ -1250,6 +1250,10 @@ PrefabInstance:
       propertyPath: cellPrefab
       value: 
       objectReference: {fileID: 4371488857657958251, guid: 987ad12e52b02284d985a033c192d572, type: 3}
+    - target: {fileID: 2719566662528869687, guid: b3e45544b25cf704fad1e77ff2a10fff, type: 3}
+      propertyPath: cellLabelPrefab
+      value: 
+      objectReference: {fileID: 5086717444744075997, guid: 4c269dd628ee7f54a835f7832a7bffac, type: 3}
     - target: {fileID: 2934401991924677097, guid: b3e45544b25cf704fad1e77ff2a10fff, type: 3}
       propertyPath: m_LocalPosition.x
       value: 5
@@ -1289,6 +1293,10 @@ PrefabInstance:
     - target: {fileID: 2934401991924677097, guid: b3e45544b25cf704fad1e77ff2a10fff, type: 3}
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 3776127851987693248, guid: b3e45544b25cf704fad1e77ff2a10fff, type: 3}
+      propertyPath: m_AdditionalShaderChannelsFlag
+      value: 25
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
