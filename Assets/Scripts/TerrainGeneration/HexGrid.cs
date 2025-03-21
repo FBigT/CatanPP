@@ -2,15 +2,19 @@ using UnityEngine;
 
 public class HexGrid : MonoBehaviour
 {
+
     public int width = 6;
     public int height = 6;
 
     public HexCell cellPrefab;
 
+    HexMesh hexMesh;
     HexCell[] cells;
 
     void Awake()
     {
+        hexMesh = GetComponentInChildren<HexMesh>();
+
         cells = new HexCell[height * width];
 
         for (int z = 0, i = 0; z < height; z++)
@@ -22,6 +26,11 @@ public class HexGrid : MonoBehaviour
         }
     }
 
+    void Start()
+    {
+        hexMesh.Triangulate(cells);
+    }
+
     void CreateCell(int x, int z, int i)
     {
         Vector3 position;
@@ -29,5 +38,8 @@ public class HexGrid : MonoBehaviour
         position.y = 0f;
         position.z = z * (HexMetrics.outerRadius * 1.5f);
 
+        HexCell cell = cells[i] = Instantiate<HexCell>(cellPrefab);
+        cell.transform.SetParent(transform, false);
+        cell.transform.localPosition = position;
     }
 }

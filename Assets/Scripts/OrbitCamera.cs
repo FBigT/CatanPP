@@ -6,12 +6,12 @@ public class OrbitCamera : MonoBehaviour
     #region Camera_Setup
     [Header("Camera Setup")]
     [SerializeField] Transform cameraHolder;
-    [SerializeField] Transform playerCamera;
     #endregion
 
     #region Movement_Settings
     [Header("Movement Settings")]
     [SerializeField, Min(0)] float moveSpeed = 10f;
+    [SerializeField] private float dragSpeed = 1f;
     [SerializeField] AnimationCurve moveCurve = AnimationCurve.EaseInOut(0, 0, 1, 1);
     #endregion
 
@@ -34,7 +34,8 @@ public class OrbitCamera : MonoBehaviour
 
     #region Rotation_Settings
     [Header("Rotation Settings")]
-    [SerializeField] private float rotationSpeed = 10f;
+    [SerializeField, Min(0)] private float rotationSpeed = 10f;
+    [SerializeField, Min(0)] private float mouseRotationSpeed = 0.2f;
     #endregion
 
     private float zoomFactor = 1f;
@@ -74,6 +75,8 @@ public class OrbitCamera : MonoBehaviour
     private void MoveCamera()
     {
         Vector2 movementInput = InputManager.Instance.MovementInput;
+        bool isDragging = InputManager.Instance.MouseRight;
+        Vector2 mouseDelta = InputManager.Instance.MouseDelta;
 
         if (movementInput.magnitude >= 0.1f)
             moveTime += Time.deltaTime;
@@ -84,10 +87,31 @@ public class OrbitCamera : MonoBehaviour
 
         Vector3 forward = cameraHolder.forward;
         Vector3 right = cameraHolder.right;
-        Vector3 moveDirection = (forward * movementInput.y + right * movementInput.x).normalized;
-        moveDirection = Vector3.ProjectOnPlane(moveDirection, Vector3.up);
+        Vector3 moveDirection = (forward * movementInput.y + right * movementInput.x);
+        moveDirection = Vector3.ProjectOnPlane(moveDirection, Vector3.up).normalized;
 
         Vector3 targetOffset = moveDirection * speed;
+        
+        if (isDragging)
+        {
+            Vector3 dragOffset = (-right * mouseDelta.x - forward * mouseDelta.y);
+            dragOffset = Vector3.ProjectOnPlane(dragOffset, Vector3.up).normalized * dragSpeed;
+            targetOffset += dragOffset;
+        }
+        
+        // komentiranije je bolji od gornjeg, ali je broken
+        /*
+        if (isDragging)
+        {
+            Camera cam = Camera.main;
+
+            Vector3 screenMovement = new Vector3(mouseDelta.x, 0, mouseDelta.y);
+            Vector3 worldMovement = cam.ScreenToWorldPoint(transform.position + screenMovement) - cam.ScreenToWorldPoint(transform.position);
+
+            worldMovement.y = 0;
+            targetOffset -= worldMovement;
+        }
+        */
         Vector3 targetPosition = transform.position + targetOffset;
 
         transform.position = Vector3.SmoothDamp(transform.position, targetPosition, ref velocity, 0.2f);
@@ -119,13 +143,19 @@ public class OrbitCamera : MonoBehaviour
     private void RotateCamera()
     {
         float rotateInput = -InputManager.Instance.CameraRotate;
+        bool rotateBinding = InputManager.Instance.MiddleMouseButton;
 
         if (Mathf.Abs(rotateInput) > 0.01f)
         {
             float rotationAmount = rotateInput * rotationSpeed * Time.deltaTime;
             transform.rotation = Quaternion.Euler(0, transform.rotation.eulerAngles.y + rotationAmount, 0);
         }
+        if (rotateBinding)
+        {
+            Vector2 mouseDelta = InputManager.Instance.MouseDelta;
+            float mouseRotationAmount = mouseDelta.x * mouseRotationSpeed;
+
+            transform.rotation = Quaternion.Euler(0, transform.rotation.eulerAngles.y + mouseRotationAmount, 0);
+        }
     }
-
-
 }

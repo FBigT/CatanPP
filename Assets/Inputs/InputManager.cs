@@ -5,8 +5,11 @@ public class InputManager : MonoBehaviour
     public Vector2 MovementInput { get; private set; }
     public Vector2 LookInput { get; private set; }
     public float ZoomInputDelta { get; private set; }
-
     public float CameraRotate { get; private set; }
+    public bool MiddleMouseButton { get; private set; }
+    public Vector2 MouseDelta { get; private set; }
+    public bool MouseRight { get; private set; }
+    public Vector2 MousePosition { get; private set; }
 
     private static InputManager instance;
     private InputSystem_Actions inputActions;
@@ -75,6 +78,18 @@ public class InputManager : MonoBehaviour
 
         inputActions.Player.OrbitRotate.performed += ctx => CameraRotate = ctx.ReadValue<float>();
         inputActions.Player.OrbitRotate.canceled += ctx => CameraRotate = 0f;
+
+        inputActions.Player.MiddleMouse.performed += ctx => MiddleMouseButton = true;
+        inputActions.Player.MiddleMouse.canceled += ctx => MiddleMouseButton = false;
+
+        inputActions.Player.Look.performed += ctx => MouseDelta = ctx.ReadValue<Vector2>();
+        inputActions.Player.Look.canceled += ctx => MouseDelta = Vector2.zero;
+
+        inputActions.Player.MouseRight.performed += ctx => MouseRight = true;
+        inputActions.Player.MouseRight.canceled += ctx => MouseRight = false;
+
+        inputActions.Player.MouseScreenSpacePosition.performed += ctx => MousePosition = ctx.ReadValue<Vector2>();
+        inputActions.Player.MouseScreenSpacePosition.canceled += ctx => MousePosition = Vector2.zero;
     }
 
     private void Unsubscribe()
@@ -90,5 +105,17 @@ public class InputManager : MonoBehaviour
 
         inputActions.Player.OrbitRotate.performed -= ctx => CameraRotate = ctx.ReadValue<float>();
         inputActions.Player.OrbitRotate.canceled -= ctx => CameraRotate = 0f;
+
+        inputActions.Player.MiddleMouse.performed -= ctx => MiddleMouseButton = true;
+        inputActions.Player.MiddleMouse.canceled -= ctx => MiddleMouseButton = false;
+
+        inputActions.Player.Look.performed -= ctx => MouseDelta = ctx.ReadValue<Vector2>();
+        inputActions.Player.Look.canceled -= ctx => MouseDelta = Vector2.zero;
+
+        inputActions.Player.MouseRight.performed -= ctx => MouseRight = true;
+        inputActions.Player.MouseRight.canceled -= ctx => MouseRight = false;
+
+        inputActions.Player.MouseScreenSpacePosition.performed -= ctx => MousePosition = ctx.ReadValue<Vector2>();
+        inputActions.Player.MouseScreenSpacePosition.canceled -= ctx => MousePosition = Vector2.zero;
     }
 }
