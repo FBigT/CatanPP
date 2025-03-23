@@ -1,14 +1,15 @@
 ﻿using System.Collections;
 using UnityEngine;
 using UnityEngine.Networking;
-using TMPro;  // For UI text
+using TMPro;
 
 public class DiceRoller : MonoBehaviour
 {
-    public GameObject dicePrefab; // Assign in Unity
-    public Transform leftSpawn, rightSpawn; // Assign in Unity
-    public TMP_Text resultText; // Assign UI text field
-    private string apiUrl = "http://localhost:8080/api/dice/roll";  // Backend API
+    public GameObject dicePrefab;
+    public Transform leftSpawn, rightSpawn;
+    public TMP_Text resultText;
+
+    private string apiUrl = "http://localhost:8080/api/dice/roll";
 
     public void RollDice()
     {
@@ -18,6 +19,8 @@ public class DiceRoller : MonoBehaviour
     private IEnumerator GetDiceRollFromServer()
     {
         UnityWebRequest request = UnityWebRequest.Get(apiUrl);
+        request.timeout = 5;
+
         yield return request.SendWebRequest();
 
         if (request.result == UnityWebRequest.Result.Success)
@@ -34,14 +37,14 @@ public class DiceRoller : MonoBehaviour
 
     private IEnumerator AnimateDiceRoll(int diceResult)
     {
-        // Spawn dice from both sides
+        // Spawn dice at designated positions
         GameObject dice1 = Instantiate(dicePrefab, leftSpawn.position, Quaternion.identity);
         GameObject dice2 = Instantiate(dicePrefab, rightSpawn.position, Quaternion.identity);
 
         Rigidbody rb1 = dice1.GetComponent<Rigidbody>();
         Rigidbody rb2 = dice2.GetComponent<Rigidbody>();
 
-        // Apply random force for rolling effect
+        // Apply randomized force and torque to simulate rolling
         rb1.AddForce(new Vector3(5, 2, 0), ForceMode.Impulse);
         rb1.AddTorque(Random.insideUnitSphere * 10, ForceMode.Impulse);
 
@@ -51,10 +54,10 @@ public class DiceRoller : MonoBehaviour
         // Wait for dice to "land"
         yield return new WaitForSeconds(2f);
 
-        // Show the result on screen
+        // Display the result
         resultText.text = "You rolled: " + diceResult;
 
-        // Destroy dice after some time
+        // Destroy dice after displaying result
         Destroy(dice1, 3f);
         Destroy(dice2, 3f);
     }

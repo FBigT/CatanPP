@@ -4,24 +4,18 @@ using System.Collections.Generic;
 
 public class DiceFaceDetector : MonoBehaviour
 {
-    private static readonly Dictionary<int, int> OppositeFaces = new Dictionary<int, int>
-    {
-        { 1, 6 }, { 2, 5 }, { 3, 4 }, { 4, 3 }, { 5, 2 }, { 6, 1 }
-    };
-
     private Rigidbody rb;
     private bool isSettled = false;
     private bool isOnGround = false;
     private float stillTime = 0f;
-    private Transform bottomFace;
     private int finalTopFace = -1;
 
-    private const float requiredStillTime = 4f; // Dice must be still for 2 seconds
-    private const float minVelocityThreshold = 0.0001f; // Dice must be almost stopped
-    private const float minAngularVelocityThreshold = 0.0001f;
+    private const float requiredStillTime = 1.5f; // Reduced for quicker response
+    private const float minVelocityThreshold = 0.01f;
+    private const float minAngularVelocityThreshold = 0.01f;
 
     public delegate void DiceLandedHandler(DiceFaceDetector dice);
-    public static event DiceLandedHandler OnDiceLanded; // Notify when settled
+    public static event DiceLandedHandler OnDiceLanded;
 
     private void Start()
     {
@@ -39,7 +33,7 @@ public class DiceFaceDetector : MonoBehaviour
                 {
                     isSettled = true;
                     IdentifyTopFace();
-                    OnDiceLanded?.Invoke(this); // Notify that this dice is done
+                    OnDiceLanded?.Invoke(this);
                 }
             }
             else
@@ -51,7 +45,7 @@ public class DiceFaceDetector : MonoBehaviour
 
     private void OnCollisionEnter(Collision collision)
     {
-        if (collision.gameObject.CompareTag("Ground"))
+        if (collision.gameObject.CompareTag("Ground") && collision.relativeVelocity.magnitude > 0.5f)
         {
             isOnGround = true;
         }
@@ -59,27 +53,43 @@ public class DiceFaceDetector : MonoBehaviour
 
     private void IdentifyTopFace()
     {
-        float lowestY = float.MaxValue;
+        Transform topFace = null;
+        float highestDot = -1f;
 
-        foreach (Transform child in transform) // Check all child faces
+        Debug.Log($"🔍 Checking top face for {gameObject.name}");
+
+        foreach (Transform child in transform)
         {
-            if (child.position.y < lowestY)
+            float dotProduct = Vector3.Dot(child.up, Vector3.up);
+            Debug.Log($"➡ Face {child.name} has dot product: {dotProduct}");
+
+            if (dotProduct > highestDot)
             {
-                lowestY = child.position.y;
-                bottomFace = child;
+                highestDot = dotProduct;
+                topFace = child;
             }
         }
 
-        if (bottomFace != null)
+        if (topFace != null)
         {
-            DiceFaceValue faceValueScript = bottomFace.GetComponent<DiceFaceValue>();
+            DiceFaceValue faceValueScript = topFace.GetComponent<DiceFaceValue>();
             if (faceValueScript != null)
             {
-                finalTopFace = OppositeFaces[faceValueScript.faceValue];
-                Debug.Log($"🎲 Dice {gameObject.name} landed on top face: {finalTopFace}");
+                finalTopFace = faceValueScript.faceValue;
+                Debug.Log($"✅ {gameObject.name} landed on face: {finalTopFace}");
+            }
+            else
+            {
+                Debug.LogError("❌ FaceValue script missing on top face!");
             }
         }
+        else
+        {
+            Debug.LogError("❌ No valid top face detected!");
+        }
     }
+
+
 
     public int GetTopFaceValue()
     {

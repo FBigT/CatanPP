@@ -12,7 +12,7 @@ public class DiceRollManager : MonoBehaviour
     private GameObject dice1, dice2;
     private DiceFaceDetector detector1, detector2;
 
-    private string apiUrl = "http://localhost:8080/api/dice/roll"; // Backend endpoint (optional)
+    private string apiUrl = "http://localhost:8080/api/dice/roll";
 
     private void OnEnable()
     {
@@ -31,7 +31,6 @@ public class DiceRollManager : MonoBehaviour
 
     private IEnumerator RollAndDetectDice()
     {
-        // Spawn dice
         dice1 = Instantiate(dicePrefab, leftSpawnPoint.position, Quaternion.identity);
         dice2 = Instantiate(dicePrefab, rightSpawnPoint.position, Quaternion.identity);
 
@@ -41,15 +40,13 @@ public class DiceRollManager : MonoBehaviour
         Rigidbody rb1 = dice1.GetComponent<Rigidbody>();
         Rigidbody rb2 = dice2.GetComponent<Rigidbody>();
 
-        // Apply random force for rolling effect
-        rb1.AddForce(new Vector3(5, 3, 0), ForceMode.Impulse);
-        rb1.AddTorque(Random.insideUnitSphere * 15, ForceMode.Impulse);
+        rb1.AddForce(new Vector3(Random.Range(6, 12), Random.Range(5, 8), Random.Range(-4, 4)), ForceMode.Impulse);
+        rb1.AddTorque(Random.insideUnitSphere * Random.Range(20, 40), ForceMode.Impulse);
 
-        rb2.AddForce(new Vector3(-5, 3, 0), ForceMode.Impulse);
-        rb2.AddTorque(Random.insideUnitSphere * 15, ForceMode.Impulse);
+        rb2.AddForce(new Vector3(Random.Range(-6, -12), Random.Range(5, 8), Random.Range(-4, 4)), ForceMode.Impulse);
+        rb2.AddTorque(Random.insideUnitSphere * Random.Range(20, 40), ForceMode.Impulse);
 
-        // Wait before checking for settled dice
-        yield return new WaitForSeconds(7f);
+        yield return new WaitForSeconds(3f);
     }
 
     private void CheckBothDiceSettled(DiceFaceDetector settledDice)
@@ -65,15 +62,16 @@ public class DiceRollManager : MonoBehaviour
 
             StartCoroutine(SendResultToBackend(total));
 
-            // Keep dice longer before destroying
-            Destroy(dice1, 10f);
-            Destroy(dice2, 10f);
+            Destroy(dice1, 5f);
+            Destroy(dice2, 5f);
         }
     }
 
     private IEnumerator SendResultToBackend(int total)
     {
         UnityWebRequest request = UnityWebRequest.PostWwwForm(apiUrl, total.ToString());
+        request.timeout = 5;
+
         yield return request.SendWebRequest();
 
         if (request.result != UnityWebRequest.Result.Success)
