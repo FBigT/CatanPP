@@ -26,6 +26,9 @@ public class HexMesh : MonoBehaviour
         {
             Triangulate(cells[i]);
         }
+
+        SubdivideAllTriangles();
+
         hexMesh.vertices = vertices.ToArray();
         hexMesh.triangles = triangles.ToArray();
         hexMesh.RecalculateNormals();
@@ -53,5 +56,21 @@ public class HexMesh : MonoBehaviour
         triangles.Add(vertexIndex);
         triangles.Add(vertexIndex + 1);
         triangles.Add(vertexIndex + 2);
+    }
+
+    void SubdivideAllTriangles()
+    {
+        List<int> newTriangles = new List<int>(triangles);
+        List<Vector3> newVertices = new List<Vector3>(vertices);
+
+        int originalTriangleCount = triangles.Count / 3;
+        for (int i = 0; i < originalTriangleCount; i++)
+        {
+            int triIndex = i * 3;
+            MeshSubdivision.SubdivideTriangle(newVertices, newTriangles, triIndex);
+        }
+
+        vertices = newVertices;
+        triangles = newTriangles;
     }
 }

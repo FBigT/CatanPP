@@ -1,0 +1,23 @@
+#pragma kernel CSMain
+
+StructuredBuffer<float3> vertices;
+RWStructuredBuffer<float3> updatedVertices;
+
+float sizeX;
+float sizeZ;
+int vertsPerRow;
+
+[numthreads(64, 1, 1)]
+void CSMain(uint id : SV_DispatchThreadID)
+{
+	if (id >= vertsPerRow * vertsPerRow)
+		return;
+
+	int row = id / vertsPerRow;
+	int col = id % vertsPerRow;
+
+	float newX = col * sizeX;
+	float newZ = row * sizeZ;
+
+	updatedVertices[id] = float3(newX, vertices[id].y, newZ);
+}
