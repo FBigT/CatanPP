@@ -144,8 +144,6 @@ public class TriangleMakeEditor : Editor
         {
             grid.GenerateGrid();
         }
-
-        GUILayout.Toggle(true, "ass");
     }
 
     private void OnSceneGUI()
