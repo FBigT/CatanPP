@@ -70,7 +70,7 @@ public class UserService {
                         .length ())));
             }
             guestUser.setUsername("Guest_" + sb.toString());
-        } while (userRepository.findByUsername(guestUser.getUsername()) != null);
+        } while (userRepository.findByUsername(guestUser.getUsername()).isPresent());
 
         return createUser(guestUser);
     }
