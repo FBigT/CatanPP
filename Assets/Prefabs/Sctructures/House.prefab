@@ -11,7 +11,7 @@ GameObject:
   - component: {fileID: 6717932560342598567}
   - component: {fileID: 9204246442966998165}
   - component: {fileID: 2351767089547576701}
-  m_Layer: 0
+  m_Layer: 11
   m_Name: House
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -69,6 +69,16 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   hoverMultiplyer: 1.2
   radius: 1
+  displaceHeight: 2
+  displaceSmoothing: 1
+  tiltAngle: 30
+  tiltSmoothing: 1
+  placementLayer:
+    serializedVersion: 2
+    m_Bits: 0
+  pickUpLayer:
+    serializedVersion: 2
+    m_Bits: 0
 --- !u!1 &3582933502282045023
 GameObject:
   m_ObjectHideFlags: 0

@@ -6,9 +6,10 @@ public class SO_HexMetrics : ScriptableObject
     [SerializeField]
     private float outerRadius = 10f;
 
-    public float innerRadius { get { return outerRadius * 0.866025404f; } }
+    private float innerRadius { get { return outerRadius * 0.866025404f; } }
 
     public Vector3[] Corners => GenerateCorners();
+    public float InnerRadius => innerRadius;
     public float OuterRadius => outerRadius;
 
     private Vector3[] GenerateCorners()
