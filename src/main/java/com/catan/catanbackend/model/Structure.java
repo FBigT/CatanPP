@@ -7,19 +7,33 @@ import lombok.Setter;
 
 @Entity
 @Table(name = "structures")
-@Getter
-@Setter
 @NoArgsConstructor
 public class Structure {
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @Getter
+    @Column(nullable = false)
     private String owner;
-    private String type; // "settlement" or "city"
-    private int cornerIndex;
 
+    @Getter
     @ManyToOne
     @JoinColumn(name = "tile_id")
     private Tile tile;
+
+    @Getter
+    @Column(nullable = false)
+    private int cornerIndex;
+
+    @Getter
+    @Setter
+    private String type = "SETTLEMENT";
+
+    public Structure(String owner, Tile tile, int cornerIndex) {
+        this.owner = owner;
+        this.tile = tile;
+        this.cornerIndex = cornerIndex;
+    }
 }

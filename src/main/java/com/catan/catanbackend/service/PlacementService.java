@@ -1,76 +1,96 @@
 package com.catan.catanbackend.service;
 
-import com.catan.catanbackend.model.Road;
 import com.catan.catanbackend.model.Structure;
 import com.catan.catanbackend.model.Tile;
-import com.catan.catanbackend.repository.RoadRepository;
+import com.catan.catanbackend.model.Road;
 import com.catan.catanbackend.repository.StructureRepository;
 import com.catan.catanbackend.repository.TileRepository;
+import com.catan.catanbackend.repository.RoadRepository;
 import org.springframework.stereotype.Service;
+
+import java.util.List;
 
 @Service
 public class PlacementService {
 
-    private final TileRepository tileRepo;
-    private final StructureRepository structureRepo;
-    private final RoadRepository roadRepo;
+    private final TileRepository tileRepository;
+    private final StructureRepository structureRepository;
+    private final RoadRepository roadRepository;
 
-    public PlacementService(TileRepository tileRepo,
-                            StructureRepository structureRepo,
-                            RoadRepository roadRepo) {
-        this.tileRepo = tileRepo;
-        this.structureRepo = structureRepo;
-        this.roadRepo = roadRepo;
-    }
-
-    public boolean canPlaceStructure(Long tileId, int cornerIndex) {
-        Tile tile = tileRepo.findById(tileId)
-                .orElseThrow(() -> new RuntimeException("Tile not found"));
-        return !tile.getCorners().get(cornerIndex);
+    public PlacementService(TileRepository tileRepository, StructureRepository structureRepository, RoadRepository roadRepository) {
+        this.tileRepository = tileRepository;
+        this.structureRepository = structureRepository;
+        this.roadRepository = roadRepository;
     }
 
     public Structure placeStructure(String owner, Long tileId, int cornerIndex) {
-        if (!canPlaceStructure(tileId, cornerIndex)) {
-            throw new RuntimeException("Corner already occupied!");
+        if (!canPlaceStructureWithDistanceRule(tileId, cornerIndex)) {
+            throw new IllegalArgumentException("Cannot place structure here.");
         }
 
-        Tile tile = tileRepo.findById(tileId)
-                .orElseThrow(() -> new RuntimeException("Tile not found"));
+        Tile tile = tileRepository.findById(tileId)
+                .orElseThrow(() -> new IllegalArgumentException("Tile not found"));
+
+        Structure structure = new Structure(owner, tile, cornerIndex);
 
         tile.getCorners().set(cornerIndex, true);
-        tileRepo.save(tile);
-
-        Structure structure = new Structure();
-        structure.setOwner(owner);
-        structure.setTile(tile);
-        structure.setCornerIndex(cornerIndex);
-        structure.setType("settlement");
-
-        return structureRepo.save(structure);
-    }
-
-    public boolean canPlaceRoad(Long tileId, int edgeIndex) {
-        Tile tile = tileRepo.findById(tileId)
-                .orElseThrow(() -> new RuntimeException("Tile not found"));
-        return !tile.getEdges().get(edgeIndex);
+        tileRepository.save(tile);
+        return structureRepository.save(structure);
     }
 
     public Road placeRoad(String owner, Long tileId, int edgeIndex) {
         if (!canPlaceRoad(tileId, edgeIndex)) {
-            throw new RuntimeException("Edge already occupied!");
+            throw new IllegalArgumentException("Cannot place road here.");
         }
 
-        Tile tile = tileRepo.findById(tileId)
-                .orElseThrow(() -> new RuntimeException("Tile not found"));
-
-        tile.getEdges().set(edgeIndex, true);
-        tileRepo.save(tile);
+        Tile tile = tileRepository.findById(tileId)
+                .orElseThrow(() -> new IllegalArgumentException("Tile not found"));
 
         Road road = new Road();
         road.setOwner(owner);
         road.setTile(tile);
         road.setEdgeIndex(edgeIndex);
 
-        return roadRepo.save(road);
+        tile.getEdges().set(edgeIndex, true);
+        tileRepository.save(tile);
+        return roadRepository.save(road);
+    }
+
+    public boolean canPlaceStructure(Long tileId, int cornerIndex) {
+        Tile tile = tileRepository.findById(tileId)
+                .orElseThrow(() -> new IllegalArgumentException("Tile not found"));
+        return !tile.getCorners().get(cornerIndex);
+    }
+
+    public boolean canPlaceRoad(Long tileId, int edgeIndex) {
+        Tile tile = tileRepository.findById(tileId)
+                .orElseThrow(() -> new IllegalArgumentException("Tile not found"));
+        return !tile.getEdges().get(edgeIndex);
+    }
+
+    public boolean canPlaceStructureWithDistanceRule(Long tileId, int cornerIndex) {
+        Tile tile = tileRepository.findById(tileId)
+                .orElseThrow(() -> new IllegalArgumentException("Tile not found"));
+
+        if (tile.getCorners().get(cornerIndex)) return false;
+
+        List<Structure> allStructures = structureRepository.findAll();
+
+        for (Structure s : allStructures) {
+            if (areCornersTooClose(tile, cornerIndex, s.getTile(), s.getCornerIndex())) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    private boolean areCornersTooClose(Tile t1, int c1, Tile t2, int c2) {
+        if (t1.getId().equals(t2.getId())) {
+            return Math.abs(c1 - c2) == 1 || Math.abs(c1 - c2) == 5;
+        }
+
+        // logika za susjedne tileove (možeš dodat ako imaš mapiranje susjeda)
+        return false;
     }
 }

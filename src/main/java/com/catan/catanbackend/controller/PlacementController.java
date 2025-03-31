@@ -46,4 +46,11 @@ public class PlacementController {
         boolean allowed = placementService.canPlaceRoad(tileId, edgeIndex);
         return ResponseEntity.ok(allowed);
     }
+
+    @GetMapping("/canPlace/structure/distance")
+    public ResponseEntity<Boolean> canPlaceStructureWithDistance(@RequestParam Long tileId,
+                                                                 @RequestParam int cornerIndex) {
+        boolean allowed = placementService.canPlaceStructureWithDistanceRule(tileId, cornerIndex);
+        return ResponseEntity.ok(allowed);
+    }
 }
