@@ -1,14 +1,12 @@
 package com.catan.catanbackend.controller;
 
 import com.catan.catanbackend.model.SessionCode;
-import com.catan.catanbackend.model.UserDetailsImpl;
 import com.catan.catanbackend.model.dto.SessionDto;
 import com.catan.catanbackend.service.Mapper;
 import com.catan.catanbackend.service.SessionService;
 import com.catan.catanbackend.service.TokenService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Optional;
@@ -40,12 +38,12 @@ public class SessionController {
     }
 
     @PostMapping("/join/{code}")
-    public ResponseEntity<SessionDto> joinSession(@PathVariable String code) {
-        Long authenticatedUserId = ((UserDetailsImpl) SecurityContextHolder.getContext()
-                .getAuthentication()
-                .getPrincipal()).getId();
+    public ResponseEntity<SessionDto> joinSession(@PathVariable String code, @RequestHeader (name="Authorization") String token) {
+        if (!token.startsWith("Bearer ")) {
+            return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
+        }
 
-        return sessionService.joinSession(authenticatedUserId, code)
+        return sessionService.joinSession(tokenService.getUserIdFromJwtToken(token.split(" ")[1]), code)
                 .map(value -> new ResponseEntity<>(mapper.mapSessionToDto(value), HttpStatus.OK))
                 .orElseGet(() -> new ResponseEntity<>(HttpStatus.BAD_REQUEST));
     }

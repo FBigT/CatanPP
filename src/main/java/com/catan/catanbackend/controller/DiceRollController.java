@@ -16,15 +16,13 @@ import java.util.Optional;
 @RequestMapping("/api/dice")
 public class DiceRollController {
     private final TokenService tokenService;
-    private final SessionService sessionService;
     private final DiceRollService diceRollService;
     private final GameService gameService;
     private final SessionPlayerService sessionPlayerService;
 
-    public DiceRollController(DiceRollService diceRollService, TokenService tokenService, SessionService sessionService, GameService gameService, SessionPlayerService sessionPlayerService) {
+    public DiceRollController(DiceRollService diceRollService, TokenService tokenService, GameService gameService, SessionPlayerService sessionPlayerService) {
         this.diceRollService = diceRollService;
         this.tokenService = tokenService;
-        this.sessionService = sessionService;
         this.gameService = gameService;
         this.sessionPlayerService = sessionPlayerService;
     }
