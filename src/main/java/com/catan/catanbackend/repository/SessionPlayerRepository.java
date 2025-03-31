@@ -7,5 +7,5 @@ import java.util.List;
 
 public interface SessionPlayerRepository extends JpaRepository<SessionPlayer, Long> {
     List<SessionPlayer> findSessionPlayerBySessionId(Long sessionId);
-    List<SessionPlayer> findSessionPlayerByUserId(Long sessionId);
+    List<SessionPlayer> findSessionPlayerByUserId(Long userId);
 }

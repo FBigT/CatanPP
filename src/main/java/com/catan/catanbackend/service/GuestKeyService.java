@@ -4,11 +4,13 @@ import com.catan.catanbackend.model.GuestKey;
 import com.catan.catanbackend.model.User;
 import com.catan.catanbackend.repository.GuestKeyRepository;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Optional;
 import java.util.UUID;
 
 @Service
+@Transactional
 public class GuestKeyService {
     private final GuestKeyRepository guestKeyRepository;
 

@@ -4,10 +4,12 @@ package com.catan.catanbackend.service;
 import com.catan.catanbackend.model.City;
 import com.catan.catanbackend.repository.CityRepository;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
 @Service
+@Transactional
 public class CityService {
 
     private final CityRepository cityRepository;

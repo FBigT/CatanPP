@@ -100,4 +100,19 @@ public class SessionPlayer {
     @Column(name = "obsidian", nullable = false)
     @ColumnDefault("0")
     private Integer obsidian = 0;
+
+    public Integer getNumberOfResources() {
+        return obsidian + silver + gold + bricks + wool + grain + ore + lumber;
+    }
+
+    public void setResources(ResourceGroup resourceGroup) {
+        wool = resourceGroup.getWool();
+        grain = resourceGroup.getGrain();
+        ore = resourceGroup.getOre();
+        lumber = resourceGroup.getLumber();
+        silver = resourceGroup.getSilver();
+        gold = resourceGroup.getGold();
+        bricks = resourceGroup.getBricks();
+        obsidian = resourceGroup.getObsidian();
+    }
 }

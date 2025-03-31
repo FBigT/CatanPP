@@ -1,6 +1,8 @@
 package com.catan.catanbackend.service;
 
+import com.catan.catanbackend.model.ResourceGroup;
 import com.catan.catanbackend.model.SessionCode;
+import com.catan.catanbackend.model.SessionPlayer;
 import com.catan.catanbackend.model.User;
 import com.catan.catanbackend.model.dto.RegisterForm;
 import com.catan.catanbackend.model.dto.SessionDto;
@@ -48,5 +50,9 @@ public class Mapper {
         sessionDto.setId(sessionCode.getSession().getId());
         sessionDto.setCode(sessionCode.getCode());
         return sessionDto;
+    }
+
+    public ResourceGroup mapSessionPlayerToResource(SessionPlayer player) {
+        return new ResourceGroup(player.getLumber(), player.getWool(), player.getOre(), player.getGrain(), player.getBricks(), player.getSilver(), player.getGold(), player.getObsidian());
     }
 }
