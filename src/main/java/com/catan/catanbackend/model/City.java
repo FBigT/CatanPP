@@ -1,4 +1,4 @@
-package com.catan.catanbackend.model;
+/*package com.catan.catanbackend.model;
 
 
 
@@ -41,3 +41,4 @@ public class City {
 
     public void upgradeToCity() { this.isUpgraded = true; }
 }
+*/

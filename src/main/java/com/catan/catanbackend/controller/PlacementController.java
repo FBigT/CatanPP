@@ -53,4 +53,12 @@ public class PlacementController {
         boolean allowed = placementService.canPlaceStructureWithDistanceRule(tileId, cornerIndex);
         return ResponseEntity.ok(allowed);
     }
+
+    @PutMapping("/structure/upgrade")
+    public ResponseEntity<Structure> upgradeStructure(@RequestParam Long tileId,
+                                                      @RequestParam int cornerIndex,
+                                                      @RequestParam String owner) {
+        Structure upgraded = placementService.upgradeSettlementToCity(tileId, cornerIndex, owner);
+        return ResponseEntity.ok(upgraded);
+    }
 }

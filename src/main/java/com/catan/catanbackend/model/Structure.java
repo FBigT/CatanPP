@@ -36,4 +36,12 @@ public class Structure {
         this.tile = tile;
         this.cornerIndex = cornerIndex;
     }
+
+    public void upgradeToCity() {
+        if (this.type.equals("SETTLEMENT")) {
+            this.type = "CITY";
+        } else {
+            throw new IllegalArgumentException("This structure is already a city.");
+        }
+    }
 }

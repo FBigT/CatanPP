@@ -1,4 +1,4 @@
-package com.catan.catanbackend.service;
+/*package com.catan.catanbackend.service;
 
 
 import com.catan.catanbackend.model.City;
@@ -34,3 +34,4 @@ public class CityService {
         return cityRepository.save(city);
     }
 }
+*/

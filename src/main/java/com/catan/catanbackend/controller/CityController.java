@@ -1,4 +1,4 @@
-package com.catan.catanbackend.controller;
+/*package com.catan.catanbackend.controller;
 
 import com.catan.catanbackend.model.City;
 import com.catan.catanbackend.service.CityService;
@@ -32,3 +32,4 @@ public class CityController {
         return cityService.upgradeToCity(id);
     }
 }
+*/

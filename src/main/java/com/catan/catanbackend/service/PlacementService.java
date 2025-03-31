@@ -1,11 +1,11 @@
 package com.catan.catanbackend.service;
 
+import com.catan.catanbackend.model.Road;
 import com.catan.catanbackend.model.Structure;
 import com.catan.catanbackend.model.Tile;
-import com.catan.catanbackend.model.Road;
+import com.catan.catanbackend.repository.RoadRepository;
 import com.catan.catanbackend.repository.StructureRepository;
 import com.catan.catanbackend.repository.TileRepository;
-import com.catan.catanbackend.repository.RoadRepository;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -32,12 +32,12 @@ public class PlacementService {
                 .orElseThrow(() -> new IllegalArgumentException("Tile not found"));
 
         Structure structure = new Structure(owner, tile, cornerIndex);
-
         tile.getCorners().set(cornerIndex, true);
         tileRepository.save(tile);
         return structureRepository.save(structure);
     }
 
+    // Method to place a road
     public Road placeRoad(String owner, Long tileId, int edgeIndex) {
         if (!canPlaceRoad(tileId, edgeIndex)) {
             throw new IllegalArgumentException("Cannot place road here.");
@@ -65,7 +65,30 @@ public class PlacementService {
     public boolean canPlaceRoad(Long tileId, int edgeIndex) {
         Tile tile = tileRepository.findById(tileId)
                 .orElseThrow(() -> new IllegalArgumentException("Tile not found"));
-        return !tile.getEdges().get(edgeIndex);
+
+        if (tile.getEdges().get(edgeIndex)) {
+            return false;
+        }
+
+        List<Road> roads = roadRepository.findAll();
+        List<Structure> structures = structureRepository.findAll();
+
+        for (Road r : roads) {
+            if (r.getOwner().equals(tile.getEdges().get(edgeIndex)) &&
+                    r.getTile().getId().equals(tileId) &&
+                    Math.abs(r.getEdgeIndex() - edgeIndex) == 1) {
+                return true;
+            }
+        }
+
+        for (Structure s : structures) {
+            if (s.getTile().getId().equals(tileId) &&
+                    isCornerAdjacentToEdge(s.getCornerIndex(), edgeIndex)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     public boolean canPlaceStructureWithDistanceRule(Long tileId, int cornerIndex) {
@@ -90,7 +113,29 @@ public class PlacementService {
             return Math.abs(c1 - c2) == 1 || Math.abs(c1 - c2) == 5;
         }
 
-        // logika za susjedne tileove (možeš dodat ako imaš mapiranje susjeda)
         return false;
+    }
+
+    private boolean isCornerAdjacentToEdge(int cornerIndex, int edgeIndex) {
+        return cornerIndex == edgeIndex || cornerIndex == (edgeIndex + 1) % 6;
+    }
+
+    public Structure upgradeSettlementToCity(Long tileId, int cornerIndex, String owner) {
+        Structure structure = structureRepository.findByTileIdAndCornerIndex(tileId, cornerIndex);
+
+        if (structure == null) {
+            throw new IllegalArgumentException("No structure found at given position.");
+        }
+
+        if (!structure.getOwner().equals(owner)) {
+            throw new IllegalArgumentException("You can only upgrade your own settlement.");
+        }
+
+        if (!structure.getType().equals("SETTLEMENT")) {
+            throw new IllegalArgumentException("Only settlements can be upgraded.");
+        }
+
+        structure.setType("CITY");
+        return structureRepository.save(structure);
     }
 }

@@ -21,7 +21,7 @@ public class Tile {
     private int x;
     private int y;
 
-    private int number; // broj od 2 do 12
+    private int number;
     private boolean hasRobber;
 
     @ElementCollection

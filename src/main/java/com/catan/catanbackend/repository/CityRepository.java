@@ -1,4 +1,4 @@
-package com.catan.catanbackend.repository;
+/*package com.catan.catanbackend.repository;
 
 
 import com.catan.catanbackend.model.City;
@@ -11,3 +11,4 @@ import java.util.List;
 public interface CityRepository extends JpaRepository<City, Long> {
     List<City> findByOwner(String owner);
 }
+*/
