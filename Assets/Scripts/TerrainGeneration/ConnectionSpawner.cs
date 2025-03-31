@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using UnityEditor;
 using UnityEngine;
 using UnityEngine.UIElements;
+using static UnityEngine.Rendering.DebugUI.MessageBox;
 
 public class ConnectionSpawner : MonoBehaviour
 {
@@ -44,10 +45,12 @@ public class ConnectionSpawner : MonoBehaviour
         position.z = z * (hexMetrics.OuterRadius * 1.5f);
 
 
-        HexCell cell = hexCells[i++] = Instantiate<HexCell>(cellPrefab);
+        HexCell cell = hexCells[i] = Instantiate<HexCell>(cellPrefab);
         cell.transform.SetParent(transform, false);
         cell.transform.localPosition = position;
         cell.coordinates = HexCoordinates.FromOffsetCoordinates(x, z);
+        cell.CellHexMetrics = hexMetrics;
+        cell.name = cell.coordinates.ToString();
 
         if (x > 0)
         {
@@ -74,7 +77,7 @@ public class ConnectionSpawner : MonoBehaviour
         }
     }
 
-    private void DestoryKids()
+    public void DestoryKids()
     {
         foreach (var item in hexCells)
         {
@@ -104,6 +107,11 @@ public class ConnectionSpawnerEditor : Editor
         {
             spawner.CreateGrid();
         }
+
+        if (GUILayout.Button("Destory children"))
+        {
+            spawner.DestoryKids();
+        }
     }
 
     private void OnSceneGUI()
@@ -117,14 +125,6 @@ public class ConnectionSpawnerEditor : Editor
         }
 
         Handles.DrawPolyLine(corners.ToArray());
-
-        foreach (var item in spawner.HexCells)
-        {
-            if (item != null)
-            {
-                Handles.DrawWireCube(item.transform.position + spawner.transform.position, Vector3.one * 0.5f);
-            }
-        }
     }
 }
 #endif

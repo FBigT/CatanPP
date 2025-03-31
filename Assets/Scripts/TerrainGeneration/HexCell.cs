@@ -6,9 +6,11 @@ using static HexCell;
 public class HexCell : MonoBehaviour
 {
     [SerializeField] private HexCell[] neighbors = new HexCell[6];
+    [SerializeField] private SO_HexMetrics cellHexMetrics;
 
     public HexCoordinates coordinates;
     public HexCell[] Neighbors => neighbors;
+    public SO_HexMetrics CellHexMetrics { get { return cellHexMetrics; } set { cellHexMetrics = value; } }
 
     public HexCell GetNeighbor(HexDirection direction)
     {
@@ -40,22 +42,66 @@ public static class HexDirectionExtensions
 public class HexCellEditor : Editor
 {
     private static HexCell cell;
+    [SerializeField, Range(10, 200)] private float drawDistance = 50f;
 
     private void OnEnable()
     {
         cell = (HexCell)target;
     }
 
+    public override void OnInspectorGUI()
+    {
+        base.OnInspectorGUI();
+        drawDistance = EditorGUILayout.Slider("Draw Distance", drawDistance, 10f, 200f);
+    }
+
     private void OnSceneGUI()
     {
-        Handles.color = Color.blue;
+        if (cell == null) return;
 
         foreach (var neighbor in cell.Neighbors)
-        {
             if (neighbor != null)
-            {
-                Handles.DrawLine(cell.transform.position, neighbor.transform.position);
-            }
+                DrawHexagon(neighbor, Color.blue);
+
+        DrawHexagon(cell, Color.green);
+
+        DrawData();
+    }
+
+    private void DrawHexagon(HexCell targetCell, Color color)
+    {
+        Handles.color = color;
+        List<Vector3> corners = new List<Vector3>();
+
+        foreach (var corner in targetCell.CellHexMetrics.Corners)
+        {
+            corners.Add(corner + targetCell.transform.position);
+        }
+
+        Handles.DrawPolyLine(corners.ToArray());
+    }
+
+    private void DrawData()
+    {
+        Camera sceneCam = SceneView.lastActiveSceneView.camera;
+        if (sceneCam == null) return;
+
+        float distance = Vector3.Distance(sceneCam.transform.position, cell.transform.position);
+
+        if (distance < drawDistance)
+        {
+            int validNeighborCount = 0;
+
+            foreach (var neighbor in cell.Neighbors)
+                if (neighbor != null)
+                    validNeighborCount++;
+
+            string data =
+                "Coordinates: " + cell.coordinates.ToString() +
+                "\n" +
+                "Neigbours: " + validNeighborCount;
+
+            Handles.Label(cell.transform.position, data);
         }
     }
 }
