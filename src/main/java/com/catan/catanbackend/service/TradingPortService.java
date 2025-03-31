@@ -5,9 +5,12 @@ package com.catan.catanbackend.service;
 import com.catan.catanbackend.model.TradingPort;
 import com.catan.catanbackend.repository.TradingPortRepository;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
 import java.util.List;
 
 @Service
+@Transactional
 public class TradingPortService {
 
     private final TradingPortRepository tradingPortRepository;

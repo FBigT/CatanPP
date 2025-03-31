@@ -11,6 +11,7 @@ import java.util.Optional;
 import java.util.Random;
 
 @Service
+
 public class UserService {
     final Random random;
     final UserRepository userRepository;

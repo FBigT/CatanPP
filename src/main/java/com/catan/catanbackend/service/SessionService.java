@@ -2,10 +2,10 @@ package com.catan.catanbackend.service;
 
 import com.catan.catanbackend.model.*;
 import com.catan.catanbackend.repository.SessionCodeRepository;
-import com.catan.catanbackend.repository.SessionPlayerRepository;
 import com.catan.catanbackend.repository.SessionRecordRepository;
 import com.catan.catanbackend.repository.SessionRepository;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.OffsetDateTime;
 import java.util.List;
@@ -13,25 +13,25 @@ import java.util.Optional;
 import java.util.Random;
 
 @Service
+@Transactional
 public class SessionService {
     public static final Integer MIN_PLAYERS = 2;
 
     final SessionRepository sessionRepository;
     final SessionCodeRepository sessionCodeRepository;
-    final SessionPlayerRepository sessionPlayerRepository;
     final SessionRecordRepository sessionRecordRepository;
     final PlayerProfileService playerProfileService;
     final UserService userService;
-    final Random random;
+    private final SessionPlayerService sessionPlayerService;
+    final Random random = new Random();
 
-    public SessionService(SessionRepository sessionRepository, SessionCodeRepository sessionCodeRepository, PlayerProfileService playerProfileService, UserService userService, SessionPlayerRepository sessionPlayerRepository, SessionRecordRepository sessionRecordRepository) {
+    public SessionService(SessionRepository sessionRepository, SessionCodeRepository sessionCodeRepository, PlayerProfileService playerProfileService, UserService userService, SessionRecordRepository sessionRecordRepository, SessionPlayerService sessionPlayerService) {
         this.sessionRepository = sessionRepository;
         this.sessionCodeRepository = sessionCodeRepository;
-        random = new Random();
         this.playerProfileService = playerProfileService;
         this.userService = userService;
-        this.sessionPlayerRepository = sessionPlayerRepository;
         this.sessionRecordRepository = sessionRecordRepository;
+        this.sessionPlayerService = sessionPlayerService;
     }
 
     public Optional<SessionCode> startSession(Long hostId, Integer maxPlayers) {
@@ -40,7 +40,7 @@ public class SessionService {
             return Optional.empty();
         }
 
-        if ((long)sessionPlayerRepository.findSessionPlayerByUserId(hostId).size() > 0) {
+        if ((long)sessionPlayerService.findPlayersByUserId(hostId).size() > 0) {
             return Optional.empty();
         }
 
@@ -50,7 +50,7 @@ public class SessionService {
         do {
             newSessionCode = generateSessionCode();
         } while (sessionCodeRepository.findByCode(newSessionCode).isPresent());
-        sessionPlayerRepository.save(new SessionPlayer(savedSession, host.get()));
+        sessionPlayerService.createSessionPlayer(new SessionPlayer(savedSession, host.get()));
         return Optional.of(sessionCodeRepository.save(new SessionCode(savedSession, newSessionCode)));
     }
 
@@ -59,10 +59,10 @@ public class SessionService {
         playerProfileByUsername.ifPresent(playerProfile -> playerProfile.setGamesWon(playerProfile.getGamesWon() + 1));
 
         List<SessionPlayer> players = getPlayers(sessionCode.getSession().getId());
-        for (SessionPlayer sessionUser : players) {
-            playerProfileService.getPlayerProfileByUserId(sessionUser.getUser().getId())
+        for (SessionPlayer sessionPlayer : players) {
+            playerProfileService.getPlayerProfileByUserId(sessionPlayer.getUser().getId())
                     .ifPresent(profile -> profile.setGamesPlayed(profile.getGamesPlayed() + 1));
-            sessionPlayerRepository.delete(sessionUser);
+            sessionPlayerService.deleteSessionPlayer(sessionPlayer);
         }
 
         sessionRecordRepository.save(new SessionRecord(winner, sessionCode.getSession().getStartedAt(), OffsetDateTime.now()));
@@ -83,7 +83,7 @@ public class SessionService {
                 return Optional.empty();
             }
 
-            sessionPlayerRepository.save(new SessionPlayer(sessionCode.get().getSession(), user.get()));
+            sessionPlayerService.createSessionPlayer(new SessionPlayer(sessionCode.get().getSession(), user.get()));
         }
         return sessionCode;
     }
@@ -95,7 +95,7 @@ public class SessionService {
             || getPlayers(sessionCode.get().getSession().getId()).size() >= sessionCode.get().getSession().getMaxPlayers()) {
             return false;
         }
-        sessionPlayerRepository.save(new SessionPlayer(sessionCode.get().getSession()));
+        sessionPlayerService.createSessionPlayer(new SessionPlayer(sessionCode.get().getSession()));
         return true;
     }
 
@@ -114,6 +114,6 @@ public class SessionService {
     }
 
     public List<SessionPlayer> getPlayers(Long sessionId){
-        return sessionPlayerRepository.findSessionPlayerBySessionId(sessionId);
+        return sessionPlayerService.findPlayerBySessionId(sessionId);
     }
 }

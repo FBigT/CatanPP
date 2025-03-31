@@ -10,8 +10,8 @@ import org.hibernate.annotations.ColumnDefault;
 
 @Data
 @Entity
-@NoArgsConstructor
 @Table(name = "session_players")
+@NoArgsConstructor
 public class SessionPlayer {
     public SessionPlayer(Session session, User user) {
         this.session = session;
@@ -19,7 +19,6 @@ public class SessionPlayer {
         active = true;
         isAi = false;
         name = user.getUsername();
-        playerScore = 0;
     }
 
     public SessionPlayer(Session session) {
@@ -27,7 +26,6 @@ public class SessionPlayer {
         active = true;
         isAi = true;
         name = GameService.generateRandomName();
-        playerScore = 0;
     }
 
     @Id
@@ -47,7 +45,7 @@ public class SessionPlayer {
     @NotNull
     @ColumnDefault("0")
     @Column(name = "player_score", nullable = false)
-    private Integer playerScore;
+    private Integer playerScore = 0;
 
     @NotNull
     @Column(name = "active", nullable = false)
@@ -63,4 +61,58 @@ public class SessionPlayer {
     @Column(name = "name", nullable = false)
     private String name;
 
+    @NotNull
+    @Column(name = "lumber", nullable = false)
+    @ColumnDefault("0")
+    private Integer lumber = 0;
+
+    @NotNull
+    @Column(name = "wool", nullable = false)
+    @ColumnDefault("0")
+    private Integer wool = 0;
+
+    @NotNull
+    @Column(name = "grain", nullable = false)
+    @ColumnDefault("0")
+    private Integer grain = 0;
+
+    @NotNull
+    @Column(name = "bricks", nullable = false)
+    @ColumnDefault("0")
+    private Integer bricks = 0;
+
+    @NotNull
+    @Column(name = "ore", nullable = false)
+    @ColumnDefault("0")
+    private Integer ore = 0;
+
+    @NotNull
+    @Column(name = "gold", nullable = false)
+    @ColumnDefault("0")
+    private Integer gold = 0;
+
+    @NotNull
+    @Column(name = "silver", nullable = false)
+    @ColumnDefault("0")
+    private Integer silver = 0;
+
+    @NotNull
+    @Column(name = "obsidian", nullable = false)
+    @ColumnDefault("0")
+    private Integer obsidian = 0;
+
+    public Integer getNumberOfResources() {
+        return obsidian + silver + gold + bricks + wool + grain + ore + lumber;
+    }
+
+    public void setResources(ResourceGroup resourceGroup) {
+        wool = resourceGroup.getWool();
+        grain = resourceGroup.getGrain();
+        ore = resourceGroup.getOre();
+        lumber = resourceGroup.getLumber();
+        silver = resourceGroup.getSilver();
+        gold = resourceGroup.getGold();
+        bricks = resourceGroup.getBricks();
+        obsidian = resourceGroup.getObsidian();
+    }
 }
