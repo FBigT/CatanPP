@@ -75,6 +75,7 @@ public class ConnectionSpawner : MonoBehaviour
         }
 
         CreateConnectors(cell);
+        AssignCellProperties(cell);
     }
 
     private void CreateConnectors(HexCell cell)
@@ -101,6 +102,21 @@ public class ConnectionSpawner : MonoBehaviour
                 connectors[cornerPosition] = cornerConnector;
             }
         }
+    }
+
+    private void AssignCellProperties(HexCell cell)
+    {
+        ResourceType[] availableResources = { ResourceType.Wood, ResourceType.Stone, ResourceType.Wheat, ResourceType.Clay, ResourceType.Sheep };
+        ResourceType randomResource = availableResources[Random.Range(0, availableResources.Length)];
+        int numberToken = GetRandomNumberToken();
+
+        cell.Initialize(randomResource, numberToken);
+    }
+
+    private int GetRandomNumberToken()
+    {
+        int[] possibleNumbers = { 2, 3, 3, 4, 4, 5, 5, 6, 6, 7, 7, 8, 8, 9, 9, 10, 10, 11, 11, 12 };
+        return possibleNumbers[Random.Range(0, possibleNumbers.Length)];
     }
 
     public void DestoryKids()

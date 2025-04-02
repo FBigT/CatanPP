@@ -1,16 +1,39 @@
 using System.Collections.Generic;
 using UnityEditor;
 using UnityEngine;
-using static HexCell;
 
 public class HexCell : MonoBehaviour
 {
     [SerializeField] private HexCell[] neighbors = new HexCell[6];
     [SerializeField] private SO_HexMetrics cellHexMetrics;
+    [SerializeField] private ResourceType resourceType;
+    [SerializeField] private int numberToken;
+
+    private MeshRenderer meshRenderer;
 
     public HexCoordinates coordinates;
     public HexCell[] Neighbors => neighbors;
     public SO_HexMetrics CellHexMetrics { get { return cellHexMetrics; } set { cellHexMetrics = value; } }
+
+    private void Awake()
+    {
+        if (meshRenderer == null)
+            meshRenderer = GetComponent<MeshRenderer>();
+    }
+
+    public void Initialize(ResourceType type, int number)
+    {
+        resourceType = type;
+        numberToken = number;
+
+        if (meshRenderer == null)
+            meshRenderer = GetComponent<MeshRenderer>();
+    }
+
+    public void DisplayCellInfo()
+    {
+        Debug.Log($"Cell at {coordinates} has resource: {resourceType} and number: {numberToken}");
+    }
 
     public HexCell GetNeighbor(HexDirection direction)
     {
@@ -22,11 +45,47 @@ public class HexCell : MonoBehaviour
         neighbors[(int)direction] = cell;
         cell.neighbors[(int)direction.Opposite()] = this;
     }
+
+    private void ApplyColor()
+    {
+        if (Application.isPlaying) return;
+        
+        if (meshRenderer == null || meshRenderer.sharedMaterial == null) return;
+
+        Color resourceColor = GetResourceColor(resourceType);
+
+        meshRenderer.material.color = resourceColor;
+    }
+
+
+    private Color GetResourceColor(ResourceType type)
+    {
+        switch (type)
+        {
+            case ResourceType.Wood: return new Color(0.2f, 0.6f, 0.2f);
+            case ResourceType.Stone: return Color.gray;
+            case ResourceType.Wheat: return new Color(0.9f, 0.8f, 0.2f);
+            case ResourceType.Clay: return new Color(0.8f, 0.3f, 0.2f);
+            case ResourceType.Sheep: return new Color(0.6f, 1.0f, 0.6f);
+            case ResourceType.Desert: return new Color(1.0f, 1.0f, 0.5f);
+            default: return Color.white;
+        }
+    }
 }
 
 public enum HexDirection
 {
     NE, E, SE, SW, W, NW
+}
+
+public enum ResourceType
+{
+    Wood,
+    Stone,
+    Wheat,
+    Clay,
+    Sheep,
+    Desert
 }
 
 public static class HexDirectionExtensions
