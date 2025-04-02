@@ -1,0 +1,10 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements" editor-extension-mode="False">
+    <Style src="project://database/Assets/UI/panel.uss?fileID=7433441132597879392&amp;guid=2481dee5cbaad344ead5dbc76c647cce&amp;type=3#panel" />
+    <ui:VisualElement name="Panel" class="panel" style="flex-grow: 1; flex-direction: row-reverse; align-items: stretch; justify-content: center; align-self: stretch; background-position-y: center 0; background-position-x: center 0;">
+        <ui:VisualElement name="Container" class="container" style="flex-grow: 1; -unity-text-align: upper-left; flex-direction: row; align-self: flex-start; justify-content: center;">
+            <ui:Button text="House" name="HouseButton" class="selection-button" style="background-size: 100% 100%; background-position-x: center 0; background-position-y: center 0; -unity-background-scale-mode: stretch-to-fill; -unity-slice-scale: 1px;" />
+            <ui:Button text="Tall House" name="TallHouseButton" class="selection-button" />
+            <ui:Button text="Road" name="RoadButton" class="selection-button" />
+        </ui:VisualElement>
+    </ui:VisualElement>
+</ui:UXML>

@@ -3,7 +3,9 @@
 --- !u!78 &1
 TagManager:
   serializedVersion: 3
-  tags: []
+  tags:
+  - Corner
+  - Edge
   layers:
   - Default
   - TransparentFX
@@ -14,7 +16,7 @@ TagManager:
   - 
   - 
   - 
-  - Connector
+  - 
   - 
   - Pickupable
   - 
@@ -22,7 +24,7 @@ TagManager:
   - 
   - 
   - 
-  - 
+  - Structure
   - 
   - 
   - 

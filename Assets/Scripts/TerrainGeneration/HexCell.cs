@@ -58,13 +58,14 @@ public class HexCellEditor : Editor
     private void OnSceneGUI()
     {
         if (cell == null) return;
+        if (cell.Neighbors == null || cell.Neighbors.Length == 0) return;
+        if (cell.CellHexMetrics == null) return;
 
         foreach (var neighbor in cell.Neighbors)
             if (neighbor != null)
                 DrawHexagon(neighbor, Color.blue);
 
         DrawHexagon(cell, Color.green);
-
         DrawData();
     }
 

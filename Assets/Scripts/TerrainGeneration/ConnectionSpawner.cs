@@ -1,24 +1,31 @@
 using System.Collections.Generic;
 using UnityEditor;
 using UnityEngine;
-using UnityEngine.UIElements;
-using static UnityEngine.Rendering.DebugUI.MessageBox;
 
 public class ConnectionSpawner : MonoBehaviour
 {
     [SerializeField] private SO_HexMetrics hexMetrics;
     [SerializeField] private int width = 6;
     [SerializeField] private int height = 6;
-    [SerializeField] private int radius = 6;
     [SerializeField] private HexCell cellPrefab;
+    [SerializeField] private Connector connectorPrefab;
+    [SerializeField] private string cornerTag, edgeTag;
 
     private HexCell[] hexCells;
+    private Dictionary<Vector3, Connector> connectors = new();
 
     public HexCell[] HexCells => hexCells;
     public SO_HexMetrics HexMetrics => hexMetrics;
+    public int Width => width;
+    public int Height => height;
 
     private void Awake()
     {
+        if (string.IsNullOrEmpty(cornerTag))
+            cornerTag = "Corner";
+        if (string.IsNullOrEmpty(edgeTag))
+            edgeTag = "Edge";
+
         CreateGrid();
     }
 
@@ -27,6 +34,7 @@ public class ConnectionSpawner : MonoBehaviour
         DestoryKids();
 
         hexCells = new HexCell[width * height];
+        connectors.Clear();
 
         for (int z = 0, i = 0; z < height; z++)
         {
@@ -39,51 +47,71 @@ public class ConnectionSpawner : MonoBehaviour
 
     private void CreateCell(int x, int z, int i)
     {
-        Vector3 position;
-        position.x = (x + z * 0.5f - z / 2) * (hexMetrics.InnerRadius * 2f);
-        position.y = 0f;
-        position.z = z * (hexMetrics.OuterRadius * 1.5f);
+        Vector3 position = new Vector3(
+            (x + z * 0.5f - z / 2) * (hexMetrics.InnerRadius * 2f),
+            0f,
+            z * (hexMetrics.OuterRadius * 1.5f)
+        );
 
-
-        HexCell cell = hexCells[i] = Instantiate<HexCell>(cellPrefab);
-        cell.transform.SetParent(transform, false);
+        HexCell cell = hexCells[i] = Instantiate(cellPrefab, transform);
         cell.transform.localPosition = position;
         cell.coordinates = HexCoordinates.FromOffsetCoordinates(x, z);
         cell.CellHexMetrics = hexMetrics;
         cell.name = cell.coordinates.ToString();
 
-        if (x > 0)
-        {
-            cell.SetNeighbor(HexDirection.W, hexCells[i - 1]);
-        }
+        if (x > 0) cell.SetNeighbor(HexDirection.W, hexCells[i - 1]);
         if (z > 0)
         {
             if ((z & 1) == 0)
             {
                 cell.SetNeighbor(HexDirection.SE, hexCells[i - width]);
-                if (x > 0)
-                {
-                    cell.SetNeighbor(HexDirection.SW, hexCells[i - width - 1]);
-                }
+                if (x > 0) cell.SetNeighbor(HexDirection.SW, hexCells[i - width - 1]);
             }
             else
             {
                 cell.SetNeighbor(HexDirection.SW, hexCells[i - width]);
-                if (x < width - 1)
-                {
-                    cell.SetNeighbor(HexDirection.SE, hexCells[i - width + 1]);
-                }
+                if (x < width - 1) cell.SetNeighbor(HexDirection.SE, hexCells[i - width + 1]);
+            }
+        }
+
+        CreateConnectors(cell);
+    }
+
+    private void CreateConnectors(HexCell cell)
+    {
+        Vector3[] corners = hexMetrics.Corners;
+        for (int d = 0; d < 6; d++)
+        {
+            Vector3 edgePosition = cell.transform.position + (corners[d] + corners[(d + 1) % 6]) / 2f;
+            Vector3 cornerPosition = cell.transform.position + corners[d];
+
+            if (!connectors.ContainsKey(edgePosition))
+            {
+                Connector edgeConnector = Instantiate(connectorPrefab, edgePosition, Quaternion.identity, transform);
+                edgeConnector.tag = edgeTag;
+                edgeConnector.Connection = Connector.ConnectionType.Edge;
+                connectors[edgePosition] = edgeConnector;
+            }
+
+            if (!connectors.ContainsKey(cornerPosition))
+            {
+                Connector cornerConnector = Instantiate(connectorPrefab, cornerPosition, Quaternion.identity, transform);
+                cornerConnector.tag = cornerTag;
+                cornerConnector.Connection = Connector.ConnectionType.Corner;
+                connectors[cornerPosition] = cornerConnector;
             }
         }
     }
 
     public void DestoryKids()
     {
-        foreach (var item in hexCells)
+        for (int i = transform.childCount - 1; i >= 0; i--)
         {
-            if (item != null)
-                DestroyImmediate(item.gameObject);
+            DestroyImmediate(transform.GetChild(i).gameObject);
         }
+
+        hexCells = null;
+        connectors.Clear();
     }
 }
 
@@ -112,19 +140,6 @@ public class ConnectionSpawnerEditor : Editor
         {
             spawner.DestoryKids();
         }
-    }
-
-    private void OnSceneGUI()
-    {
-        Handles.color = Color.green;
-        List<Vector3> corners = new List<Vector3>();
-
-        foreach (var item in spawner.HexMetrics.Corners)
-        {
-            corners.Add(item + spawner.transform.position);
-        }
-
-        Handles.DrawPolyLine(corners.ToArray());
     }
 }
 #endif

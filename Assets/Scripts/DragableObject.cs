@@ -3,14 +3,14 @@ using UnityEngine;
 [RequireComponent(typeof(SphereCollider))]
 public class DragableObject : MonoBehaviour, IDragable
 {
-    [SerializeField, Range(0, 100)] private float hoverMultiplyer = 1.2f;
+    [SerializeField, Range(0, 100)] private float hoverMultiplier = 1.2f;
     [SerializeField] private float radius = 1f;
 
     [SerializeField, Min(0)] private float displaceHeight = 2f;
-    [SerializeField] private float displaceSmoothing = 1f;
+    [SerializeField] private float displaceSmoothing = 5f;
 
     [SerializeField, Range(0, 90)] private float tiltAngle = 30f;
-    [SerializeField] private float tiltSmoothing = 1f;
+    [SerializeField] private float tiltSmoothing = 5f;
 
     [SerializeField] private LayerMask placementLayer;
     [SerializeField] private LayerMask pickUpLayer;
@@ -20,16 +20,27 @@ public class DragableObject : MonoBehaviour, IDragable
     private SphereCollider hoverCollider;
     private Camera mainCamera;
 
+    private Vector3 targetPosition;
+    private Quaternion targetRotation;
+
     private void Awake()
     {
         SetCollider();
-        if (mainCamera == null)
-            mainCamera = Camera.main;
+        mainCamera = Camera.main;
+        targetPosition = transform.position;
+        targetRotation = transform.rotation;
     }
 
     private void OnValidate() => SetCollider();
 
-    private void OnMouseOver() => transform.localScale = hoverScale * hoverMultiplyer;
+    private void Update()
+    {
+        // Smoothly interpolate position and rotation
+        transform.position = Vector3.Lerp(transform.position, targetPosition, Time.deltaTime * displaceSmoothing);
+        transform.rotation = Quaternion.Slerp(transform.rotation, targetRotation, Time.deltaTime * tiltSmoothing);
+    }
+
+    private void OnMouseOver() => transform.localScale = hoverScale * hoverMultiplier;
 
     private void OnMouseExit() => transform.localScale = hoverScale;
 
@@ -47,7 +58,11 @@ public class DragableObject : MonoBehaviour, IDragable
         hoverCollider.radius = radius;
     }
 
-    public void OnDragStart() => isDragging = true;
+    public void OnDragStart()
+    {
+        isDragging = true;
+        targetPosition = transform.position + new Vector3(0, displaceHeight, 0); // Smooth lift
+    }
 
     public void OnDrag(Vector3 position)
     {
@@ -58,9 +73,35 @@ public class DragableObject : MonoBehaviour, IDragable
         {
             if (hit.collider.gameObject == gameObject) return;
 
-            transform.position = hit.point + new Vector3(0, displaceHeight, 0);
+            Vector3 newTargetPosition = hit.point + new Vector3(0, displaceHeight, 0);
+            Vector3 movementDirection = newTargetPosition - targetPosition;
+
+            // Apply tilt based on movement direction
+            if (movementDirection.magnitude > 0.01f)
+            {
+                Vector3 tiltAxis = Vector3.Cross(movementDirection, Vector3.up).normalized;
+                targetRotation = Quaternion.AngleAxis(tiltAngle, tiltAxis) * Quaternion.identity;
+            }
+            else
+            {
+                targetRotation = Quaternion.identity;
+            }
+
+            targetPosition = newTargetPosition;
         }
     }
 
-    public void OnDragEnd() => isDragging = false;
+    public void OnDragEnd()
+    {
+        isDragging = false;
+
+        // Find the final placement position
+        Ray ray = mainCamera.ScreenPointToRay(Input.mousePosition);
+        if (Physics.Raycast(ray, out RaycastHit hit, Mathf.Infinity, placementLayer, QueryTriggerInteraction.Ignore))
+        {
+            targetPosition = hit.point; // Smoothly move to ground
+        }
+
+        targetRotation = Quaternion.identity; // Reset tilt smoothly
+    }
 }

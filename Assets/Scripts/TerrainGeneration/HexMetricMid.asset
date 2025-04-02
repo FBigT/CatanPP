@@ -12,3 +12,4 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a05a4898910b9c241818d71868debc96, type: 3}
   m_Name: HexMetricMid
   m_EditorClassIdentifier: 
+  outerRadius: 6
