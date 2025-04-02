@@ -71,7 +71,7 @@ public class UserManager : MonoBehaviour
 
     private IEnumerator CreateGuestRequest()
     {
-        UnityWebRequest request = new(EndpointUtils.BaseUrl, "POST")
+        UnityWebRequest request = new(EndpointUtils.RegisterGuest, "POST")
         {
             downloadHandler = new DownloadHandlerBuffer()
         };
