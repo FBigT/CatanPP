@@ -14,6 +14,7 @@ import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -30,6 +31,7 @@ public class UserController {
     private final TokenService tokenService;
     private final GuestKeyService guestKeyService;
     private final PlayerProfileService playerProfileService;
+    private final BCryptPasswordEncoder encoder = new BCryptPasswordEncoder();
 
     public UserController(AuthenticationManager authenticationManager, UserService userService, Mapper mapper, TokenService tokenService, GuestKeyService guestKeyService, PlayerProfileService playerProfileService) {
         this.authenticationManager = authenticationManager;
@@ -109,8 +111,8 @@ public class UserController {
     @PostMapping("/register/guest")
     public ResponseEntity<GuestRegisterResponse> createGuest() {
         User guest = userService.createGuest();
-        GuestKey guestKey = guestKeyService.createGuestKey(guest);
-        return new ResponseEntity<>(new GuestRegisterResponse(guest.getId(), guest.getUsername(), guestKey.getKey()), HttpStatus.CREATED);
+        String key = guestKeyService.createGuestKey(guest);
+        return new ResponseEntity<>(new GuestRegisterResponse(guest.getId(), guest.getUsername(), key), HttpStatus.CREATED);
     }
 
     @DeleteMapping("/{id}")

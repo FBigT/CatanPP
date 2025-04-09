@@ -61,7 +61,6 @@ public class UserService {
         guestUser.setActive(true);
         guestUser.setPasswordHash(null);
         guestUser.setCreatedAt(LocalDateTime.now());
-
         StringBuilder sb = new StringBuilder ();
 
         do{
