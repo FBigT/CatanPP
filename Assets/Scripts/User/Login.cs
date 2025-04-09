@@ -15,7 +15,7 @@ public class Login : MonoBehaviour
     public Button btnRegister;
     public Button btnGuest;
 
-    void Start()
+    void Awake()
     {
         UserManager userManager = this.AddComponent<UserManager>();
         firstInput.Select();

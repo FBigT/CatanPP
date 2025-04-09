@@ -17,7 +17,7 @@ public class Register : MonoBehaviour
     public Button btnLogin;
     public Button btnRegister;
 
-    void Start()
+    void Awake()
     {
         UserManager userManager = this.AddComponent<UserManager>();
         RegisterPanel.SetActive(false);

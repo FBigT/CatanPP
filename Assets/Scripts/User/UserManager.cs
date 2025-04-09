@@ -27,7 +27,8 @@ public class UserManager : MonoBehaviour
         if (request.result == UnityWebRequest.Result.Success)
         {
             Debug.Log(request.downloadHandler.text);
-            JsonUtility.FromJson<LoginResponse>(request.downloadHandler.text);
+            LoginResponse response = JsonUtility.FromJson<LoginResponse>(request.downloadHandler.text);
+            PlayerPrefs.SetString("token", response.Token);
         }
         else
         {
@@ -83,7 +84,6 @@ public class UserManager : MonoBehaviour
         if (request.result == UnityWebRequest.Result.Success)
         {
             Debug.Log(request.downloadHandler.text);
-            JsonUtility.FromJson<LoginResponse>(request.downloadHandler.text);
         }
         else
         {
@@ -105,6 +105,44 @@ public class UserManager : MonoBehaviour
         if (request.result == UnityWebRequest.Result.Success)
         {
             Debug.Log("Users: " + request.downloadHandler.text);
+        }
+        else
+        {
+            Debug.LogError("Error Fetching Users: " + request.error);
+        }
+    }
+
+    public void GetPlayerProfileByUsername(string username) {
+        StartCoroutine(GetPlayerProfileByUsernameRequest(username));
+    }
+
+    private IEnumerator GetPlayerProfileByUsernameRequest(string username) {
+        UnityWebRequest request = UnityWebRequest.Get(EndpointUtils.GetPlayerPorfileByUsername(username));
+        yield return request.SendWebRequest();
+
+        if (request.result == UnityWebRequest.Result.Success)
+        {
+            Debug.Log(request.downloadHandler.text);
+        }
+        else
+        {
+            Debug.LogError("Error Fetching Users: " + request.error);
+        }
+    }
+
+    public void GetPlayerProfileById(long id)
+    {
+        StartCoroutine(GetPlayerProfileByIdRequest(id));
+    }
+
+    private IEnumerator GetPlayerProfileByIdRequest(long id)
+    {
+        UnityWebRequest request = UnityWebRequest.Get(EndpointUtils.GetPlayerPorfileById(id));
+        yield return request.SendWebRequest();
+
+        if (request.result == UnityWebRequest.Result.Success)
+        {
+            Debug.Log(request.downloadHandler.text);
         }
         else
         {
