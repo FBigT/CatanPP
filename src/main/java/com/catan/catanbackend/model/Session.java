@@ -18,6 +18,7 @@ public class Session {
         this.maxPlayers = maxPlayers;
         startedAt = OffsetDateTime.now();
         active = true;
+        turnNumber = 0;
     }
 
     @Id
@@ -37,7 +38,11 @@ public class Session {
 
     @NotNull
     @Column(name = "started_at", nullable = false)
-    private OffsetDateTime startedAt = OffsetDateTime.now();
+    private OffsetDateTime startedAt;
+
+    @NotNull
+    @Column(name = "turn_number", nullable = false)
+    private Integer turnNumber;
 
     @NotNull
     @ColumnDefault("4")

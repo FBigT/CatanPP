@@ -99,6 +99,10 @@ public class SessionService {
         return true;
     }
 
+    public List<Session> getSessionsByHostId(Long hostId) {
+        return sessionRepository.findByHostId(hostId);
+    }
+
     private String generateSessionCode() {
         int leftLimit = 48; // '0'
         int rightLimit = 122; // 'z'

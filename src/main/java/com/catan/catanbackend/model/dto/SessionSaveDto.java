@@ -4,10 +4,13 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.time.OffsetDateTime;
+
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class SessionDto {
-    Long id;
-    String code;
+public class SessionSaveDto {
+    String name;
+    Integer turnNumber;
+    OffsetDateTime saveTime;
 }
