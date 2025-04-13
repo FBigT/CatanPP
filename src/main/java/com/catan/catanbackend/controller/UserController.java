@@ -1,15 +1,14 @@
 package com.catan.catanbackend.controller;
 
 
-import com.catan.catanbackend.model.GuestKey;
-import com.catan.catanbackend.model.PlayerProfile;
-import com.catan.catanbackend.model.User;
-import com.catan.catanbackend.model.UserDetailsImpl;
+import com.catan.catanbackend.model.*;
 import com.catan.catanbackend.model.dto.*;
 import com.catan.catanbackend.service.*;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
@@ -28,18 +27,20 @@ public class UserController {
     private final AuthenticationManager authenticationManager;
     private final UserService userService;
     private final Mapper mapper;
+    private final RefreshTokenService refreshTokenService;
     private final TokenService tokenService;
     private final GuestKeyService guestKeyService;
     private final PlayerProfileService playerProfileService;
     private final BCryptPasswordEncoder encoder = new BCryptPasswordEncoder();
 
-    public UserController(AuthenticationManager authenticationManager, UserService userService, Mapper mapper, TokenService tokenService, GuestKeyService guestKeyService, PlayerProfileService playerProfileService) {
+    public UserController(AuthenticationManager authenticationManager, UserService userService, Mapper mapper, TokenService tokenService, GuestKeyService guestKeyService, PlayerProfileService playerProfileService, RefreshTokenService refreshTokenService) {
         this.authenticationManager = authenticationManager;
         this.userService = userService;
         this.mapper = mapper;
         this.tokenService = tokenService;
         this.guestKeyService = guestKeyService;
         this.playerProfileService = playerProfileService;
+        this.refreshTokenService = refreshTokenService;
     }
 
     @PostMapping("/login")
@@ -58,11 +59,11 @@ public class UserController {
         }
 
         String jwt = tokenService.generateJwtToken(authentication);
-        return new ResponseEntity<>(new LogInResponse(userDetails.getId(), userDetails.getUsername(), jwt), HttpStatus.OK);
+        return new ResponseEntity<>(new LogInResponse(userDetails.getId(), userDetails.getUsername(), jwt, refreshTokenService.createIfNotExists(user.get()).getToken()), HttpStatus.OK);
     }
 
-    @PostMapping("/login/guest/{key}")
-    public ResponseEntity<LogInResponse> guestLogin(@PathVariable String key) {
+    @PostMapping("/login/guest")
+    public ResponseEntity<LogInResponse> guestLogin(@RequestBody String key) {
         Optional<GuestKey> guestKey = guestKeyService.findByKey(key);
 
         if (guestKey.isEmpty() || Boolean.FALSE.equals(guestKey.get().getGuest().getActive())) {
@@ -77,7 +78,30 @@ public class UserController {
 
         String jwt = tokenService.generateJwtToken(authentication);
 
-        return new ResponseEntity<>(new LogInResponse(userDetails.getId(), userDetails.getUsername(), jwt), HttpStatus.OK);
+        return new ResponseEntity<>(new LogInResponse(userDetails.getId(), userDetails.getUsername(), jwt,refreshTokenService.createIfNotExists(guestKey.get().getGuest()).getToken()), HttpStatus.OK);
+    }
+
+    @PostMapping("/refresh")
+    public ResponseEntity<LogInResponse> refreshToken(@RequestBody String refreshToken){
+        Optional<RefreshToken> existingToken = refreshTokenService.getRefreshTokenByToken(refreshToken);
+        if (existingToken.isEmpty()) {
+            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+        }
+
+        if (!refreshTokenService.tokenIsValid(existingToken.get())) {
+            return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
+        }
+
+        UserDetailsImpl userDetails = UserDetailsImpl.build(existingToken.get().getUser());
+
+        UsernamePasswordAuthenticationToken authentication =
+                new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
+
+        SecurityContextHolder.getContext().setAuthentication(authentication);
+
+        String jwt = tokenService.generateJwtToken(authentication);
+
+        return new ResponseEntity<>(new LogInResponse(userDetails.getId(), userDetails.getUsername(), jwt, refreshToken), HttpStatus.OK);
     }
 
     //@PreAuthorize("isAuthenticated()")
@@ -143,6 +167,21 @@ public class UserController {
         user.get().setUsername(userDto.getUsername());
         User updatedUser = userService.updateUser(user.get());
         return new ResponseEntity<>(mapper.mapUserToDto(updatedUser), HttpStatus.OK);
+    }
+
+    @PreAuthorize("isAuthenticated()")
+    @GetMapping("/profile")
+    public ResponseEntity<PlayerProfile> getCurrentPlayerProfileByUserId(@RequestHeader (name="Authorization") String token) {
+        Long userId = tokenService.getUserIdFromJwtToken(token.split(" ")[1]);
+        Optional<User> user = userService.findById(userId);
+
+        if (user.isEmpty()){
+            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+        }
+
+        return playerProfileService.getPlayerProfileByUserId(userId)
+                .map(playerProfile -> new ResponseEntity<>(playerProfile, HttpStatus.OK))
+                .orElseGet(() -> new ResponseEntity<>(HttpStatus.NOT_FOUND));
     }
 
     @GetMapping("/profile/{id}")

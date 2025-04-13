@@ -3,7 +3,7 @@ package com.catan.catanbackend.service;
 import com.catan.catanbackend.model.*;
 import com.catan.catanbackend.model.dto.RegisterForm;
 import com.catan.catanbackend.model.dto.SessionCodeDto;
-import com.catan.catanbackend.model.dto.SessionSaveDto;
+import com.catan.catanbackend.model.dto.SessionSaveSimpleDto;
 import com.catan.catanbackend.model.dto.UserDto;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -50,8 +50,8 @@ public class Mapper {
         return sessionCodeDto;
     }
 
-    public SessionSaveDto mapSessionToSaveDto(SessionSave session) {
-        return new SessionSaveDto(session.getName(), session.getTurnNumber(), session.getSavedAt());
+    public SessionSaveSimpleDto mapSessionSaveToSaveDto(SessionSave session) {
+        return new SessionSaveSimpleDto(session.getId(), session.getName(), session.getTurnNumber(), session.getSavedAt());
     }
 
     public ResourceGroup mapSessionPlayerToResource(SessionPlayer player) {

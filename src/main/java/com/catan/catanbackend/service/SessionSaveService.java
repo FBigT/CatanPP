@@ -6,6 +6,7 @@ import com.catan.catanbackend.repository.SessionSaveRepository;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.Optional;
 
 @Service
 public class SessionSaveService {
@@ -16,7 +17,16 @@ public class SessionSaveService {
     }
 
     public SessionSave save(String saveName, Session session) {
-        return repository.save(new SessionSave(saveName, session, session.getTurnNumber()));
+        return repository.saveAndFlush(new SessionSave(saveName, session, session.getTurnNumber()));
+    }
+
+    public Optional<SessionSave> findById(Long id){
+        return repository.findById(id);
+    }
+
+    public void deleteSave(Long saveId) {
+        repository.deleteById(saveId);
+        repository.flush();
     }
 
     public List<SessionSave> getSavesByHostId(Long hostId) {

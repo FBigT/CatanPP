@@ -9,7 +9,8 @@ import java.time.OffsetDateTime;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class SessionSaveDto {
+public class SessionSaveSimpleDto {
+    Long id;
     String name;
     Integer turnNumber;
     OffsetDateTime saveTime;
