@@ -46,30 +46,33 @@ public class PlayerProfile {
     @NotNull
     @ColumnDefault("0")
     @Column(name = "games_lost", nullable = false)
-    private Integer gamesLost;
+    private Integer gamesLost = 0;
 
     @NotNull
     @ColumnDefault("0")
     @Column(name = "turns_taken", nullable = false)
-    private Integer turnsTaken;
+    private Integer turnsTaken = 0;
 
     @NotNull
     @ColumnDefault("0")
     @Column(name = "resources_gathered", nullable = false)
-    private Integer resourcesGathered;
+    private Integer resourcesGathered = 0;
 
     @NotNull
     @ColumnDefault("0")
     @Column(name = "structures_placed", nullable = false)
-    private Integer structuresPlaced;
+    private Integer structuresPlaced = 0;
 
     @NotNull
     @ColumnDefault("0")
     @Column(name = "roads_placed", nullable = false)
-    private Integer roadsPlaced;
+    private Integer roadsPlaced = 0;
 
     @NotNull
     @ColumnDefault("0")
     @Column(name = "skins_unlocked", nullable = false)
     private Integer skinsUnlocked = 0;
+
+    @Embedded
+    private ResourceGroup resources = new ResourceGroup();
 }
