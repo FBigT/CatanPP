@@ -1,11 +1,15 @@
-using UnityEngine;
-using UnityEngine.UI;
-using UnityEngine.EventSystems;
+using Assets.Scripts.User;
+using Assets.Scripts.Utils;
 using TMPro;
 using Unity.VisualScripting;
+using UnityEngine;
+using UnityEngine.EventSystems;
+using UnityEngine.SceneManagement;
+using UnityEngine.UI;
 
 public class Login : MonoBehaviour
 {
+    UserManager userManager;
     EventSystem _eventSystem;
 
     public TMP_InputField ifUsername;
@@ -14,17 +18,23 @@ public class Login : MonoBehaviour
     public Button btnLogin;
     public Button btnRegister;
     public Button btnGuest;
+    public TMP_Text errorMessage;
 
     void Awake()
     {
-        UserManager userManager = this.AddComponent<UserManager>();
+        userManager = this.AddComponent<UserManager>();
         firstInput.Select();
         _eventSystem = EventSystem.current;
-        btnLogin.onClick.AddListener(() => userManager.Login(ifUsername.text, ifPassword.text));
+        btnLogin.onClick.AddListener(() => {
+            SetErrorMessage("");
+            userManager.Login(new LoginForm(ifUsername.text, ifPassword.text), LoginSuccess, SetErrorMessage);
+        });
         btnGuest.onClick.AddListener(() => {
-            userManager.CreateGuest();
+            SetErrorMessage("");
+            userManager.CreateGuest(GuestOnSuccess, SetErrorMessage);
             btnGuest.interactable = false;
         });
+        LoginGuest();
     }
 
     void Update()
@@ -48,5 +58,26 @@ public class Login : MonoBehaviour
         {
             btnLogin.onClick.Invoke();
         }
+    }
+
+    private void LoginSuccess(LoginResponse response) {
+        LocalStorageService.SetVariable("token", response.token);
+        SceneManager.LoadScene("MainMenu");
+    }
+
+    private void LoginGuest() {
+        if (LocalStorageService.GetString("guest-code") != null)
+        {
+            userManager.GuestLogin(LocalStorageService.GetString("guest-code"), LoginSuccess, SetErrorMessage);
+        }
+    }
+
+    private void GuestOnSuccess(GuestRegisterResponse guestResponse) {
+        LocalStorageService.SetVariable("guest-code", guestResponse.guestKey);
+        LoginGuest();
+    }
+
+    private void SetErrorMessage(string error){
+        errorMessage.text = error;
     }
 }

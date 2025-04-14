@@ -7,15 +7,16 @@ using UnityEngine.UI;
 public class MainMenu : MonoBehaviour
 {
     public Button btnStartGame;
-    public TMP_Text sessionCode;
-    public Button btnJoinGame;
+    public Button btnCancleSearchGame;
     public Button btnProfile;
 
-    // Start is called once before the first execution of Update after the MonoBehaviour is created
     void Awake()
     {
         UserManager userManager = this.AddComponent<UserManager>();
-        SessionService sessionService = this.AddComponent<SessionService>();
-        
+        SessionManager sessionService = this.AddComponent<SessionManager>();
+
+        if (LocalStorageService.GetString("guest-code") != null) { 
+            btnProfile.gameObject.SetActive(false);
+        }
     }
 }

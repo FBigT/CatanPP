@@ -1,26 +1,20 @@
 using System.Collections;
 using UnityEngine;
 using UnityEngine.Networking;
-using System.Text;
 using Assets.Scripts.User;
 using Assets.Scripts.Utils;
+using System;
 
 public class UserManager : MonoBehaviour
 {
-    public void Login(string username, string password)
+    public void Login(LoginForm loginForm, Action<LoginResponse> onSuccess, Action<string> onFail)
     {
-        StartCoroutine(LoginRequest(new LoginForm(username, password)));
+        StartCoroutine(LoginRequest(loginForm, onSuccess, onFail));
     }
 
-    private IEnumerator LoginRequest(LoginForm form)
+    private IEnumerator LoginRequest(LoginForm form, Action<LoginResponse> onSuccess, Action<string> onFail)
     {
-        UnityWebRequest request = new(EndpointUtils.Login, "POST")
-        {
-            uploadHandler = new UploadHandlerRaw(Encoding.UTF8.GetBytes(JsonUtility.ToJson(form))),
-            downloadHandler = new DownloadHandlerBuffer()
-        };
-
-        request.SetRequestHeader("Content-Type", "application/json");
+        UnityWebRequest request = RequestService.ConstructSimpleWebRequest(EndpointUtils.Login, Methods.POST, false, JsonUtility.ToJson(form));
 
         yield return request.SendWebRequest();
 
@@ -28,7 +22,7 @@ public class UserManager : MonoBehaviour
         {
             Debug.Log(request.downloadHandler.text);
             LoginResponse response = JsonUtility.FromJson<LoginResponse>(request.downloadHandler.text);
-            PlayerPrefs.SetString("token", response.Token);
+            
         }
         else
         {
@@ -37,57 +31,68 @@ public class UserManager : MonoBehaviour
     }
 
     // Create a new user
-    public void CreateUser(string username, string email, string password)
+    public void CreateUser(RegisterForm registerForm, Action onSuccess, Action<string> onFail)
     {
-        StartCoroutine(CreateUserRequest(new RegisterForm(username, email, password)));
+        StartCoroutine(CreateUserRequest(registerForm, onSuccess, onFail));
     }
 
-    private IEnumerator CreateUserRequest(RegisterForm form)
+    private IEnumerator CreateUserRequest(RegisterForm form, Action onSuccess, Action<string> onFail)
     {
-        string v = JsonUtility.ToJson(form);
-        UnityWebRequest request = new(EndpointUtils.Register, "POST")
-        {
-            uploadHandler = new UploadHandlerRaw(Encoding.UTF8.GetBytes(JsonUtility.ToJson(form))),
-            downloadHandler = new DownloadHandlerBuffer()
-        };
+        UnityWebRequest request = RequestService.ConstructSimpleWebRequest(EndpointUtils.Register, Methods.POST, false, JsonUtility.ToJson(form));
         
-        request.SetRequestHeader("Content-Type", "application/json");
+        yield return request.SendWebRequest();
+
+        if (request.result == UnityWebRequest.Result.Success)
+        {
+            onSuccess?.Invoke();
+        }
+        else
+        {
+            onFail?.Invoke(request.error);
+        }
+    }
+
+    public void CreateGuest(Action<GuestRegisterResponse> onSuccess, Action<string> onFail)
+    {
+        StartCoroutine(CreateGuestRequest(onSuccess, onFail));
+    }
+
+    private IEnumerator CreateGuestRequest(Action<GuestRegisterResponse> onSuccess, Action<string> onFail)
+    {
+        UnityWebRequest request = RequestService.ConstructSimpleWebRequest(EndpointUtils.RegisterGuest, Methods.POST, false, null);
+        
+        yield return request.SendWebRequest();
+
+        if (request.result == UnityWebRequest.Result.Success)
+        {
+            GuestRegisterResponse guestResponse = JsonUtility.FromJson<GuestRegisterResponse>(request.downloadHandler.text);
+            onSuccess?.Invoke(guestResponse);
+        }
+        else
+        {
+            onFail?.Invoke(request.error);
+        }
+    }
+
+    public void GuestLogin(string guestCode, Action<LoginResponse> onSuccess, Action<string> onFail)
+    {
+        StartCoroutine(GuestLoginRequest(guestCode, onSuccess, onFail));
+    }
+
+    private IEnumerator GuestLoginRequest(string guestCode, Action<LoginResponse> onSuccess, Action<string> onFail)
+    {
+        UnityWebRequest request = RequestService.ConstructSimpleWebRequest(EndpointUtils.GuestLogin(), Methods.POST, false, JsonUtility.ToJson(guestCode));
 
         yield return request.SendWebRequest();
 
         if (request.result == UnityWebRequest.Result.Success)
         {
-            Debug.Log("User Created: " + request.downloadHandler.text);
+            LoginResponse loginResponse = JsonUtility.FromJson<LoginResponse>(request.downloadHandler.text);
+            onSuccess?.Invoke(loginResponse);
         }
         else
         {
-            Debug.LogError("Error Creating User: " + request.error);
-        }
-    }
-
-    public void CreateGuest()
-    {
-        StartCoroutine(CreateGuestRequest());
-    }
-
-    private IEnumerator CreateGuestRequest()
-    {
-        UnityWebRequest request = new(EndpointUtils.RegisterGuest, "POST")
-        {
-            downloadHandler = new DownloadHandlerBuffer()
-        };
-
-        request.SetRequestHeader("Content-Type", "application/json");
-
-        yield return request.SendWebRequest();
-
-        if (request.result == UnityWebRequest.Result.Success)
-        {
-            Debug.Log(request.downloadHandler.text);
-        }
-        else
-        {
-            Debug.LogError("Error Creating User: " + request.error);
+            onFail?.Invoke(request.error);
         }
     }
 
@@ -117,7 +122,7 @@ public class UserManager : MonoBehaviour
     }
 
     private IEnumerator GetPlayerProfileByUsernameRequest(string username) {
-        UnityWebRequest request = UnityWebRequest.Get(EndpointUtils.GetPlayerPorfileByUsername(username));
+        UnityWebRequest request = RequestService.ConstructSimpleWebRequest(EndpointUtils.GetPlayerPorfileByUsername(username), Methods.GET, true, null);
         yield return request.SendWebRequest();
 
         if (request.result == UnityWebRequest.Result.Success)
@@ -130,6 +135,27 @@ public class UserManager : MonoBehaviour
         }
     }
 
+    public void GetCurrentPlayerProfile(Action<PlayerProfile> onSuccess, Action<string> onFail)
+    {
+        StartCoroutine(GetCurrentPlayerProfileRequest(onSuccess, onFail));
+    }
+
+    private IEnumerator GetCurrentPlayerProfileRequest(Action<PlayerProfile> onSuccess, Action<string> onFail)
+    {
+        UnityWebRequest request = RequestService.ConstructSimpleWebRequest(EndpointUtils.Proflie, Methods.GET, true, null);
+        yield return request.SendWebRequest();
+
+        if (request.result == UnityWebRequest.Result.Success)
+        {
+            PlayerProfile playerProfile = JsonUtility.FromJson<PlayerProfile>(request.downloadHandler.text);
+            onSuccess?.Invoke(playerProfile);
+        }
+        else
+        {
+            onFail?.Invoke(request.error);
+        }
+    }
+
     public void GetPlayerProfileById(long id)
     {
         StartCoroutine(GetPlayerProfileByIdRequest(id));
@@ -137,7 +163,7 @@ public class UserManager : MonoBehaviour
 
     private IEnumerator GetPlayerProfileByIdRequest(long id)
     {
-        UnityWebRequest request = UnityWebRequest.Get(EndpointUtils.GetPlayerPorfileById(id));
+        UnityWebRequest request = RequestService.ConstructSimpleWebRequest(EndpointUtils.GetPlayerPorfileById(id), Methods.GET, true, null);
         yield return request.SendWebRequest();
 
         if (request.result == UnityWebRequest.Result.Success)

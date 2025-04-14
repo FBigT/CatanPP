@@ -1,10 +1,13 @@
-﻿namespace Assets.Scripts.User
+﻿using System;
+
+namespace Assets.Scripts.User
 {
+    [Serializable]
     public class LoginResponse
     {
-        public string Username { get; set; }
-        public string TokenType { get; set; }
-        public long UserId { get; set; }
-        public string Token { get; set; }
+        public string username;
+        public string tokenType;
+        public long userId;
+        public string token;
     }
 }

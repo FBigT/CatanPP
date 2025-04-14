@@ -1,6 +1,4 @@
-﻿using UnityEditor;
-
-namespace Assets.Scripts.Utils
+﻿namespace Assets.Scripts.Utils
 {
     public static class EndpointUtils
     {
@@ -11,6 +9,7 @@ namespace Assets.Scripts.Utils
         public static string Login { get; } = Users + "/login";
         public static string Register { get; } = Users + "/register";
         public static string RegisterGuest { get; } = Register + "/guest";
+        public static string Proflie { get; } = Users + "/profile";
 
         public static string GetUserByUsername(string username) { 
             return Users + "/" + username;
@@ -21,8 +20,8 @@ namespace Assets.Scripts.Utils
             return Users + "/" + id;
         }
 
-        public static string GuestLogin(string key) { 
-            return Login + "/guest/" + key;
+        public static string GuestLogin() { 
+            return Login + "/guest";
         }
 
         public static string DeactivateUser(long id) {
@@ -34,22 +33,27 @@ namespace Assets.Scripts.Utils
         }
 
         public static string GetPlayerPorfileById(long id) { 
-            return Users + "/profile/" + id;
+            return Proflie + "/" + id;
         }
 
-        public static string GetPlayerPorfileByUsername(string username)
-        {
-            return Users + "/profile/" + username;
+        public static string GetPlayerPorfileByUsername(string username){
+            return Proflie + "/" + username;
         }
 
         //Session
         public static string Sessions {  get; } = BaseUrl + "/sessions";
+        public static string SessionSaves {  get; } = Sessions + "/saves";
+        public static string Save {  get; } = Sessions + "/save";
         public static string CreateSessions(int numberOfPlayers) { 
             return Sessions + "/" + numberOfPlayers;
         }
 
         public static string JoinSession(string code) { 
             return Sessions + "/join/" + code;
+        }
+
+        public static string DeleteSessionSave(long id) {
+            return Save + "/" + id;
         }
 
         //Dice

@@ -1,9 +1,12 @@
-﻿namespace Assets.Scripts.User
+﻿using System;
+
+namespace Assets.Scripts.User
 {
+    [Serializable]
     public class GuestRegisterResponse
     {
-        public long GuestId { get; set; }
-        public string Username { get; set; }
-        public string GuestKey { get; set; }
+        public long guestId;
+        public string username;
+        public string guestKey;
     }
 }

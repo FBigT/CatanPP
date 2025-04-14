@@ -3,6 +3,7 @@ using UnityEngine.UI;
 using UnityEngine.EventSystems;
 using TMPro;
 using Unity.VisualScripting;
+using Assets.Scripts.User;
 
 public class Register : MonoBehaviour
 {
@@ -13,17 +14,19 @@ public class Register : MonoBehaviour
     public TMP_InputField ifUsername;
     public TMP_InputField ifPassword;
     public Selectable firstInput;
-    public GameObject RegisterPanel;
+    public GameObject loginPanel;
+    public GameObject registerPanel;
     public Button btnLogin;
     public Button btnRegister;
+    public TMP_Text errorMessage;
 
     void Awake()
     {
         UserManager userManager = this.AddComponent<UserManager>();
-        RegisterPanel.SetActive(false);
+        registerPanel.SetActive(false);
         firstInput.Select();
         _eventSystem = EventSystem.current;
-        btnRegister.onClick.AddListener(() => userManager.CreateUser(ifUsername.text, ifEmail.text, ifPassword.text));
+        btnRegister.onClick.AddListener(() => userManager.CreateUser(new RegisterForm(ifUsername.text, ifEmail.text, ifPassword.text), BackToLoginPanel, DisplayError));
     }
 
     void Update()
@@ -48,5 +51,14 @@ public class Register : MonoBehaviour
         {
             btnRegister.onClick.Invoke();
         }
+    }
+
+    private void BackToLoginPanel() { 
+        registerPanel.SetActive(false);
+        loginPanel.SetActive(true);
+    }
+
+    private void DisplayError(string error) { 
+        errorMessage.text = error;
     }
 }
