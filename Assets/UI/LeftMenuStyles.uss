@@ -1,0 +1,57 @@
+/***************
+ * LEFT MENU
+ ***************/
+
+/* The container anchored near bottom-left */
+.left-menu {
+    position: absolute;
+    bottom: 10px;
+    left: 10px;
+    display: flex;
+    flex-direction: column;  /* Stack panels vertically */
+    gap: 10px;               /* Spacing between panels */
+}
+
+/* Panel that holds all the purchase buttons */
+.purchase-panel {
+    background-color: rgba(0, 0, 0, 0.6);
+    border: 2px solid rgba(255, 255, 255, 0.2);
+    border-radius: 8px;
+    padding: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;  /* Space between buttons */
+    min-width: 120px;
+}
+
+/* Common button style for purchase actions */
+.purchase-button {
+    font-size: 14px;
+    color: white;
+    background-color: rgba(255, 215, 0, 0.2); /* Light gold tint */
+    border: 1px solid rgba(255, 215, 0, 0.5);
+    border-radius: 4px;
+    padding: 6px 10px;
+    text-align: center;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+}
+
+/* On hover, intensify the gold color */
+.purchase-button:hover {
+    background-color: rgba(255, 215, 0, 0.4);
+}
+
+/* Dev card panel: more or less the same structure, can be scrolled if needed */
+.devcard-panel {
+    background-color: rgba(30, 30, 30, 0.8);
+    border: 2px solid rgba(255, 255, 255, 0.2);
+    border-radius: 8px;
+    padding: 10px;
+    min-width: 120px;
+    min-height: 60px; /* Enough space to place dev cards or placeholders */
+    display: flex;
+    flex-direction: row;   /* If you want cards side-by-side */
+    gap: 6px;
+    overflow-x: auto;      /* If you might have many dev cards */
+}

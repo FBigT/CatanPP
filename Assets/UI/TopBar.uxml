@@ -1,5 +1,6 @@
 <engine:UXML xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:engine="UnityEngine.UIElements" xmlns:editor="UnityEditor.UIElements" noNamespaceSchemaLocation="../../UIElementsSchema/UIElements.xsd" editor-extension-mode="True">
     <Style src="project://database/Assets/UI/TopBarStyles.uss?fileID=7433441132597879392&amp;guid=87cf812f84cae0f48947416b72bdb86e&amp;type=3#TopBarStyles" />
+    <Style src="project://database/Assets/UI/LeftMenuStyles.uss?fileID=7433441132597879392&amp;guid=eabe73bf616f0be41bdc8d2ac3e57f2f&amp;type=3#LeftMenuStyles" />
     <engine:VisualElement name="TopBarContainer" class="top-bar" style="flex-grow: 1;">
         <engine:VisualElement name="LumberContainer" class="resource-item" style="flex-grow: 1;">
             <engine:VisualElement name="LumberIcon" class="resource-icon lumber-icon" style="flex-grow: 1;" />
@@ -33,5 +34,14 @@
             <engine:VisualElement name="ObsidianIcon" class="resource-icon obsidian-icon" style="flex-grow: 1;" />
             <engine:Label text="Label" name="ObsidianCount" class="resource-label" />
         </engine:VisualElement>
+    </engine:VisualElement>
+    <engine:VisualElement name="LeftMenuContainer" class="left-menu" style="flex-grow: 1;">
+        <engine:VisualElement name="PurchasePanel" class="purchase-panel" style="flex-grow: 1;">
+            <engine:Button text="Buy Road" name="BuyRoadButton" class="purchase-button" />
+            <engine:Button text="Buy Settlement" name="BuySettlementButton" class="purchase-button" />
+            <engine:Button text="Buy City" name="BuyCityButton" class="purchase-button" />
+            <engine:Button text="Buy Dev Card" name="BuyDevCardButton" class="purchase-button" />
+        </engine:VisualElement>
+        <engine:VisualElement name="DevCardPanel" class="devcard-panel" style="flex-grow: 1;" />
     </engine:VisualElement>
 </engine:UXML>

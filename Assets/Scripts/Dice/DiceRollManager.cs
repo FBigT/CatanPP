@@ -60,8 +60,10 @@ public class DiceRollManager : MonoBehaviour
             resultText.text = "You rolled: " + total;
             Debug.Log($"🎲 Final Dice Results: {dice1Result} + {dice2Result} = {total}");
 
+            // Keep your old "POST total to the server" logic:
             StartCoroutine(SendResultToBackend(total));
 
+            // Destroy dice after some delay
             Destroy(dice1, 5f);
             Destroy(dice2, 5f);
         }
@@ -81,6 +83,13 @@ public class DiceRollManager : MonoBehaviour
         else
         {
             Debug.Log("✅ Dice result sent successfully!");
+
+            // OPTIONAL: If the server updates resources, you might want to refresh your TopBar:
+            TopBarUI topBar = FindObjectOfType<TopBarUI>();
+            if (topBar != null)
+            {
+                StartCoroutine(topBar.FetchAndUpdateResources());
+            }
         }
     }
 }
