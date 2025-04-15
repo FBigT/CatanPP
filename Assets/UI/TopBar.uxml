@@ -1,13 +1,37 @@
 <engine:UXML xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:engine="UnityEngine.UIElements" xmlns:editor="UnityEditor.UIElements" noNamespaceSchemaLocation="../../UIElementsSchema/UIElements.xsd" editor-extension-mode="True">
     <Style src="project://database/Assets/UI/TopBarStyles.uss?fileID=7433441132597879392&amp;guid=87cf812f84cae0f48947416b72bdb86e&amp;type=3#TopBarStyles" />
     <engine:VisualElement name="TopBarContainer" class="top-bar" style="flex-grow: 1;">
-        <engine:Label text="🌲 0" name="Lumber" class="resource-box" />
-        <engine:Label text="🐑 0" name="Wool" class="resource-box" />
-        <engine:Label text="🌾 0" name="Grain" class="resource-box" />
-        <engine:Label text="🧱 0" name="Bricks" class="resource-box" />
-        <engine:Label text="⛏️ 0" name="Ore" class="resource-box" />
-        <engine:Label text=" 🥈 0" name="Silver" class="resource-box" />
-        <engine:Label text="💰 0" name="Gold" class="resource-box" />
-        <engine:Label text="⬛ 0" name="Obsidian" class="resource-box" />
+        <engine:VisualElement name="LumberContainer" class="resource-item" style="flex-grow: 1;">
+            <engine:VisualElement name="LumberIcon" class="resource-icon lumber-icon" style="flex-grow: 1;" />
+            <engine:Label text="Label" name="LumberCount" class="resource-label" />
+        </engine:VisualElement>
+        <engine:VisualElement name="WoolContainer" class="resource-item" style="flex-grow: 1;">
+            <engine:VisualElement name="WoolIcon" class="resource-icon wool-icon" style="flex-grow: 1;" />
+            <engine:Label text="Label" name="WoolCount" class="resource-label" />
+        </engine:VisualElement>
+        <engine:VisualElement name="GrainContainer" class="resource-item" style="flex-grow: 1;">
+            <engine:VisualElement name="GrainIcon" class="resource-icon grain-icon" style="flex-grow: 1;" />
+            <engine:Label text="Label" name="GrainCount" class="resource-label" />
+        </engine:VisualElement>
+        <engine:VisualElement name="BricksContainer" class="resource-item" style="flex-grow: 1;">
+            <engine:VisualElement name="BricksIcon" class="resource-icon bricks-icon" style="flex-grow: 1;" />
+            <engine:Label text="Label" name="BricksCount" class="resource-label" />
+        </engine:VisualElement>
+        <engine:VisualElement name="OreContainer" class="resource-item" style="flex-grow: 1;">
+            <engine:VisualElement name="OreIcon" class="resource-icon ore-icon" style="flex-grow: 1;" />
+            <engine:Label text="Label" name="OreCount" class="resource-label" />
+        </engine:VisualElement>
+        <engine:VisualElement name="GoldContainer" class="resource-item" style="flex-grow: 1;">
+            <engine:VisualElement name="GoldIcon" class="resource-icon gold-icon" style="flex-grow: 1;" />
+            <engine:Label text="Label" name="GoldCount" class="resource-label" />
+        </engine:VisualElement>
+        <engine:VisualElement name="SilverContainer" class="resource-item" style="flex-grow: 1;">
+            <engine:VisualElement name="SilverIcon" class="resource-icon silver-icon" style="flex-grow: 1;" />
+            <engine:Label text="Label" name="SilverCount" class="resource-label" />
+        </engine:VisualElement>
+        <engine:VisualElement name="ObsidianContainer" class="resource-item" style="flex-grow: 1;">
+            <engine:VisualElement name="ObsidianIcon" class="resource-icon obsidian-icon" style="flex-grow: 1;" />
+            <engine:Label text="Label" name="ObsidianCount" class="resource-label" />
+        </engine:VisualElement>
     </engine:VisualElement>
 </engine:UXML>

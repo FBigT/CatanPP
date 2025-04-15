@@ -1,34 +1,89 @@
-/* Root settings: ensure the document fills the screen */
+/* Root: ensures the document fills the screen */
 :root {
     position: relative;
     width: 100%;
     height: 100%;
 }
 
-/* Container for the resource bar (cyberpunk style) */
+/* Container for the resource bar */
 .top-bar {
     position: absolute;
-    bottom: 0;
-    left: 0;
-    width: 100%;
-    height: 40px;
+    bottom: 20px;                /* A bit above the bottom */
+    right: 20px;                 /* Shift toward the right edge */
     display: flex;
     flex-direction: row;
-    justify-content: space-around;
     align-items: center;
-    /* Cyberpunk gradient background */
-    background: linear-gradient(135deg, #0ff, #f0f, #0ff);
-    /* Neon glow effect */
-    box-shadow: 0 0 10px rgba(0, 255, 255, 0.8), 0 0 20px rgba(255, 0, 255, 0.8);
-    padding: 5px 10px;
+    justify-content: space-evenly;
+
+    /* Larger overall size */
+    min-width: 500px;            /* Increase the width */
+    padding: 12px 24px;
+    border-radius: 12px;
+
+    /* Golden gradient background */
+    background: linear-gradient(135deg, #FFD700, #FFC400);
+    box-shadow: 0 3px 12px rgba(0, 0, 0, 0.5);
 }
 
-/* Style for each resource label (applied to labels that have class 'resource-label') */
+/* Each resource's container: icon + label in a "chip" */
+.resource-item {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    padding: 6px 12px;
+    margin: 0 10px;
+
+    /* Slight translucent overlay so the gold background peeks through */
+    background-color: rgba(255, 255, 255, 0.1);
+    border-radius: 6px;
+    transition: background-color 0.2s ease;
+}
+
+.resource-item:hover {
+    background-color: rgba(255, 255, 255, 0.2); /* Hover effect for clarity */
+}
+
+/* Base icon styling */
+.resource-icon {
+    width: 36px;                   /* Larger icons */
+    height: 36px;
+    margin-right: 10px;
+    background-size: contain;
+    background-repeat: no-repeat;
+}
+
+/* One class per resource icon (assuming your USS is in Assets/UI/...) */
+.lumber-icon {
+    background-image: url("../Resources/Icons/wood.png");
+}
+.wool-icon {
+    background-image: url("../Resources/Icons/sheep.png");
+}
+.grain-icon {
+    background-image: url("../Resources/Icons/rice.png");
+}
+.bricks-icon {
+    background-image: url("../Resources/Icons/brick.png");
+    background-size: contain;
+    background-repeat: no-repeat;
+}
+.ore-icon {
+    background-image: url("../Resources/Icons/ore.png");
+}
+.gold-icon {
+    background-image: url("../Resources/Icons/gold-bars.png");
+}
+.silver-icon {
+    background-image: url("../Resources/Icons/silver.png");
+}
+.obsidian-icon {
+    background-image: url("../Resources/Icons/crystal.png");
+}
+
+/* Style for each resource label */
 .resource-label {
-    font-family: "Noto Color Emoji"; /* This is a fallback; the font is also set in script */
-    font-size: 16px;
+    font-size: 20px;               /* Slightly bigger font */
     color: white;
-    margin: 0 5px;
-    /* Optional: add a subtle text shadow for extra neon effect */
-    text-shadow: 0 0 3px #0ff, 0 0 5px #f0f;
+    margin: 0;
+    text-shadow: 0 0 3px rgba(0, 0, 0, 0.8);
 }
