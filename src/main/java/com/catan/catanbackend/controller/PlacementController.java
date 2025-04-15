@@ -3,6 +3,7 @@ package com.catan.catanbackend.controller;
 import com.catan.catanbackend.model.Road;
 import com.catan.catanbackend.model.Structure;
 import com.catan.catanbackend.service.PlacementService;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -17,48 +18,51 @@ public class PlacementController {
         this.placementService = placementService;
     }
 
+    // ----------------------------------------------------------------
+    // 1) Place Settlement (Structure)
+    // ----------------------------------------------------------------
     @PostMapping("/structure")
-    public ResponseEntity<Structure> placeStructure(@RequestParam String owner,
-                                                    @RequestParam Long tileId,
-                                                    @RequestParam int cornerIndex) {
-        Structure s = placementService.placeStructure(owner, tileId, cornerIndex);
-        return ResponseEntity.ok(s);
+    public ResponseEntity<?> placeStructure(@RequestParam String owner,
+                                            @RequestParam Long tileId,
+                                            @RequestParam int cornerIndex) {
+        try {
+            Structure s = placementService.placeStructure(owner, tileId, cornerIndex);
+            return ResponseEntity.ok(s);
+        } catch (IllegalArgumentException e) {
+            // e.g. "Not enough resources" or "Cannot place structure here"
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
+        }
     }
 
+    // ----------------------------------------------------------------
+    // 2) Place Road
+    // ----------------------------------------------------------------
     @PostMapping("/road")
-    public ResponseEntity<Road> placeRoad(@RequestParam String owner,
-                                          @RequestParam Long tileId,
-                                          @RequestParam int edgeIndex) {
-        Road r = placementService.placeRoad(owner, tileId, edgeIndex);
-        return ResponseEntity.ok(r);
+    public ResponseEntity<?> placeRoad(@RequestParam String owner,
+                                       @RequestParam Long tileId,
+                                       @RequestParam int edgeIndex) {
+        try {
+            Road r = placementService.placeRoad(owner, tileId, edgeIndex);
+            return ResponseEntity.ok(r);
+        } catch (IllegalArgumentException e) {
+            // e.g. "Not enough resources" or "Cannot place road here"
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
+        }
     }
 
-    @GetMapping("/canPlace/structure")
-    public ResponseEntity<Boolean> canPlaceStructure(@RequestParam Long tileId,
-                                                     @RequestParam int cornerIndex) {
-        boolean allowed = placementService.canPlaceStructure(tileId, cornerIndex);
-        return ResponseEntity.ok(allowed);
-    }
-
-    @GetMapping("/canPlace/road")
-    public ResponseEntity<Boolean> canPlaceRoad(@RequestParam Long tileId,
-                                                @RequestParam int edgeIndex) {
-        boolean allowed = placementService.canPlaceRoad(tileId, edgeIndex);
-        return ResponseEntity.ok(allowed);
-    }
-
-    @GetMapping("/canPlace/structure/distance")
-    public ResponseEntity<Boolean> canPlaceStructureWithDistance(@RequestParam Long tileId,
-                                                                 @RequestParam int cornerIndex) {
-        boolean allowed = placementService.canPlaceStructureWithDistanceRule(tileId, cornerIndex);
-        return ResponseEntity.ok(allowed);
-    }
-
+    // ----------------------------------------------------------------
+    // 3) Upgrade Settlement to City
+    // ----------------------------------------------------------------
     @PutMapping("/structure/upgrade")
-    public ResponseEntity<Structure> upgradeStructure(@RequestParam Long tileId,
-                                                      @RequestParam int cornerIndex,
-                                                      @RequestParam String owner) {
-        Structure upgraded = placementService.upgradeSettlementToCity(tileId, cornerIndex, owner);
-        return ResponseEntity.ok(upgraded);
+    public ResponseEntity<?> upgradeStructure(@RequestParam Long tileId,
+                                              @RequestParam int cornerIndex,
+                                              @RequestParam String owner) {
+        try {
+            Structure upgraded = placementService.upgradeSettlementToCity(tileId, cornerIndex, owner);
+            return ResponseEntity.ok(upgraded);
+        } catch (IllegalArgumentException e) {
+            // e.g. "Not enough resources" or "Only settlements can be upgraded"
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
+        }
     }
 }
