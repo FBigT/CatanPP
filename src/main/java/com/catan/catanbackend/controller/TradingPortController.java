@@ -1,6 +1,5 @@
 package com.catan.catanbackend.controller;
 
-
 import com.catan.catanbackend.model.TradingPort;
 import com.catan.catanbackend.service.TradingPortService;
 import org.springframework.web.bind.annotation.*;
@@ -23,9 +22,16 @@ public class TradingPortController {
         return tradingPortService.getAllTradingPorts();
     }
 
+    @GetMapping("/{username}")
+    public List<TradingPort> getPortsByUsername(@PathVariable String username) {
+        return tradingPortService.getPortsByUsername(username);
+    }
+
     @PostMapping
-    public TradingPort createTradingPort(@RequestParam String type, @RequestParam int tradeRatio) {
-        return tradingPortService.createTradingPort(type, tradeRatio);
+    public TradingPort createTradingPort(@RequestParam String type,
+                                         @RequestParam int tradeRatio,
+                                         @RequestParam String username) {
+        return tradingPortService.createTradingPort(type, tradeRatio, username);
     }
 
     @PutMapping("/{id}/place")

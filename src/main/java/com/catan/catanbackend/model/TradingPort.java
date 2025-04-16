@@ -1,38 +1,38 @@
 package com.catan.catanbackend.model;
 
-
 import jakarta.persistence.*;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 
+@NoArgsConstructor
 @Entity
 @Table(name = "trading_ports")
+@Getter
+@Setter
 public class TradingPort {
 
-    @Getter
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Getter
     @Column(nullable = false)
-    private String type; // "Generic", "Brick", "Wood", etc.
-
-    @Getter
-    @Column(nullable = false)
-    private int tradeRatio; // 3:1, 2:1, etc.
+    private String type;
 
     @Column(nullable = false)
-    private boolean isPlaced; // False until map generation is done
+    private int tradeRatio;
 
-    public TradingPort() {}
+    @Column(nullable = false)
+    private boolean isPlaced = false;
 
-    public TradingPort(String type, int tradeRatio) {
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "player_id")
+    private PlayerProfile owner;
+
+    public TradingPort(String type, int tradeRatio, PlayerProfile owner) {
         this.type = type;
         this.tradeRatio = tradeRatio;
+        this.owner = owner;
         this.isPlaced = false;
     }
-
-    public boolean isPlaced() { return isPlaced; }
-
-    public void setPlaced(boolean placed) { this.isPlaced = placed; }
 }
