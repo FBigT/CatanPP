@@ -12,6 +12,7 @@
         public static string Register { get; } = Users + "/register";
         public static string RegisterGuest { get; } = Register + "/guest";
         public static string Proflie { get; } = Users + "/profile";
+        public static string Refresh { get; } = Users + "/refresh";
 
         public static string GetUserByUsername(string username)
         {
@@ -52,6 +53,7 @@
         //  SESSION
         // ----------------------------------------------------------------
         public static string Sessions { get; } = BaseUrl + "/sessions";
+        public static string CloseSession { get; } = BaseUrl + "/sessions/close";
         public static string SessionSaves { get; } = Sessions + "/saves";
         public static string Save { get; } = Sessions + "/save";
 

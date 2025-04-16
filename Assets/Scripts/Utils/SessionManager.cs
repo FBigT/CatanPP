@@ -9,41 +9,84 @@ namespace Assets.Scripts.Utils
 {
     public class SessionManager : MonoBehaviour
     {
-        public void CreateSession(int numberOfPlayers) {
-            StartCoroutine(CreateSessionRequest(numberOfPlayers));
+        public void CreateSession(int numberOfPlayers, Action<SessionCodeDto> onSuccess, Action<string> onFail) {
+            StartCoroutine(CreateSessionRequest(numberOfPlayers, onSuccess, onFail));
         }
 
-        private IEnumerator CreateSessionRequest(int numberOfPlayers) {
-            UnityWebRequest request = RequestService.ConstructSimpleWebRequest(EndpointUtils.CreateSessions(numberOfPlayers), Methods.POST, true, null);
+        private IEnumerator CreateSessionRequest(int numberOfPlayers, Action<SessionCodeDto> onSuccess, Action<string> onFail) {
+            UnityWebRequest request = null;
+            yield return RequestService.ConstructSimpleWebRequest(EndpointUtils.CreateSessions(numberOfPlayers), Methods.POST, true, null, result => request = result);
+
+            if (request == null)
+            {
+                onFail?.Invoke("Failed to construct request");
+                yield break;
+            }
 
             yield return request.SendWebRequest();
 
             if (request.result == UnityWebRequest.Result.Success)
             {
-                Debug.Log(request.downloadHandler.text);
-                yield return true;
+                SessionCodeDto sessionCodeDto = JsonUtility.FromJson<SessionCodeDto>(request.downloadHandler.text);
+                onSuccess?.Invoke(sessionCodeDto);
             }
             else
             {
-                Debug.LogError(request.error);
-                yield return false;
+                onFail?.Invoke(request.error);
             }
         }
 
-        public void JoinSession(string sessionCode, Action<string> onSuccess, Action<string> onFail)
+        public void CloseSession(Action onSuccess, Action<string> onFail)
+        {
+            StartCoroutine(CloseSessionRequest(onSuccess, onFail));
+        }
+
+        private IEnumerator CloseSessionRequest(Action onSuccess, Action<string> onFail)
+        {
+            UnityWebRequest request = null;
+            yield return RequestService.ConstructSimpleWebRequest(EndpointUtils.CloseSession, Methods.POST, true, null, result => request = result);
+
+            if (request == null)
+            {
+                onFail?.Invoke("Failed to construct request");
+                yield break;
+            }
+
+            yield return request.SendWebRequest();
+
+            if (request.result == UnityWebRequest.Result.Success)
+            {
+                onSuccess?.Invoke();
+            }
+            else
+            {
+                onFail?.Invoke(request.error);
+            }
+        }
+
+        public void JoinSession(string sessionCode, Action<SessionCodeDto> onSuccess, Action<string> onFail)
         {
             StartCoroutine(JoinSessionRequest(sessionCode, onSuccess, onFail));
         }
 
-        private IEnumerator JoinSessionRequest(string sessionCode, Action<string> onSuccess, Action<string> onFail)
+        private IEnumerator JoinSessionRequest(string sessionCode, Action<SessionCodeDto> onSuccess, Action<string> onFail)
         {
-            UnityWebRequest request = RequestService.ConstructSimpleWebRequest(EndpointUtils.JoinSession(sessionCode), Methods.POST, true, null);
-            
+
+            UnityWebRequest request = null;
+            yield return RequestService.ConstructSimpleWebRequest(EndpointUtils.JoinSession(sessionCode), Methods.POST, true, null, result => request = result);
+
+            if (request == null)
+            {
+                onFail?.Invoke("Failed to construct request");
+                yield break;
+            }
+
             yield return request.SendWebRequest();
 
             if (request.result == UnityWebRequest.Result.Success)
             {
-                onSuccess?.Invoke(request.downloadHandler.text);
+                SessionCodeDto sessionCodeDto = JsonUtility.FromJson<SessionCodeDto>(request.downloadHandler.text);
+                onSuccess?.Invoke(sessionCodeDto);
             }
             else
             {
@@ -58,7 +101,13 @@ namespace Assets.Scripts.Utils
 
         private IEnumerator DeleteSessionSaveRequest(long id)
         {
-            UnityWebRequest request = RequestService.ConstructSimpleWebRequest(EndpointUtils.DeleteSessionSave(id), Methods.DELETE, true, null);
+            UnityWebRequest request = null;
+            yield return RequestService.ConstructSimpleWebRequest(EndpointUtils.DeleteSessionSave(id), Methods.POST, true, null, result => request = result);
+
+            if (request == null)
+            {
+                yield break;
+            }
 
             yield return request.SendWebRequest();
         }
@@ -70,7 +119,14 @@ namespace Assets.Scripts.Utils
 
         private IEnumerator GetAllSessionSavesRequests(Action<List<SessionSave>> onSuccess, Action<string> onFail)
         {
-            UnityWebRequest request = RequestService.ConstructSimpleWebRequest(EndpointUtils.Save, Methods.GET, true, null);
+            UnityWebRequest request = null;
+            yield return RequestService.ConstructSimpleWebRequest(EndpointUtils.Save, Methods.POST, true, null, result => request = result);
+
+            if (request == null)
+            {
+                onFail?.Invoke("Failed to construct request");
+                yield break;
+            }
 
             yield return request.SendWebRequest();
 

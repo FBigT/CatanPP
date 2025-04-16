@@ -12,7 +12,5 @@ public class CameraRotate : MonoBehaviour
     void Update()
     {
         cam.transform.localEulerAngles = new Vector3(-30, cam.transform.localEulerAngles.y + 2 * Time.deltaTime, 0);
-        //transform.Rotate(0, 5 * Time.deltaTime, 0);
-
     }
 }

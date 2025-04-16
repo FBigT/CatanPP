@@ -2,6 +2,7 @@ using Assets.Scripts.User;
 using Assets.Scripts.Utils;
 using TMPro;
 using Unity.VisualScripting;
+using Unity.VisualScripting.FullSerializer;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.SceneManagement;
@@ -34,6 +35,10 @@ public class Login : MonoBehaviour
             userManager.CreateGuest(GuestOnSuccess, SetErrorMessage);
             btnGuest.interactable = false;
         });
+        Debug.Log(LocalStorageService.GetString("refresh-token"));
+        Debug.Log(LocalStorageService.GetString("token"));
+        //PlayerPrefs.DeleteAll();
+        LoginWithRefresh();
         LoginGuest();
     }
 
@@ -61,14 +66,23 @@ public class Login : MonoBehaviour
     }
 
     private void LoginSuccess(LoginResponse response) {
-        LocalStorageService.SetVariable("token", response.token);
+        LocalStorageService.SetVariable("token", response.tokenType + " " + response.token);
+        LocalStorageService.SetVariable("refresh-token", response.refreshToken);
         SceneManager.LoadScene("MainMenu");
     }
 
     private void LoginGuest() {
         if (LocalStorageService.GetString("guest-code") != null)
         {
-            userManager.GuestLogin(LocalStorageService.GetString("guest-code"), LoginSuccess, SetErrorMessage);
+            userManager.GuestLogin(LocalStorageService.GetString("guest-code"), LoginSuccess, PrintError);
+        }
+    }
+
+    private void LoginWithRefresh()
+    {
+        if (LocalStorageService.GetString("refresh-token") != null)
+        {
+            userManager.RefreshToken(LocalStorageService.GetString("refresh-token"), LoginSuccess, PrintError);
         }
     }
 
@@ -79,5 +93,9 @@ public class Login : MonoBehaviour
 
     private void SetErrorMessage(string error){
         errorMessage.text = error;
+    }
+
+    private void PrintError(string error) { 
+        Debug.Log(error);
     }
 }

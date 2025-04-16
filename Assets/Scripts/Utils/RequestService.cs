@@ -1,4 +1,6 @@
-﻿using System.Text;
+﻿using System;
+using System.Collections;
+using System.Text;
 using UnityEngine;
 using UnityEngine.Networking;
 
@@ -6,8 +8,12 @@ namespace Assets.Scripts.Utils
 {
     public static class RequestService
     {
+        static UserManager userManager = new UserManager(); 
+
         #nullable enable
-        public static UnityWebRequest? ConstructSimpleWebRequest(string endpoint, Methods method, bool requiresAuthorization, string? jsonBody) {
+        public static IEnumerator ConstructSimpleWebRequest(string endpoint, Methods method, bool requiresAuthorization, string? jsonBody, Action<UnityWebRequest?> onReady) {
+            Debug.Log(LocalStorageService.GetString("token"));
+            Debug.Log(LocalStorageService.GetString("refresh-token"));
             UnityWebRequest request = new(endpoint, method.ToString())
             {
                 uploadHandler = new UploadHandlerRaw(Encoding.UTF8.GetBytes(JsonUtility.ToJson(jsonBody))),
@@ -16,7 +22,20 @@ namespace Assets.Scripts.Utils
             request.SetRequestHeader("Content-Type", "application/json");
 
             if (requiresAuthorization) {
-                if (LocalStorageService.GetString("token") == null) return null; 
+                if (string.IsNullOrEmpty(LocalStorageService.GetString("token")) || !SecurityUtils.IsTokenValid(LocalStorageService.GetString("token"))) {
+                    if (!string.IsNullOrEmpty(LocalStorageService.GetString("refresh-token")))
+                    {
+                        yield return userManager.RefreshTokenRequest(LocalStorageService.GetString("refresh-token"), (response) => {
+                            LocalStorageService.SetVariable("token", response.tokenType + " " + response.token);
+                            LocalStorageService.SetVariable("refresh-token", response.refreshToken);
+                            Debug.Log("REFRESH");
+                        }, (error) => {
+                            Debug.Log(error);
+                            LocalStorageService.Clear();
+                            onReady?.Invoke(null);
+                        });
+                    }
+                }
                 request.SetRequestHeader("Authorization", LocalStorageService.GetString("token"));
             }
 
@@ -25,13 +44,13 @@ namespace Assets.Scripts.Utils
                 {
                     JsonUtility.FromJsonOverwrite(jsonBody, new object());
                 }
-                catch (System.Exception)
+                catch (Exception)
                 {
-                    return null;
+                    onReady?.Invoke(null);
                 }
                 request.uploadHandler = new UploadHandlerRaw(Encoding.UTF8.GetBytes(jsonBody));
             }
-            return request;
+            onReady?.Invoke(request);
         }
         #nullable disable
     }

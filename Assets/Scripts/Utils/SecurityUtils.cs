@@ -1,59 +1,62 @@
-﻿using System.IO;
-using System.Security.Cryptography;
-using System.Text;
+﻿using System.Text;
 using System;
 using UnityEngine;
+using System.Security.Cryptography;
+using UnityEngine.InputSystem;
 
 namespace Assets.Scripts.Utils
 {
     public static class SecurityUtils
     {
-        private const int KeySize = 32;
-        private const int NonceSize = 12;
-        private const int TagSize = 16;
-        private static byte[] Password { get; set; } = RandomBytes(KeySize);
+        private static readonly byte[] Key = Encoding.UTF8.GetBytes("12345678901234567890123456789012"); // 32 bytes = 256-bit
 
         public static string Encrypt(string plainText)
         {
-            byte[] nonce = RandomBytes(NonceSize);
-            byte[] plaintextBytes = Encoding.UTF8.GetBytes(plainText);
-            byte[] ciphertext = new byte[plaintextBytes.Length];
-            byte[] tag = new byte[TagSize];
+            using var aes = Aes.Create();
+            aes.Key = Key;
+            aes.Mode = CipherMode.CBC;
+            aes.Padding = PaddingMode.PKCS7;
+            aes.GenerateIV();
 
-            using (var aes = new AesGcm(Password))
-            {
-                aes.Encrypt(nonce, plaintextBytes, ciphertext, tag);
-            }
+            using var encryptor = aes.CreateEncryptor();
+            byte[] plainBytes = Encoding.UTF8.GetBytes(plainText);
+            byte[] encryptedBytes = encryptor.TransformFinalBlock(plainBytes, 0, plainBytes.Length);
 
-            using (var ms = new MemoryStream())
-            {
-                ms.Write(nonce, 0, nonce.Length);
-                ms.Write(tag, 0, tag.Length);
-                ms.Write(ciphertext, 0, ciphertext.Length);
-                return Convert.ToBase64String(ms.ToArray());
-            }
+            byte[] result = new byte[aes.IV.Length + encryptedBytes.Length];
+            Buffer.BlockCopy(aes.IV, 0, result, 0, aes.IV.Length);
+            Buffer.BlockCopy(encryptedBytes, 0, result, aes.IV.Length, encryptedBytes.Length);
+
+            return Convert.ToBase64String(result);
         }
 
         public static string Decrypt(string encryptedBase64)
         {
-            byte[] data = Convert.FromBase64String(encryptedBase64);
-            byte[] nonce = data[..NonceSize];
-            byte[] tag = data[NonceSize..(NonceSize + TagSize)];
-            byte[] ciphertext = data[(NonceSize + TagSize)..];
-            byte[] plaintextBytes = new byte[ciphertext.Length];
+            byte[] combinedBytes = Convert.FromBase64String(encryptedBase64);
 
-            using (var aes = new AesGcm(Password))
-            {
-                aes.Decrypt(nonce, ciphertext, tag, plaintextBytes);
-            }
+            byte[] iv = new byte[16];
+            byte[] cipherBytes = new byte[combinedBytes.Length - 16];
 
-            return Encoding.UTF8.GetString(plaintextBytes);
+            Buffer.BlockCopy(combinedBytes, 0, iv, 0, 16);
+            Buffer.BlockCopy(combinedBytes, 16, cipherBytes, 0, cipherBytes.Length);
+
+            using var aes = Aes.Create();
+            aes.Key = Key;
+            aes.IV = iv;
+            aes.Mode = CipherMode.CBC;
+            aes.Padding = PaddingMode.PKCS7;
+
+            using var decryptor = aes.CreateDecryptor();
+            byte[] plainBytes = decryptor.TransformFinalBlock(cipherBytes, 0, cipherBytes.Length);
+            return Encoding.UTF8.GetString(plainBytes);
         }
 
-        private static byte[] RandomBytes(int length)
+        private static byte[] GenerateRandomBytes(int length)
         {
             byte[] bytes = new byte[length];
-            RandomNumberGenerator.Fill(bytes);
+            for (int i = 0; i < length; i++)
+            {
+                bytes[i] = (byte)UnityEngine.Random.Range(0, 256);
+            }
             return bytes;
         }
 
@@ -67,7 +70,6 @@ namespace Assets.Scripts.Utils
         {
             try
             {
-                // Split the token into its parts
                 var parts = jwt.Split('.');
                 if (parts.Length < 2)
                 {
@@ -88,6 +90,26 @@ namespace Assets.Scripts.Utils
             {
                 Debug.LogError("Failed to decode JWT: " + ex.Message);
                 return null;
+            }
+        }
+
+        public static bool IsTokenValid(string jwt)
+        {
+            try
+            {
+                if (string.IsNullOrEmpty(jwt)) { 
+                    return false;
+                }
+
+                if (GetExpiryFromJwt(jwt) != null && GetExpiryFromJwt(jwt).Value > DateTime.UtcNow) { 
+                    return true;
+                }
+                return false;
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError("Failed to decode JWT: " + ex.Message);
+                return false;
             }
         }
     }

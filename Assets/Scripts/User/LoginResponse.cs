@@ -9,5 +9,6 @@ namespace Assets.Scripts.User
         public string tokenType;
         public long userId;
         public string token;
+        public string refreshToken;
     }
 }

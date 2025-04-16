@@ -1,3 +1,4 @@
+using Assets.Scripts;
 using Assets.Scripts.Utils;
 using TMPro;
 using Unity.VisualScripting;
@@ -33,10 +34,17 @@ public class JoinGame : MonoBehaviour
             return;
         }
 
-        sessionService.JoinSession(code, ShowErrorMessage, ShowErrorMessage);
+        sessionService.JoinSession(code, ShowSessionCode, ShowErrorMessage);
     }
 
-    public void ShowErrorMessage(string message) {
+    public void ShowErrorMessage(string message) 
+    {
         errorMessage.text = message;
+    }
+
+    public void ShowSessionCode(SessionCodeDto sessionCodeDto)
+    {
+        Debug.Log(sessionCodeDto.id);
+        Debug.Log(sessionCodeDto.code);
     }
 }

@@ -42,6 +42,10 @@ namespace Assets.Scripts.Utils
             if (string.IsNullOrEmpty(stringValue) || !float.TryParse(stringValue, out float value)) return null;
             return value;
         }
-        #nullable disable
+#nullable disable
+
+        public static void Clear() {
+            PlayerPrefs.DeleteAll();
+        }
     }
 }

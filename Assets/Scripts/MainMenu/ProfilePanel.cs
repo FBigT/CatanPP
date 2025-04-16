@@ -13,6 +13,7 @@ public class ProfilePanel : MonoBehaviour
     public TMP_Text resourcesGatheredValue;
     public TMP_Text structuresPlacedValue;
     public TMP_Text roadsPlacedValue;
+    public TMP_Text skinsUnlockedValue;
 
     void Awake(){
         UserManager userManager = this.AddComponent<UserManager>();
@@ -27,7 +28,8 @@ public class ProfilePanel : MonoBehaviour
         turnsTakenValue.text = playerProfile.turnsTaken; 
         resourcesGatheredValue.text = playerProfile.resourcesGathered; 
         structuresPlacedValue.text = playerProfile.structuresPlaced; 
-        roadsPlacedValue.text = playerProfile.roadsPlaced; 
+        roadsPlacedValue.text = playerProfile.roadsPlaced;
+        skinsUnlockedValue.text = playerProfile.skinsUnlocked;
     }
 
     private void SetError(string error) { 
