@@ -1,94 +1,87 @@
-﻿using UnityEngine;
-using TMPro;
-using System.Collections;
+﻿using System.Collections;
+using UnityEngine;
 using UnityEngine.Networking;
+using TMPro;
+using Assets.Scripts.Utils;
+using Catan.UI;
 
-public class DiceRollManager : MonoBehaviour
+namespace Catan.Dice
 {
-    public GameObject dicePrefab;
-    public Transform leftSpawnPoint, rightSpawnPoint;
-    public TMP_Text resultText;
-
-    private GameObject dice1, dice2;
-    private DiceFaceDetector detector1, detector2;
-
-    private string apiUrl = "http://localhost:8080/api/dice/roll";
-
-    private void OnEnable()
+    public class DiceRollManager : MonoBehaviour
     {
-        DiceFaceDetector.OnDiceLanded += CheckBothDiceSettled;
-    }
+        [Header("Dice Prefab & Spawn Points")]
+        public GameObject dicePrefab;
+        public Transform leftSpawnPoint, rightSpawnPoint;
 
-    private void OnDisable()
-    {
-        DiceFaceDetector.OnDiceLanded -= CheckBothDiceSettled;
-    }
+        [Header("UI")]
+        public TMP_Text resultText;
 
-    public void RollDice()
-    {
-        StartCoroutine(RollAndDetectDice());
-    }
+        private DiceFaceDetector detector1, detector2;
+        private const string RollUrl = "http://localhost:8080/api/dice/roll";
 
-    private IEnumerator RollAndDetectDice()
-    {
-        dice1 = Instantiate(dicePrefab, leftSpawnPoint.position, Quaternion.identity);
-        dice2 = Instantiate(dicePrefab, rightSpawnPoint.position, Quaternion.identity);
+        private void OnEnable()
+            => DiceFaceDetector.OnDiceLanded += OnDiceLanded;
 
-        detector1 = dice1.GetComponent<DiceFaceDetector>();
-        detector2 = dice2.GetComponent<DiceFaceDetector>();
+        private void OnDisable()
+            => DiceFaceDetector.OnDiceLanded -= OnDiceLanded;
 
-        Rigidbody rb1 = dice1.GetComponent<Rigidbody>();
-        Rigidbody rb2 = dice2.GetComponent<Rigidbody>();
+        public void RollDice()
+            => StartCoroutine(RollAndSend());
 
-        rb1.AddForce(new Vector3(Random.Range(6, 12), Random.Range(5, 8), Random.Range(-4, 4)), ForceMode.Impulse);
-        rb1.AddTorque(Random.insideUnitSphere * Random.Range(20, 40), ForceMode.Impulse);
-
-        rb2.AddForce(new Vector3(Random.Range(-6, -12), Random.Range(5, 8), Random.Range(-4, 4)), ForceMode.Impulse);
-        rb2.AddTorque(Random.insideUnitSphere * Random.Range(20, 40), ForceMode.Impulse);
-
-        yield return new WaitForSeconds(3f);
-    }
-
-    private void CheckBothDiceSettled(DiceFaceDetector settledDice)
-    {
-        if (detector1.HasSettled() && detector2.HasSettled())
+        private IEnumerator RollAndSend()
         {
-            int dice1Result = detector1.GetTopFaceValue();
-            int dice2Result = detector2.GetTopFaceValue();
-            int total = dice1Result + dice2Result;
+            var d1 = Instantiate(dicePrefab, leftSpawnPoint.position, Quaternion.identity);
+            var d2 = Instantiate(dicePrefab, rightSpawnPoint.position, Quaternion.identity);
 
-            resultText.text = "You rolled: " + total;
-            Debug.Log($"🎲 Final Dice Results: {dice1Result} + {dice2Result} = {total}");
+            detector1 = d1.GetComponent<DiceFaceDetector>();
+            detector2 = d2.GetComponent<DiceFaceDetector>();
 
-            // Keep your old "POST total to the server" logic:
-            StartCoroutine(SendResultToBackend(total));
+            var rb1 = d1.GetComponent<Rigidbody>();
+            var rb2 = d2.GetComponent<Rigidbody>();
 
-            // Destroy dice after some delay
-            Destroy(dice1, 5f);
-            Destroy(dice2, 5f);
+            rb1.AddForce(new Vector3(Random.Range(6, 12), Random.Range(5, 8), Random.Range(-4, 4)), ForceMode.Impulse);
+            rb1.AddTorque(Random.insideUnitSphere * Random.Range(20, 40), ForceMode.Impulse);
+            rb2.AddForce(new Vector3(Random.Range(-6, -12), Random.Range(5, 8), Random.Range(-4, 4)), ForceMode.Impulse);
+            rb2.AddTorque(Random.insideUnitSphere * Random.Range(20, 40), ForceMode.Impulse);
+
+            yield return new WaitUntil(() =>
+                detector1 != null && detector2 != null
+                && detector1.HasSettled() && detector2.HasSettled());
+
+            int v1 = detector1.GetTopFaceValue();
+            int v2 = detector2.GetTopFaceValue();
+            int total = v1 + v2;
+            resultText.text = $"You rolled: {total}";
+
+            Debug.Log($"🎲 {v1}+{v2} = {total}");
+            StartCoroutine(SendResult());
+
+            Destroy(d1, 5f);
+            Destroy(d2, 5f);
         }
-    }
 
-    private IEnumerator SendResultToBackend(int total)
-    {
-        UnityWebRequest request = UnityWebRequest.PostWwwForm(apiUrl, total.ToString());
-        request.timeout = 5;
-
-        yield return request.SendWebRequest();
-
-        if (request.result != UnityWebRequest.Result.Success)
+        private void OnDiceLanded(DiceFaceDetector _)
         {
-            Debug.LogError("❌ Failed to send dice result: " + request.error);
+            // no-op: handled by coroutine
         }
-        else
-        {
-            Debug.Log("✅ Dice result sent successfully!");
 
-            // OPTIONAL: If the server updates resources, you might want to refresh your TopBar:
-            TopBarUI topBar = FindObjectOfType<TopBarUI>();
-            if (topBar != null)
+        private IEnumerator SendResult()
+        {
+            using var req = UnityWebRequest.Get(RollUrl);
+            string token = LocalStorageService.GetString("token");
+            if (!string.IsNullOrEmpty(token))
+                req.SetRequestHeader("Authorization", $"Bearer {token}");
+
+            yield return req.SendWebRequest();
+
+            if (req.result == UnityWebRequest.Result.Success)
             {
-                StartCoroutine(topBar.FetchAndUpdateResources());
+                Debug.Log("✅ Dice sent");
+                TopBarUI.Instance.RefreshResources();
+            }
+            else
+            {
+                Debug.LogError($"❌ Dice send error: {req.error}");
             }
         }
     }

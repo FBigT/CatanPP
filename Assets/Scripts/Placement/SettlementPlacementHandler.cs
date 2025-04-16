@@ -1,59 +1,53 @@
-using System.Collections;
+﻿using System.Collections;
 using UnityEngine;
 using UnityEngine.Networking;
-using Assets.Scripts.Managers;
-using Assets.Scripts.Enums;
 using Assets.Scripts.Utils;
+using Assets.Scripts.Enums;
+using Catan.Managers;
+using Catan.UI;
 
-public class SettlementPlacementHandler : MonoBehaviour
+namespace Catan.Placement
 {
-    // This script should be attached to a GameObject that manages board clicks.
-    // It assumes that when the player clicks on a valid placement connector, this script is triggered.
-    // For simplicity, we assume a method OnBoardClick is called with the placement info.
-
-    // Simulated method for demonstration:
-    public void OnBoardClick(int tileId, int cornerIndex)
+    public class SettlementPlacementHandler : MonoBehaviour
     {
-        // Check if the current purchase is Settlement
-        if (PurchaseManager.Instance.SelectedPurchase == PurchaseType.Settlement)
+        /// <summary>
+        /// Call this with tileId + cornerIndex when the player clicks a corner.
+        /// </summary>
+        public void OnBoardClick(int tileId, int cornerIndex)
         {
-            Debug.Log("Placing purchased settlement...");
+            if (PurchaseManager.Instance.SelectedPurchase != PurchaseType.Settlement)
+            {
+                Debug.Log("⚠️ No settlement purchase pending.");
+                return;
+            }
+
             StartCoroutine(PlaceSettlement(tileId, cornerIndex));
         }
-        else
+
+        private IEnumerator PlaceSettlement(int tile, int corner)
         {
-            Debug.Log("No settlement purchase pending.");
-        }
-    }
+            var form = new WWWForm();
+            form.AddField("owner", LocalStorageService.GetString("username") ?? "tester");
+            form.AddField("tileId", tile);
+            form.AddField("cornerIndex", corner);
 
-    private IEnumerator PlaceSettlement(int tileId, int cornerIndex)
-    {
-        // Prepare data for placement request
-        WWWForm form = new WWWForm();
-        form.AddField("owner", LocalStorageService.GetString("username"));
-        form.AddField("tileId", tileId);
-        form.AddField("cornerIndex", cornerIndex);
+            using var req = UnityWebRequest.Post(EndpointUtils.PlaceSettlement, form);
+            string token = LocalStorageService.GetString("token");
+            if (!string.IsNullOrEmpty(token))
+                req.SetRequestHeader("Authorization", $"Bearer {token}");
 
-        // Use the same endpoint as in your PlacementController
-        string endpoint = EndpointUtils.PlaceSettlement; // Ensure this matches the backend endpoint
-        UnityWebRequest request = UnityWebRequest.Post(endpoint, form);
+            yield return req.SendWebRequest();
 
-        string token = LocalStorageService.GetString("token");
-        if (!string.IsNullOrEmpty(token))
-            request.SetRequestHeader("Authorization", "Bearer " + token);
-
-        yield return request.SendWebRequest();
-
-        if (request.result == UnityWebRequest.Result.Success)
-        {
-            Debug.Log("Settlement placement successful: " + request.downloadHandler.text);
-            // Update local resource counts via TopBarUI, if backend returns new resource totals.
-            // Clear the pending purchase state:
-            PurchaseManager.Instance.ClearPurchase();
-        }
-        else
-        {
-            Debug.LogError("Settlement placement failed: " + request.error);
+            if (req.result == UnityWebRequest.Result.Success)
+            {
+                Debug.Log("✅ Settlement placed");
+                PurchaseManager.Instance.ClearPurchase();
+                TopBarUI.Instance.RefreshResources();
+            }
+            else
+            {
+                Debug.LogError($"❌ Settlement placement failed: {req.error}");
+            }
         }
     }
 }
