@@ -26,17 +26,14 @@ import static org.springframework.security.config.http.SessionCreationPolicy.STA
 public class SecurityConfiguration {
     private final UserDetailsService userDetailsService;
     private final AuthEntryPoint unauthorizedHandler;
+    private final TokenFilter tokenFilter;
 
-    private static final String[] WHITE_LIST_URL = { "/**" };
+    private static final String[] WHITE_LIST_URL = { "/api/users/login", "/api/users/register", "/api/users/login/guest", "/api/users/logout", "/api/users/refresh", "/api/users/register/guest" };
 
-    public SecurityConfiguration(UserDetailsService userDetailsService, AuthEntryPoint unauthorizedHandler) {
+    public SecurityConfiguration(UserDetailsService userDetailsService, AuthEntryPoint unauthorizedHandler, TokenFilter tokenFilter) {
         this.userDetailsService = userDetailsService;
         this.unauthorizedHandler = unauthorizedHandler;
-    }
-
-    @Bean
-    public TokenFilter authenticationJwtTokenFilter() {
-        return new TokenFilter();
+        this.tokenFilter = tokenFilter;
     }
 
     @Bean
@@ -70,7 +67,7 @@ public class SecurityConfiguration {
                 .exceptionHandling(ex -> ex.authenticationEntryPoint(unauthorizedHandler))
                 .sessionManagement(session -> session.sessionCreationPolicy(STATELESS))
                 .authenticationProvider(authenticationProvider())
-                .addFilterBefore(authenticationJwtTokenFilter(), UsernamePasswordAuthenticationFilter.class);
+                .addFilterBefore(tokenFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }

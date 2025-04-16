@@ -34,8 +34,19 @@ public class SessionPlayerService {
         return sessionPlayerRepository.findSessionPlayerByUserId(userId);
     }
 
+    public List<SessionPlayer> findActivePlayersByUserId(Long userId) {
+        return sessionPlayerRepository.findSessionPlayerByUserId(userId).stream().filter(SessionPlayer::getActive).toList();
+    }
+
     public List<SessionPlayer> findPlayerBySessionId(Long sessionId) {
         return sessionPlayerRepository.findSessionPlayerBySessionId(sessionId);
+    }
+
+    public void deactivateSessionPlayers(Long sessionId) {
+        sessionPlayerRepository.findSessionPlayerBySessionId(sessionId).forEach(x -> {
+            x.setActive(false);
+            sessionPlayerRepository.saveAndFlush(x);
+        });
     }
 
     public Optional<SessionPlayer> findCurrentSessionPlayerByUserId(Long userId) {

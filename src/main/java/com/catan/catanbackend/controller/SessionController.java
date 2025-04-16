@@ -1,5 +1,6 @@
 package com.catan.catanbackend.controller;
 
+import com.catan.catanbackend.model.Session;
 import com.catan.catanbackend.model.SessionCode;
 import com.catan.catanbackend.model.SessionPlayer;
 import com.catan.catanbackend.model.SessionSave;
@@ -43,6 +44,20 @@ public class SessionController {
         return sessionCode
                 .map(code -> new ResponseEntity<>(mapper.mapSessionToDto(code), HttpStatus.CREATED))
                 .orElseGet(() -> new ResponseEntity<>(HttpStatus.BAD_REQUEST));
+    }
+
+    @PostMapping("/close")
+    public ResponseEntity<Void> closeSession(@RequestHeader (name="Authorization") String token) {
+        if (!token.startsWith(tokenType)) {
+            return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
+        }
+        Optional<Session> session = sessionService.getActiveSessionsByHostId(tokenService.getUserIdFromJwtToken(token.split(" ")[1]));
+
+        if (session.isPresent()) {
+            sessionService.closeSession(session.get());
+            return new ResponseEntity<>(HttpStatus.OK);
+        }
+        return new ResponseEntity<>(HttpStatus.NOT_FOUND);
     }
 
     @PostMapping("/join/{code}")

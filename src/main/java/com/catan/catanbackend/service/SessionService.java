@@ -40,7 +40,7 @@ public class SessionService {
             return Optional.empty();
         }
 
-        if ((long)sessionPlayerService.findPlayersByUserId(hostId).size() > 0) {
+        if ((long)sessionPlayerService.findActivePlayersByUserId(hostId).size() > 0) {
             return Optional.empty();
         }
 
@@ -101,6 +101,22 @@ public class SessionService {
 
     public List<Session> getSessionsByHostId(Long hostId) {
         return sessionRepository.findByHostId(hostId);
+    }
+
+    public Optional<Session> getActiveSessionsByHostId(Long hostId) {
+        if (sessionRepository.findByHostId(hostId).stream().noneMatch(Session::getActive)) {
+            return Optional.empty();
+        }
+        if (sessionRepository.findByHostId(hostId).stream().filter(Session::getActive).count() >= 2) {
+            throw new RuntimeException("Multiple active sessions found for host " + hostId);
+        }
+        return sessionRepository.findByHostId(hostId).stream().filter(Session::getActive).findFirst();
+    }
+
+    public void closeSession(Session session) {
+        session.setActive(false);
+        sessionRepository.saveAndFlush(session);
+        sessionPlayerService.deactivateSessionPlayers(session.getId());
     }
 
     public Optional<Session> getSessionById(Long id){

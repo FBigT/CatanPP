@@ -1,6 +1,5 @@
 package com.catan.catanbackend.service;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -18,14 +17,12 @@ import java.io.IOException;
 @Component
 public class TokenFilter extends OncePerRequestFilter {
     private final TokenService jwtService;
+    private UserDetailsServiceImpl userDetailsService;
 
-    @Autowired
-    UserDetailsServiceImpl userDetailsService;
-
-    public TokenFilter() {
-        jwtService = new TokenService();
+    public TokenFilter(TokenService jwtService, UserDetailsServiceImpl userDetailsService) {
+        this.jwtService = jwtService;
+        this.userDetailsService = userDetailsService;
     }
-
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {

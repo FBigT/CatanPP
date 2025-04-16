@@ -4,7 +4,6 @@ package com.catan.catanbackend.controller;
 import com.catan.catanbackend.model.*;
 import com.catan.catanbackend.model.dto.*;
 import com.catan.catanbackend.service.*;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -13,7 +12,6 @@ import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -31,7 +29,6 @@ public class UserController {
     private final TokenService tokenService;
     private final GuestKeyService guestKeyService;
     private final PlayerProfileService playerProfileService;
-    private final BCryptPasswordEncoder encoder = new BCryptPasswordEncoder();
 
     public UserController(AuthenticationManager authenticationManager, UserService userService, Mapper mapper, TokenService tokenService, GuestKeyService guestKeyService, PlayerProfileService playerProfileService, RefreshTokenService refreshTokenService) {
         this.authenticationManager = authenticationManager;
@@ -83,12 +80,13 @@ public class UserController {
 
     @PostMapping("/refresh")
     public ResponseEntity<LogInResponse> refreshToken(@RequestBody String refreshToken){
+        refreshToken = refreshToken.replace("\"", "");
         Optional<RefreshToken> existingToken = refreshTokenService.getRefreshTokenByToken(refreshToken);
         if (existingToken.isEmpty()) {
             return new ResponseEntity<>(HttpStatus.NOT_FOUND);
         }
 
-        if (!refreshTokenService.tokenIsValid(existingToken.get())) {
+        if (Boolean.FALSE.equals(refreshTokenService.tokenIsValid(existingToken.get()))) {
             return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
         }
 
