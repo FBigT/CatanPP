@@ -137,6 +137,11 @@ public class SessionService {
         return generatedString.toUpperCase();
     }
 
+    public String createSaveJson(Session session) {
+        //create save logic
+        return "";
+    }
+
     public List<SessionPlayer> getPlayers(Long sessionId){
         return sessionPlayerService.findPlayerBySessionId(sessionId);
     }

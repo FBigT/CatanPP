@@ -18,11 +18,12 @@ import java.time.OffsetDateTime;
 @Entity
 @Table(name = "session_saves")
 public class SessionSave {
-    public SessionSave(String name, Session session, Integer turnNumber) {
+    public SessionSave(String name, Session session, Integer turnNumber, String saveJson) {
         savedAt = OffsetDateTime.now();
         this.name = name;
         this.session = session;
         this.turnNumber = turnNumber;
+        this.saveJson = saveJson;
     }
 
     @Id
@@ -49,4 +50,8 @@ public class SessionSave {
     @NotNull
     @Column(name = "saved_at", nullable = false)
     private OffsetDateTime savedAt;
+
+    @NotNull
+    @Column(name = "save_json", nullable = false)
+    private String saveJson;
 }
