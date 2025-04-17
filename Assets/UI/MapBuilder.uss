@@ -1,0 +1,80 @@
+.mapBuilder {
+    flex-direction: column;
+    height: 100%;
+    width: 100%;
+    font-size: 14px;
+    font-family: "Segoe UI", sans-serif;
+    color: #ccc;
+}
+
+.mainContent {
+    flex-direction: row;
+    flex-grow: 1;
+    border-top: 1px solid #444;
+    border-bottom: 1px solid #444;
+}
+
+.tileBar,
+.propBar {
+    width: 200px;
+    flex-shrink: 0;
+    flex-direction: column;
+    border-right: 1px solid #444;
+    border-left: 1px solid #444;
+    padding: 6px;
+}
+
+.tileBar{
+    overflow-y: auto;
+    overflow-x: hidden;
+}
+
+.centerContent {
+    flex-grow: 1;
+    background-color: transparent;
+}
+
+.toolBar {
+    flex-direction: row;
+    gap: 12px;
+    padding: 6px 12px;
+    border-top: 1px solid #444;
+    justify-content: flex-start;
+    align-items: center;
+    background-color: transparent;
+}
+
+Button {
+    border: 1px solid #555;
+    background-color: transparent;
+    padding: 4px 8px;
+    color: #ccc;
+    transition: background-color 0.1s, color 0.1s, border-color 0.1s;
+}
+
+Button:hover {
+    background-color: #222;
+    border-color: #888;
+    color: white;
+}
+
+Button:active {
+    background-color: #333;
+    border-color: #aaa;
+    color: white;
+}
+
+Toggle {
+    flex-direction: row;
+    align-items: center;
+    border: 1px solid #555;
+    padding: 4px 8px;
+    background-color: transparent;
+    color: #ccc;
+}
+
+Toggle:hover {
+    background-color: #222;
+    border-color: #888;
+    color: white;
+}

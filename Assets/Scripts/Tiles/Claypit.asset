@@ -1,0 +1,20 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4bd7fb31ccb34ce4da169ab0e1e76172, type: 3}
+  m_Name: Claypit
+  m_EditorClassIdentifier: 
+  tileName: Clay pit
+  icon: {fileID: 21300000, guid: bd245911c3c2c5e4c8cfa51f8bff1525, type: 3}
+  tilePrefab: {fileID: 1645434313611550596, guid: 6f753c6166b9a8f4da88e6fdb93c4bcc, type: 3}
+  tileID: 0
+  isWalkable: 0
+  isInteractable: 0

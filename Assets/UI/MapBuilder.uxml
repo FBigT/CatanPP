@@ -1,0 +1,17 @@
+<engine:UXML xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:engine="UnityEngine.UIElements" xmlns:editor="UnityEditor.UIElements" noNamespaceSchemaLocation="../../UIElementsSchema/UIElements.xsd" editor-extension-mode="False">
+    <Style src="project://database/Assets/UI/MapBuilder.uss?fileID=7433441132597879392&amp;guid=c69fc8fc1f8e2884ab3ec6e49fe896d2&amp;type=3#MapBuilder" />
+    <engine:VisualElement name="Panel" class="mapBuilder">
+        <engine:VisualElement class="mainContent">
+            <engine:VisualElement name="TileBar" class="tileBar" />
+            <engine:VisualElement class="centerContent" />
+            <engine:VisualElement name="PropBar" class="propBar" />
+        </engine:VisualElement>
+        <engine:VisualElement name="ToolBar" class="toolBar">
+            <engine:Button name="SelectToolButton" text="Select" />
+            <engine:Button name="PlaceToolButton" text="Place" />
+            <engine:Button name="EraseToolButton" text="Erase" />
+            <engine:Toggle name="GridToggle" text="Show Grid" value="true" />
+            <engine:Button name="ClearMapButton" text="Clear Map" />
+        </engine:VisualElement>
+    </engine:VisualElement>
+</engine:UXML>
