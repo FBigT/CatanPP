@@ -2,6 +2,8 @@ using Assets.Scripts.User;
 using TMPro;
 using Unity.VisualScripting;
 using UnityEngine;
+using UnityEngine.EventSystems;
+using UnityEngine.UI;
 
 public class ProfilePanel : MonoBehaviour
 {
@@ -14,6 +16,7 @@ public class ProfilePanel : MonoBehaviour
     public TMP_Text structuresPlacedValue;
     public TMP_Text roadsPlacedValue;
     public TMP_Text skinsUnlockedValue;
+    public GameObject mainPanel;
 
     void Awake(){
         UserManager userManager = this.AddComponent<UserManager>();
@@ -34,5 +37,14 @@ public class ProfilePanel : MonoBehaviour
 
     private void SetError(string error) { 
         Debug.LogError(error);
+    }
+
+    private void Update()
+    {
+        if (Input.GetKeyDown(KeyCode.Escape))
+        {
+            gameObject.SetActive(false);
+            mainPanel.SetActive(true);
+        }
     }
 }
