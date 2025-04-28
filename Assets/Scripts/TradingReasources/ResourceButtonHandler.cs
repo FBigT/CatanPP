@@ -4,6 +4,7 @@ using UnityEngine.UI;
 
 public class ResourceButtonHandler : MonoBehaviour
 {
+    public string resourceName;
     public TextMeshProUGUI quantityText;
     private int quantity = 0;
 
@@ -22,5 +23,11 @@ public class ResourceButtonHandler : MonoBehaviour
         {
             quantityText.text = quantity.ToString();
         }
+    }
+
+
+    public int GetQuantity()
+    {
+        return quantity;
     }
 }
