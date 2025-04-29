@@ -1,6 +1,8 @@
 using UnityEngine;
 using TMPro;
+using System.Collections;
 using System.Collections.Generic;
+using UnityEngine.EventSystems;
 
 public class TradeScreenManager : MonoBehaviour
 {
@@ -37,14 +39,21 @@ public class TradeScreenManager : MonoBehaviour
             }
         }
 
-        panel.SetActive(false);
-        mainTradePanel.SetActive(true);
+        EventSystem.current.SetSelectedGameObject(null);
 
+        StartCoroutine(SwitchToMainPanelSafely(panel));
 
         for (int i = 0; i < selectedResources.Count; i++)
         {
             Debug.Log($"Selected Resource: {selectedResources[i]}, Quantity: {selectedQuantities[i]}");
         }
+    }
+
+    private IEnumerator SwitchToMainPanelSafely(GameObject panel)
+    {
+        yield return new WaitForSeconds(0.1f); 
+        panel.SetActive(false);
+        mainTradePanel.SetActive(true);
     }
 
     public void OpenRequestPanel()
@@ -77,5 +86,4 @@ public class TradeScreenManager : MonoBehaviour
     {
         OnApplyClicked(offerPanel, offerResourceButtons, selectedOfferedResources, selectedOfferedQuantities);
     }
-
 }
