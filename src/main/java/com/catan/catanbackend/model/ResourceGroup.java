@@ -10,44 +10,44 @@ import java.util.Objects;
 @AllArgsConstructor
 @NoArgsConstructor
 public class ResourceGroup implements Comparable<ResourceGroup>{
-    Integer lumber = 0;
-    Integer wool = 0;
+    Integer brick = 0;
+    Integer crystal = 0;
     Integer ore = 0;
-    Integer grain = 0;
-    Integer bricks = 0;
+    Integer rice = 0;
+    Integer sheep = 0;
     Integer silver = 0;
     Integer gold = 0;
-    Integer obsidian = 0;
+    Integer wood = 0;
 
     public Boolean validate(){
-        return lumber >= 0 && wool >= 0 && ore >= 0 && grain >= 0 && bricks >= 0 && silver >= 0 && gold >= 0 && obsidian >= 0;
+        return brick >= 0 && crystal >= 0 && ore >= 0 && rice >= 0 && sheep >= 0 && silver >= 0 && gold >= 0 && wood >= 0;
     }
 
     public Integer getSum() {
-        return lumber + wool + ore + grain + bricks + silver + gold + obsidian;
+        return brick + crystal + ore + rice + sheep + silver + gold + wood;
     }
 
     @Override
     public int compareTo(ResourceGroup o) {
-        if(Objects.equals(lumber, o.lumber) && Objects.equals(wool, o.wool) && Objects.equals(ore, o.ore)
-                && Objects.equals(obsidian, o.obsidian) && Objects.equals(grain, o.grain) && Objects.equals(bricks, o.bricks)
+        if(Objects.equals(brick, o.brick) && Objects.equals(crystal, o.crystal) && Objects.equals(ore, o.ore)
+                && Objects.equals(wood, o.wood) && Objects.equals(rice, o.rice) && Objects.equals(sheep, o.sheep)
                 && Objects.equals(silver, o.silver) && Objects.equals(gold, o.gold)){
             return 0;
         }
-        if(lumber > o.lumber && wool > o.wool && ore > o.ore && obsidian > o.obsidian && grain > o.grain && bricks > o.bricks && silver > o.silver && gold > o.gold ){
+        if(brick > o.brick && crystal > o.crystal && ore > o.ore && wood > o.wood && rice > o.rice && sheep > o.sheep && silver > o.silver && gold > o.gold ){
             return 1;
         }
         return -1;
     }
 
     public void subtractResources(ResourceGroup resourceGroup) {
-        lumber -= resourceGroup.lumber;
-        wool -= resourceGroup.wool;
+        brick -= resourceGroup.brick;
+        crystal -= resourceGroup.crystal;
         ore -= resourceGroup.ore;
-        grain -= resourceGroup.grain;
-        bricks -= resourceGroup.bricks;
+        rice -= resourceGroup.rice;
+        sheep -= resourceGroup.sheep;
         silver -= resourceGroup.silver;
         gold -= resourceGroup.gold;
-        obsidian -= resourceGroup.obsidian;
+        wood -= resourceGroup.wood;
     }
 }

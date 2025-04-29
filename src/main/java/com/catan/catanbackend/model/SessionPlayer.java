@@ -65,24 +65,14 @@ public class SessionPlayer {
     private String name;
 
     @NotNull
-    @Column(name = "lumber", nullable = false)
+    @Column(name = "brick", nullable = false)
     @ColumnDefault("0")
-    private Integer lumber = 0;
+    private Integer brick = 0;
 
     @NotNull
-    @Column(name = "wool", nullable = false)
+    @Column(name = "crystal", nullable = false)
     @ColumnDefault("0")
-    private Integer wool = 0;
-
-    @NotNull
-    @Column(name = "grain", nullable = false)
-    @ColumnDefault("0")
-    private Integer grain = 0;
-
-    @NotNull
-    @Column(name = "bricks", nullable = false)
-    @ColumnDefault("0")
-    private Integer bricks = 0;
+    private Integer crystal = 0;
 
     @NotNull
     @Column(name = "ore", nullable = false)
@@ -90,9 +80,14 @@ public class SessionPlayer {
     private Integer ore = 0;
 
     @NotNull
-    @Column(name = "gold", nullable = false)
+    @Column(name = "rice", nullable = false)
     @ColumnDefault("0")
-    private Integer gold = 0;
+    private Integer rice = 0;
+
+    @NotNull
+    @Column(name = "sheep", nullable = false)
+    @ColumnDefault("0")
+    private Integer sheep = 0;
 
     @NotNull
     @Column(name = "silver", nullable = false)
@@ -100,22 +95,27 @@ public class SessionPlayer {
     private Integer silver = 0;
 
     @NotNull
-    @Column(name = "obsidian", nullable = false)
+    @Column(name = "gold", nullable = false)
     @ColumnDefault("0")
-    private Integer obsidian = 0;
+    private Integer gold = 0;
+
+    @NotNull
+    @Column(name = "wood", nullable = false)
+    @ColumnDefault("0")
+    private Integer wood = 0;
 
     public Integer getNumberOfResources() {
-        return obsidian + silver + gold + bricks + wool + grain + ore + lumber;
+        return brick + crystal + ore + rice + sheep + silver + gold + wood;
     }
 
     public void setResources(ResourceGroup resourceGroup) {
-        wool = resourceGroup.getWool();
-        grain = resourceGroup.getGrain();
+        brick = resourceGroup.getBrick();
+        crystal = resourceGroup.getCrystal();
         ore = resourceGroup.getOre();
-        lumber = resourceGroup.getLumber();
+        rice = resourceGroup.getRice();
+        sheep = resourceGroup.getSheep();
         silver = resourceGroup.getSilver();
         gold = resourceGroup.getGold();
-        bricks = resourceGroup.getBricks();
-        obsidian = resourceGroup.getObsidian();
+        wood = resourceGroup.getWood();
     }
 }

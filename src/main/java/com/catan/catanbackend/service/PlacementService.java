@@ -36,48 +36,41 @@ public class PlacementService {
     // 1) Place a Settlement
     // ----------------------------------------------------
     public Structure placeStructure(String owner, Long tileId, int cornerIndex) {
-        // 1. Validate that the user + session player exist
         Optional<User> userOpt = userService.getUserByUsername(owner);
         if (userOpt.isEmpty()) {
             throw new IllegalArgumentException("No such user: " + owner);
         }
         User user = userOpt.get();
 
-        // They must be in an active session
         Optional<SessionPlayer> spOpt = sessionPlayerService.findCurrentSessionPlayerByUserId(user.getId());
         if (spOpt.isEmpty()) {
             throw new IllegalArgumentException("User has no active session player");
         }
         SessionPlayer sp = spOpt.get();
 
-        // 2. Check if the tile can be found
         Tile tile = tileRepository.findById(tileId)
                 .orElseThrow(() -> new IllegalArgumentException("Tile not found: " + tileId));
 
-        // 3. Check if we can place a structure physically using your existing rules
         if (!canPlaceStructureWithDistanceRule(tileId, cornerIndex)) {
             throw new IllegalArgumentException("Cannot place structure at tile=" + tileId + ", corner=" + cornerIndex);
         }
 
-        // 4. **Check Resource Cost** for Settlement: (1 Brick, 1 Lumber, 1 Wool, 1 Grain)
-        if (sp.getBricks() < 1 || sp.getLumber() < 1 || sp.getWool() < 1 || sp.getGrain() < 1) {
+        // 4. Check Resource Cost for Settlement: (1 Brick, 1 Lumber, 1 Wool, 1 Grain)
+        if (sp.getBrick() < 1 || sp.getWood() < 1 || sp.getSheep() < 1 || sp.getRice() < 1) {
             throw new IllegalArgumentException("Not enough resources to buy a settlement");
         }
 
         // 5. Deduct the cost
-        sp.setBricks(sp.getBricks() - 1);
-        sp.setLumber(sp.getLumber() - 1);
-        sp.setWool(sp.getWool() - 1);
-        sp.setGrain(sp.getGrain() - 1);
+        sp.setBrick(sp.getBrick() - 1);
+        sp.setWood(sp.getWood() - 1);
+        sp.setSheep(sp.getSheep() - 1);
+        sp.setRice(sp.getRice() - 1);
         sessionPlayerService.updateSessionPlayer(sp);
 
-        // 6. Actually place the structure
         tile.getCorners().set(cornerIndex, true);
         tileRepository.save(tile);
 
-        // Create the Structure entity
         Structure structure = new Structure(owner, tile, cornerIndex);
-        // By default it has type "SETTLEMENT"
         structure = structureRepository.save(structure);
 
         return structure;
@@ -87,7 +80,6 @@ public class PlacementService {
     // 2) Place a Road
     // ----------------------------------------------------
     public Road placeRoad(String owner, Long tileId, int edgeIndex) {
-        // 1. Validate the user + session player
         Optional<User> userOpt = userService.getUserByUsername(owner);
         if (userOpt.isEmpty()) {
             throw new IllegalArgumentException("No such user: " + owner);
@@ -100,26 +92,23 @@ public class PlacementService {
         }
         SessionPlayer sp = spOpt.get();
 
-        // 2. Find the tile
         Tile tile = tileRepository.findById(tileId)
                 .orElseThrow(() -> new IllegalArgumentException("Tile not found: " + tileId));
 
-        // 3. Check if we can place a road physically
         if (!canPlaceRoad(tileId, edgeIndex)) {
             throw new IllegalArgumentException("Cannot place road at tile=" + tileId + ", edge=" + edgeIndex);
         }
 
-        // 4. **Check Resource Cost** for Road: (1 Brick, 1 Lumber)
-        if (sp.getBricks() < 1 || sp.getLumber() < 1) {
+        // 4. Check Resource Cost for Road: (1 Brick, 1 Lumber)
+        if (sp.getBrick() < 1 || sp.getWood() < 1) {
             throw new IllegalArgumentException("Not enough resources to buy a road");
         }
 
         // 5. Deduct resources
-        sp.setBricks(sp.getBricks() - 1);
-        sp.setLumber(sp.getLumber() - 1);
+        sp.setBrick(sp.getBrick() - 1);
+        sp.setWood(sp.getWood() - 1);
         sessionPlayerService.updateSessionPlayer(sp);
 
-        // 6. Place the road
         tile.getEdges().set(edgeIndex, true);
         tileRepository.save(tile);
 
@@ -134,7 +123,6 @@ public class PlacementService {
     // 3) Upgrade a Settlement to City
     // ----------------------------------------------------
     public Structure upgradeSettlementToCity(Long tileId, int cornerIndex, String owner) {
-        // 1. Validate the user + session player
         Optional<User> userOpt = userService.getUserByUsername(owner);
         if (userOpt.isEmpty()) {
             throw new IllegalArgumentException("No such user: " + owner);
@@ -147,33 +135,29 @@ public class PlacementService {
         }
         SessionPlayer sp = spOpt.get();
 
-        // 2. Find the existing structure
         Structure structure = structureRepository.findByTileIdAndCornerIndex(tileId, cornerIndex);
         if (structure == null) {
             throw new IllegalArgumentException("No structure found at tile=" + tileId + ", corner=" + cornerIndex);
         }
 
-        // 3. Must be owned by the same player
         if (!structure.getOwner().equals(owner)) {
             throw new IllegalArgumentException("You do not own this settlement");
         }
 
-        // 4. Must be an actual settlement to upgrade
         if (!structure.getType().equals("SETTLEMENT")) {
             throw new IllegalArgumentException("Only settlements can be upgraded to a city");
         }
 
-        // 5. Check City cost: (2 Grain, 3 Ore) example
-        if (sp.getGrain() < 2 || sp.getOre() < 3) {
+        // 5. Check City cost: (2 Grain, 3 Ore)
+        if (sp.getRice() < 2 || sp.getOre() < 3) {
             throw new IllegalArgumentException("Not enough resources to upgrade to city");
         }
 
         // 6. Deduct city cost
-        sp.setGrain(sp.getGrain() - 2);
+        sp.setRice(sp.getRice() - 2);
         sp.setOre(sp.getOre() - 3);
         sessionPlayerService.updateSessionPlayer(sp);
 
-        // 7. Upgrade
         structure.setType("CITY");
         return structureRepository.save(structure);
     }
