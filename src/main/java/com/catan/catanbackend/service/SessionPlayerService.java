@@ -18,7 +18,7 @@ public class SessionPlayerService {
         this.sessionPlayerRepository = sessionPlayerRepository;
     }
 
-    public SessionPlayer createSessionPlayer(SessionPlayer sessionPlayer) {
+    public SessionPlayer saveSessionPlayer(SessionPlayer sessionPlayer) {
         return sessionPlayerRepository.saveAndFlush(sessionPlayer);
     }
 

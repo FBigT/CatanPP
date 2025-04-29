@@ -25,10 +25,16 @@ public class TokenFilter extends OncePerRequestFilter {
     }
 
     @Override
+    protected boolean shouldNotFilter(HttpServletRequest request) throws ServletException {
+        String path = request.getServletPath();
+        return path.startsWith("/catan");
+    }
+
+    @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
         String jwt = parseJwt(request);
         if (jwt != null && jwtService.validateJwtToken(jwt)) {
-            String username = jwtService.getUserNameFromJwtToken(jwt);
+            String username = jwtService.getUsernameFromJwtToken(jwt);
 
             UserDetails userDetails = userDetailsService.loadUserByUsername(username);
             UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());

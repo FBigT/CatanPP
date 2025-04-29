@@ -62,6 +62,7 @@ public class SecurityConfiguration {
                 .cors(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests(req -> req.requestMatchers(WHITE_LIST_URL)
                         .permitAll()
+                        .requestMatchers("/catan/**").permitAll()
                         .anyRequest()
                         .authenticated())
                 .exceptionHandling(ex -> ex.authenticationEntryPoint(unauthorizedHandler))

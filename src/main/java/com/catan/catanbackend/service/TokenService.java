@@ -50,7 +50,7 @@ public class TokenService {
         return Keys.hmacShaKeyFor(keyBytes);
     }
 
-    public String getUserNameFromJwtToken(String token) {
+    public String getUsernameFromJwtToken(String token) {
         return Jwts.parser()
                 .verifyWith(getSigningKey())
                 .build()
