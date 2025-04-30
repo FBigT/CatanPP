@@ -9,26 +9,30 @@ using UnityEngine.UI;
 
 public class LoadGame : MonoBehaviour
 {
-    Transform template;
-    Transform entries;
+    public GameObject template;
+    public GameObject entries;
+
+    public GameObject confirmDialog;
+    public Button confirmDelete;
 
     SessionManager sessionService;
-    
+    Transform currentDeleteSelection;
+
     void Awake()
     {
         sessionService = this.AddComponent<SessionManager>();
-        template = transform.Find("tableEntryTemplate");
-        entries = transform.Find("entries");
-        template.gameObject.SetActive(false);
+        template.SetActive(false);
+        confirmDialog.SetActive(false);
 
-        PrintEntries(new List<SessionSave>() { new("Primjer", 1, System.DateTime.Now), new("Primjer", 1, System.DateTime.Now), new("Primjer", 1, System.DateTime.Now), new("Primjer", 1, System.DateTime.Now), new("Primjer", 1, System.DateTime.Now), new("Primjer", 1, System.DateTime.Now), new("Primjer", 1, System.DateTime.Now), new("Primjer", 1, System.DateTime.Now), new("Primjer", 1, System.DateTime.Now), new("Primjer", 1, System.DateTime.Now), new("Primjer", 1, System.DateTime.Now), new("Primjer", 1, System.DateTime.Now) });
+        confirmDelete.onClick.AddListener(() => DeleteSave(currentDeleteSelection));
+        PrintEntries(new List<SessionSave>() { new("Primjer2", 1, System.DateTime.Now), new("Primjer1", 1, System.DateTime.Now), new("Primjer3", 1, System.DateTime.Now), new("Primjer4", 1, System.DateTime.Now), new("Primjer", 1, System.DateTime.Now), new("Primjer", 1, System.DateTime.Now), new("Primjer", 1, System.DateTime.Now), new("Primjer", 1, System.DateTime.Now), new("Primjer", 1, System.DateTime.Now), new("Primjer", 1, System.DateTime.Now), new("Primjer", 1, System.DateTime.Now), new("Primjer", 1, System.DateTime.Now) });
     }
 
     public void PrintEntries(IEnumerable<SessionSave> saves) {
 
         for (int i = 0; i < saves.Count(); i++)
         {
-            Transform entry = Instantiate(template, entries);
+            Transform entry = Instantiate(template.transform, entries.transform);
             Transform buttonHolder = entry.Find("ButtonHolder");
 
             var currentEntry = entry;
@@ -38,7 +42,7 @@ public class LoadGame : MonoBehaviour
             entry.Find("date").GetComponent<TMP_Text>().text = saves.ElementAt(i).DateTime.ToString();
 
             buttonHolder.Find("btnLoad").GetComponent<Button>().onClick.AddListener(() => LoadGameSave(currentEntry));
-            buttonHolder.Find("btnDelete").GetComponent<Button>().onClick.AddListener(() => DeleteGameSave(currentEntry));
+            buttonHolder.Find("btnDelete").GetComponent<Button>().onClick.AddListener(() => PrepareDeleteSave(currentEntry));
 
             currentEntry.gameObject.SetActive(true);
         }
@@ -49,10 +53,16 @@ public class LoadGame : MonoBehaviour
         //Loads save
     }
 
-    private void DeleteGameSave(Transform transform)
+    private void PrepareDeleteSave(Transform transform)
+    {
+        currentDeleteSelection = transform;
+        confirmDialog.SetActive(true);
+    }
+
+    private void DeleteSave(Transform transform) 
     {
         long.TryParse(transform.Find("id").GetComponent<TMP_Text>().text, out long id);
-        sessionService.DeleteSessionSave(id);
+        //sessionService.DeleteSessionSave(id);
 
         Transform buttonHolder = transform.Find("ButtonHolder");
 

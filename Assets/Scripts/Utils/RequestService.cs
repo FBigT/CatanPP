@@ -12,8 +12,6 @@ namespace Assets.Scripts.Utils
 
         #nullable enable
         public static IEnumerator ConstructSimpleWebRequest(string endpoint, Methods method, bool requiresAuthorization, string? jsonBody, Action<UnityWebRequest?> onReady) {
-            Debug.Log(LocalStorageService.GetString("token"));
-            Debug.Log(LocalStorageService.GetString("refresh-token"));
             UnityWebRequest request = new(endpoint, method.ToString())
             {
                 uploadHandler = new UploadHandlerRaw(Encoding.UTF8.GetBytes(JsonUtility.ToJson(jsonBody))),
@@ -53,5 +51,7 @@ namespace Assets.Scripts.Utils
             onReady?.Invoke(request);
         }
         #nullable disable
+
+
     }
 }
