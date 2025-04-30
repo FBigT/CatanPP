@@ -1,5 +1,6 @@
 package com.catan.catanbackend.controller;
 
+import com.catan.catanbackend.controller.webSocket.ChatController;
 import com.catan.catanbackend.model.Session;
 import com.catan.catanbackend.model.SessionCode;
 import com.catan.catanbackend.model.SessionPlayer;
@@ -24,14 +25,16 @@ public class SessionController {
     final Mapper mapper;
     final TokenService tokenService;
     final String tokenType = "Bearer";
-    private final SessionPlayerService sessionPlayerService;
+    final SessionPlayerService sessionPlayerService;
+    final ChatController chatController;
 
-    public SessionController(Mapper mapper, SessionService sessionService, SessionSaveService sessionSaveService, TokenService tokenService, SessionPlayerService sessionPlayerService) {
+    public SessionController(Mapper mapper, SessionService sessionService, SessionSaveService sessionSaveService, TokenService tokenService, SessionPlayerService sessionPlayerService, ChatController chatController) {
         this.mapper = mapper;
         this.sessionService = sessionService;
         this.sessionSaveService = sessionSaveService;
         this.tokenService = tokenService;
         this.sessionPlayerService = sessionPlayerService;
+        this.chatController = chatController;
     }
 
     @PostMapping("/{maxPlayers}")
@@ -42,7 +45,10 @@ public class SessionController {
         Optional<SessionCode> sessionCode = sessionService.startSession(tokenService.getUserIdFromJwtToken(token.split(" ")[1]), maxPlayers);
 
         return sessionCode
-                .map(code -> new ResponseEntity<>(mapper.mapSessionToDto(code), HttpStatus.CREATED))
+                .map(code -> {
+                    //chatController.sendJoinSessionUpdate(code.getCode(), sessionService.getPlayers(code.getSession().getId()).stream().map(SessionPlayer::getUser).toList());
+                    return new ResponseEntity<>(mapper.mapSessionToDto(code), HttpStatus.CREATED);
+                })
                 .orElseGet(() -> new ResponseEntity<>(HttpStatus.BAD_REQUEST));
     }
 
@@ -60,15 +66,30 @@ public class SessionController {
         return new ResponseEntity<>(HttpStatus.NOT_FOUND);
     }
 
-    @PostMapping("/join/{code}")
+    //@PostMapping("/join/{code}")
     public ResponseEntity<SessionCodeDto> joinSession(@PathVariable String code, @RequestHeader (name="Authorization") String token) {
         if (!token.startsWith(tokenType)) {
             return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
         }
 
         return sessionService.joinSession(tokenService.getUserIdFromJwtToken(token.split(" ")[1]), code)
-                .map(value -> new ResponseEntity<>(mapper.mapSessionToDto(value), HttpStatus.OK))
+                .map(value -> {
+                    //chatController.sendJoinSessionUpdate(code, sessionService.getPlayers(value.getId()).stream().map(SessionPlayer::getUser).toList());
+                    return new ResponseEntity<>(mapper.mapSessionToDto(value), HttpStatus.OK);
+                })
                 .orElseGet(() -> new ResponseEntity<>(HttpStatus.BAD_REQUEST));
+    }
+
+    //@PostMapping("/leave/{code}")
+    public ResponseEntity<Void> leaveSession(@PathVariable String code, @RequestHeader (name="Authorization") String token) {
+        if (!token.startsWith(tokenType)) {
+            return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
+        }
+
+        if (sessionService.leaveSession(tokenService.getUserIdFromJwtToken(token.split(" ")[1]), code)) {
+            return new ResponseEntity<>(HttpStatus.OK);
+        }
+        return new ResponseEntity<>(HttpStatus.NOT_FOUND);
     }
 
     @GetMapping("/saves")

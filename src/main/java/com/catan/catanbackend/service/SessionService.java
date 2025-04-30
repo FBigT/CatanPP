@@ -4,6 +4,7 @@ import com.catan.catanbackend.model.*;
 import com.catan.catanbackend.repository.SessionCodeRepository;
 import com.catan.catanbackend.repository.SessionRecordRepository;
 import com.catan.catanbackend.repository.SessionRepository;
+import org.hibernate.Hibernate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -50,7 +51,7 @@ public class SessionService {
         do {
             newSessionCode = generateSessionCode();
         } while (sessionCodeRepository.findByCode(newSessionCode).isPresent());
-        sessionPlayerService.createSessionPlayer(new SessionPlayer(savedSession, host.get()));
+        //sessionPlayerService.saveSessionPlayer(new SessionPlayer(savedSession, host.get()));
         return Optional.of(sessionCodeRepository.save(new SessionCode(savedSession, newSessionCode)));
     }
 
@@ -76,27 +77,45 @@ public class SessionService {
         Optional<SessionCode> sessionCode = sessionCodeRepository.findByCode(code);
 
         if (user.isPresent() && sessionCode.isPresent()) {
-            List<User> players = getPlayers(sessionCode.get().getSession().getId()).stream()
-                    .map(SessionPlayer::getUser).toList();
+            List<SessionPlayer> players = getPlayers(sessionCode.get().getSession().getId());
 
-            if (players.contains(user.get()) || players.size() >= sessionCode.get().getSession().getMaxPlayers()) {
+            if (players.stream().anyMatch(player -> player.getUser().getId().equals(userId) && !player.getActive())){
+                SessionPlayer sessionPlayer = players.stream().filter(player -> player.getUser().getId().equals(userId)).findFirst().get();
+                sessionPlayer.setActive(true);
+                sessionPlayerService.saveSessionPlayer(sessionPlayer);
+            } else if (players.size() >= sessionCode.get().getSession().getMaxPlayers() ||
+                    players.stream().anyMatch(player -> player.getUser().getId().equals(userId) && player.getActive()))
                 return Optional.empty();
-            }
-
-            sessionPlayerService.createSessionPlayer(new SessionPlayer(sessionCode.get().getSession(), user.get()));
+            else
+                sessionPlayerService.saveSessionPlayer(new SessionPlayer(sessionCode.get().getSession(), user.get()));
         }
         return sessionCode;
     }
 
     public Boolean addBotToSession(String code) {
-        Optional<SessionCode> sessionCode = sessionCodeRepository.findByCode(code);
+        Optional<Session> session = getSessionBySessionCode(code);
 
-        if (sessionCode.isEmpty()
-            || getPlayers(sessionCode.get().getSession().getId()).size() >= sessionCode.get().getSession().getMaxPlayers()) {
+        if (session.isEmpty()
+            || getPlayers(session.get().getId()).size() >= session.get().getMaxPlayers()) {
             return false;
         }
-        sessionPlayerService.createSessionPlayer(new SessionPlayer(sessionCode.get().getSession()));
+        sessionPlayerService.saveSessionPlayer(new SessionPlayer(session.get()));
         return true;
+    }
+
+    public Boolean leaveSession(Long userId, String code) {
+        Optional<Session> session = getSessionBySessionCode(code);
+        Optional<List<SessionPlayer>> sessionPlayers = session.map(value ->
+                getPlayers(value.getId()).stream()
+                        .filter(player -> player.getUser().getId().equals(userId)).toList());
+        if (sessionPlayers.isPresent() && sessionPlayers.get().size() == 1 ) {
+            SessionPlayer sessionPlayer = sessionPlayers.get().stream().findFirst().get();
+            if (sessionPlayer.getActive()){
+                sessionPlayerService.saveSessionPlayer(sessionPlayer);
+                return true;
+            }
+        }
+        return false;
     }
 
     public List<Session> getSessionsByHostId(Long hostId) {
@@ -123,6 +142,13 @@ public class SessionService {
         return sessionRepository.findById(id);
     }
 
+    public Optional<Session> getSessionBySessionCode(String code){
+        return sessionCodeRepository.findByCode(code).map(sessionCode -> {
+            Hibernate.initialize(sessionCode.getSession());
+            return sessionCode.getSession();
+        });
+    }
+
     private String generateSessionCode() {
         int leftLimit = 48; // '0'
         int rightLimit = 122; // 'z'
@@ -144,5 +170,9 @@ public class SessionService {
 
     public List<SessionPlayer> getPlayers(Long sessionId){
         return sessionPlayerService.findPlayerBySessionId(sessionId);
+    }
+
+    public List<SessionPlayer> getPlayersBySessionCode(String sessionCode){
+        return sessionPlayerService.findPlayersBySessionCode(sessionCode);
     }
 }

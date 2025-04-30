@@ -18,7 +18,7 @@ public class SessionPlayerService {
         this.sessionPlayerRepository = sessionPlayerRepository;
     }
 
-    public SessionPlayer createSessionPlayer(SessionPlayer sessionPlayer) {
+    public SessionPlayer saveSessionPlayer(SessionPlayer sessionPlayer) {
         return sessionPlayerRepository.saveAndFlush(sessionPlayer);
     }
 
@@ -67,5 +67,9 @@ public class SessionPlayerService {
             return first.map(SessionPlayer::getSession);
         }
         return Optional.empty();
+    }
+
+    public List<SessionPlayer> findPlayersBySessionCode(String sessionCode) {
+        return sessionPlayerRepository.findAllBySessionCodeWithUser(sessionCode);
     }
 }
