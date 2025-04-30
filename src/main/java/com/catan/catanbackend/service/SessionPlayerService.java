@@ -72,4 +72,10 @@ public class SessionPlayerService {
     public List<SessionPlayer> findPlayersBySessionCode(String sessionCode) {
         return sessionPlayerRepository.findAllBySessionCodeWithUser(sessionCode);
     }
+
+
+//    public Optional<SessionPlayer> findById(Long playerId) {
+//        return sessionPlayerRepository.findById(playerId);
+//    }
+
 }

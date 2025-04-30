@@ -51,7 +51,7 @@ public class SessionService {
         do {
             newSessionCode = generateSessionCode();
         } while (sessionCodeRepository.findByCode(newSessionCode).isPresent());
-        //sessionPlayerService.saveSessionPlayer(new SessionPlayer(savedSession, host.get()));
+        sessionPlayerService.saveSessionPlayer(new SessionPlayer(savedSession, host.get()));
         return Optional.of(sessionCodeRepository.save(new SessionCode(savedSession, newSessionCode)));
     }
 

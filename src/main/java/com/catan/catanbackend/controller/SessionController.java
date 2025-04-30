@@ -66,7 +66,7 @@ public class SessionController {
         return new ResponseEntity<>(HttpStatus.NOT_FOUND);
     }
 
-    //@PostMapping("/join/{code}")
+    @PostMapping("/join/{code}")
     public ResponseEntity<SessionCodeDto> joinSession(@PathVariable String code, @RequestHeader (name="Authorization") String token) {
         if (!token.startsWith(tokenType)) {
             return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
@@ -80,7 +80,7 @@ public class SessionController {
                 .orElseGet(() -> new ResponseEntity<>(HttpStatus.BAD_REQUEST));
     }
 
-    //@PostMapping("/leave/{code}")
+    @PostMapping("/leave/{code}")
     public ResponseEntity<Void> leaveSession(@PathVariable String code, @RequestHeader (name="Authorization") String token) {
         if (!token.startsWith(tokenType)) {
             return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);

@@ -1,6 +1,7 @@
 package com.catan.catanbackend.model;
 
 import com.catan.catanbackend.service.GameService;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
@@ -14,6 +15,7 @@ import org.hibernate.annotations.OnDeleteAction;
 @Entity
 @Table(name = "session_players")
 @NoArgsConstructor
+@JsonIgnoreProperties({ "hibernateLazyInitializer", "handler" })
 public class SessionPlayer {
     public SessionPlayer(Session session, User user) {
         this.session = session;
