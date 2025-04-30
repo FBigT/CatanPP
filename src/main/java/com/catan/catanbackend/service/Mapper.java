@@ -55,6 +55,15 @@ public class Mapper {
     }
 
     public ResourceGroup mapSessionPlayerToResource(SessionPlayer player) {
-        return new ResourceGroup(player.getLumber(), player.getWool(), player.getOre(), player.getGrain(), player.getBricks(), player.getSilver(), player.getGold(), player.getObsidian());
+        return new ResourceGroup(
+                player.getWood(),
+                player.getSheep(),
+                player.getOre(),
+                player.getRice(),
+                player.getBrick(),
+                player.getSilver(),
+                player.getGold(),
+                player.getCrystal()
+        );
     }
 }

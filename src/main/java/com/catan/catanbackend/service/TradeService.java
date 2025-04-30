@@ -1,131 +1,137 @@
 package com.catan.catanbackend.service;
 
-import com.catan.catanbackend.model.PlayerProfile;
 import com.catan.catanbackend.model.ResourceGroup;
-import com.catan.catanbackend.repository.PlayerProfileRepository;
+import com.catan.catanbackend.model.SessionPlayer;
+import com.catan.catanbackend.repository.SessionPlayerRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.List;
 
 @Service
 @Transactional
 public class TradeService {
 
-    private final PlayerProfileRepository profileRepo;
+    private final SessionPlayerRepository playerRepo;
 
-    public TradeService(PlayerProfileRepository profileRepo) {
-        this.profileRepo = profileRepo;
+    public TradeService(SessionPlayerRepository playerRepo) {
+        this.playerRepo = playerRepo;
     }
 
-    public void tradeBetweenPlayers(String fromUser, String toUser, ResourceGroup offered, ResourceGroup requested) {
-        PlayerProfile pFrom = profileRepo.findByUserUsername(fromUser)
-                .orElseThrow(() -> new IllegalArgumentException("No such user: " + fromUser));
-        PlayerProfile pTo = profileRepo.findByUserUsername(toUser)
-                .orElseThrow(() -> new IllegalArgumentException("No such user: " + toUser));
+    public void tradeBetweenPlayers(Long sessionId,
+                                    String fromUser,
+                                    String toUser,
+                                    ResourceGroup offered,
+                                    ResourceGroup requested) {
+        SessionPlayer pFrom = findActivePlayer(sessionId, fromUser);
+        SessionPlayer pTo   = findActivePlayer(sessionId, toUser);
 
-        if (!hasEnough(pFrom.getResources(), offered)) {
+        if (!hasEnough(pFrom, offered)) {
             throw new IllegalArgumentException(fromUser + " lacks offered resources.");
         }
-        if (!hasEnough(pTo.getResources(), requested)) {
+        if (!hasEnough(pTo, requested)) {
             throw new IllegalArgumentException(toUser + " lacks requested resources.");
         }
 
-        subtractResources(pFrom.getResources(), offered);
-        addResources(pFrom.getResources(), requested);
-        subtractResources(pTo.getResources(), requested);
-        addResources(pTo.getResources(), offered);
+        applyChange(pFrom, offered,   false);
+        applyChange(pFrom, requested,  true);
+        applyChange(pTo,   requested,  false);
+        applyChange(pTo,   offered,    true);
 
-        profileRepo.save(pFrom);
-        profileRepo.save(pTo);
+
+        playerRepo.saveAll(List.of(pFrom, pTo));
     }
 
-    public void tradeWithBank(String fromUser, ResourceGroup offered, ResourceGroup requested, String portType, int portRatio) {
-        PlayerProfile pFrom = profileRepo.findByUserUsername(fromUser)
-                .orElseThrow(() -> new IllegalArgumentException("No such user: " + fromUser));
+    public void tradeWithBank(Long sessionId,
+                              String fromUser,
+                              ResourceGroup offered,
+                              ResourceGroup requested,
+                              String portType,
+                              int portRatio) {
+        SessionPlayer pFrom = findActivePlayer(sessionId, fromUser);
 
-        if (!hasEnough(pFrom.getResources(), offered)) {
-            throw new IllegalArgumentException("Not enough resources.");
+        if (!hasEnough(pFrom, offered)) {
+            throw new IllegalArgumentException(fromUser + " lacks offered resources.");
         }
 
         int ratio = determineRatio(offered, portType, portRatio);
-        int offeredSum = offered.getSum();
-        int requestedSum = requested.getSum();
-
-        if (offeredSum / ratio != requestedSum) {
-            throw new IllegalArgumentException("Invalid ratio.");
+        if (offered.getSum() / ratio != requested.getSum()) {
+            throw new IllegalArgumentException("Invalid trade ratio.");
         }
 
-        subtractResources(pFrom.getResources(), offered);
-        addResources(pFrom.getResources(), requested);
-        profileRepo.save(pFrom);
+        applyChange(pFrom, offered,   false);
+        applyChange(pFrom, requested, true);
+        playerRepo.save(pFrom);
     }
 
-    private boolean hasEnough(ResourceGroup have, ResourceGroup need) {
-        return have.getLumber()   >= need.getLumber()
-                && have.getWool()     >= need.getWool()
-                && have.getOre()      >= need.getOre()
-                && have.getGrain()    >= need.getGrain()
-                && have.getBricks()   >= need.getBricks()
-                && have.getSilver()   >= need.getSilver()
-                && have.getGold()     >= need.getGold()
-                && have.getObsidian() >= need.getObsidian();
+
+    private SessionPlayer findActivePlayer(Long sessionId, String username) {
+        return playerRepo.findAll().stream()
+                .filter(p -> p.getSession().getId().equals(sessionId)
+                        && p.getActive()
+                        && p.getUser() != null
+                        && username.equals(p.getUser().getUsername()))
+                .findFirst()
+                .orElseThrow(() -> new IllegalArgumentException(
+                        "No active player in session " + sessionId + " for user: " + username));
     }
 
-    private void subtractResources(ResourceGroup from, ResourceGroup what) {
-        from.setLumber(from.getLumber()       - what.getLumber());
-        from.setWool(from.getWool()           - what.getWool());
-        from.setOre(from.getOre()             - what.getOre());
-        from.setGrain(from.getGrain()         - what.getGrain());
-        from.setBricks(from.getBricks()       - what.getBricks());
-        from.setSilver(from.getSilver()       - what.getSilver());
-        from.setGold(from.getGold()           - what.getGold());
-        from.setObsidian(from.getObsidian()   - what.getObsidian());
+    private boolean hasEnough(SessionPlayer p, ResourceGroup need) {
+        return p.getBrick()   >= need.getBrick()
+                && p.getCrystal() >= need.getCrystal()
+                && p.getOre()     >= need.getOre()
+                && p.getRice()    >= need.getRice()
+                && p.getSheep()   >= need.getSheep()
+                && p.getSilver()  >= need.getSilver()
+                && p.getGold()    >= need.getGold()
+                && p.getWood()    >= need.getWood();
     }
 
-    private void addResources(ResourceGroup to, ResourceGroup what) {
-        to.setLumber(to.getLumber()       + what.getLumber());
-        to.setWool(to.getWool()           + what.getWool());
-        to.setOre(to.getOre()             + what.getOre());
-        to.setGrain(to.getGrain()         + what.getGrain());
-        to.setBricks(to.getBricks()       + what.getBricks());
-        to.setSilver(to.getSilver()       + what.getSilver());
-        to.setGold(to.getGold()           + what.getGold());
-        to.setObsidian(to.getObsidian()   + what.getObsidian());
+    private void applyChange(SessionPlayer p, ResourceGroup delta, boolean add) {
+        int sign = add ? +1 : -1;
+        p.setBrick(   p.getBrick()   + sign * delta.getBrick());
+        p.setCrystal( p.getCrystal() + sign * delta.getCrystal());
+        p.setOre(     p.getOre()     + sign * delta.getOre());
+        p.setRice(    p.getRice()    + sign * delta.getRice());
+        p.setSheep(   p.getSheep()   + sign * delta.getSheep());
+        p.setSilver(  p.getSilver()  + sign * delta.getSilver());
+        p.setGold(    p.getGold()    + sign * delta.getGold());
+        p.setWood(    p.getWood()    + sign * delta.getWood());
     }
 
-    private int determineRatio(ResourceGroup offered, String portType, int portRatio) {
-        int ratio = 4;
-        if (portType == null || portType.isEmpty()) return ratio;
-        if ("generic".equalsIgnoreCase(portType)) {
-            ratio = portRatio;
-        } else {
-            int total = offered.getSum();
-            switch (portType.toLowerCase()) {
-                case "lumber":
-                    if (offered.getLumber().equals(total)) ratio = portRatio;
-                    break;
-                case "wool":
-                    if (offered.getWool().equals(total)) ratio = portRatio;
-                    break;
-                case "ore":
-                    if (offered.getOre().equals(total)) ratio = portRatio;
-                    break;
-                case "grain":
-                    if (offered.getGrain().equals(total)) ratio = portRatio;
-                    break;
-                case "bricks":
-                    if (offered.getBricks().equals(total)) ratio = portRatio;
-                    break;
-                case "silver":
-                    if (offered.getSilver().equals(total)) ratio = portRatio;
-                    break;
-                case "gold":
-                    if (offered.getGold().equals(total)) ratio = portRatio;
-                    break;
-                case "obsidian":
-                    if (offered.getObsidian().equals(total)) ratio = portRatio;
-                    break;
-            }
+    private int determineRatio(ResourceGroup offered, String portType, int defaultRatio) {
+        if (portType == null || portType.isEmpty()) {
+            return defaultRatio;
         }
-        return ratio;
+        int total = offered.getSum();
+        switch (portType.toLowerCase()) {
+            case "generic":
+                return defaultRatio;
+            case "brick":
+                if (offered.getBrick().equals(total)) return defaultRatio;
+                break;
+            case "crystal":
+                if (offered.getCrystal().equals(total)) return defaultRatio;
+                break;
+            case "ore":
+                if (offered.getOre().equals(total)) return defaultRatio;
+                break;
+            case "rice":
+                if (offered.getRice().equals(total)) return defaultRatio;
+                break;
+            case "sheep":
+                if (offered.getSheep().equals(total)) return defaultRatio;
+                break;
+            case "silver":
+                if (offered.getSilver().equals(total)) return defaultRatio;
+                break;
+            case "gold":
+                if (offered.getGold().equals(total)) return defaultRatio;
+                break;
+            case "wood":
+                if (offered.getWood().equals(total)) return defaultRatio;
+                break;
+        }
+        return 4;
     }
 }
