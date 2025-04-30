@@ -19,11 +19,9 @@ import java.util.List;
 @CrossOrigin
 public class ChatController {
     private final SimpMessagingTemplate messagingTemplate;
-    private final UserController userController;
 
     public ChatController(SimpMessagingTemplate messagingTemplate, UserController userController) {
         this.messagingTemplate = messagingTemplate;
-        this.userController = userController;
     }
 
     @MessageMapping("/chat/{sessionCode}")
@@ -32,11 +30,7 @@ public class ChatController {
         messagingTemplate.convertAndSend("/game/chat/" + sessionCode, new ChatMessage(username, message));
     }
 
-    public void sendJoinSessionUpdate(String sessionCode, List<User> users) {
+    public static void sendJoinSessionUpdate(SimpMessagingTemplate messagingTemplate, String sessionCode, List<User> users) {
         messagingTemplate.convertAndSend("/game/players/" + sessionCode, new JoinSessionNotification(users));
-    }
-
-    public void userDisconnected(Long id) {
-
     }
 }

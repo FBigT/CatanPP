@@ -4,6 +4,7 @@ import com.catan.catanbackend.model.*;
 import com.catan.catanbackend.repository.SessionCodeRepository;
 import com.catan.catanbackend.repository.SessionRecordRepository;
 import com.catan.catanbackend.repository.SessionRepository;
+import org.hibernate.Hibernate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -50,7 +51,7 @@ public class SessionService {
         do {
             newSessionCode = generateSessionCode();
         } while (sessionCodeRepository.findByCode(newSessionCode).isPresent());
-        sessionPlayerService.saveSessionPlayer(new SessionPlayer(savedSession, host.get()));
+        //sessionPlayerService.saveSessionPlayer(new SessionPlayer(savedSession, host.get()));
         return Optional.of(sessionCodeRepository.save(new SessionCode(savedSession, newSessionCode)));
     }
 
@@ -142,7 +143,10 @@ public class SessionService {
     }
 
     public Optional<Session> getSessionBySessionCode(String code){
-        return sessionCodeRepository.findByCode(code).map(SessionCode::getSession);
+        return sessionCodeRepository.findByCode(code).map(sessionCode -> {
+            Hibernate.initialize(sessionCode.getSession());
+            return sessionCode.getSession();
+        });
     }
 
     private String generateSessionCode() {
@@ -166,5 +170,9 @@ public class SessionService {
 
     public List<SessionPlayer> getPlayers(Long sessionId){
         return sessionPlayerService.findPlayerBySessionId(sessionId);
+    }
+
+    public List<SessionPlayer> getPlayersBySessionCode(String sessionCode){
+        return sessionPlayerService.findPlayersBySessionCode(sessionCode);
     }
 }

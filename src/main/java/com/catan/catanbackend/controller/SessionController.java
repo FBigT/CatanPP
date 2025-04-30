@@ -46,7 +46,7 @@ public class SessionController {
 
         return sessionCode
                 .map(code -> {
-                    chatController.sendJoinSessionUpdate(code.getCode(), sessionService.getPlayers(code.getSession().getId()).stream().map(SessionPlayer::getUser).toList());
+                    //chatController.sendJoinSessionUpdate(code.getCode(), sessionService.getPlayers(code.getSession().getId()).stream().map(SessionPlayer::getUser).toList());
                     return new ResponseEntity<>(mapper.mapSessionToDto(code), HttpStatus.CREATED);
                 })
                 .orElseGet(() -> new ResponseEntity<>(HttpStatus.BAD_REQUEST));
@@ -74,7 +74,7 @@ public class SessionController {
 
         return sessionService.joinSession(tokenService.getUserIdFromJwtToken(token.split(" ")[1]), code)
                 .map(value -> {
-                    chatController.sendJoinSessionUpdate(code, sessionService.getPlayers(value.getId()).stream().map(SessionPlayer::getUser).toList());
+                    //chatController.sendJoinSessionUpdate(code, sessionService.getPlayers(value.getId()).stream().map(SessionPlayer::getUser).toList());
                     return new ResponseEntity<>(mapper.mapSessionToDto(value), HttpStatus.OK);
                 })
                 .orElseGet(() -> new ResponseEntity<>(HttpStatus.BAD_REQUEST));

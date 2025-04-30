@@ -68,4 +68,8 @@ public class SessionPlayerService {
         }
         return Optional.empty();
     }
+
+    public List<SessionPlayer> findPlayersBySessionCode(String sessionCode) {
+        return sessionPlayerRepository.findAllBySessionCodeWithUser(sessionCode);
+    }
 }
