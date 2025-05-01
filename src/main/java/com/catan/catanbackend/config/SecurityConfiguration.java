@@ -27,6 +27,8 @@ public class SecurityConfiguration {
     private final AuthEntryPoint unauthorizedHandler;
     private final TokenFilter tokenFilter;
 
+    private static final String[] WHITE_LIST_URL = { "/api/users/login", "/api/users/register", "/api/users/login/guest", "/api/users/logout", "/api/users/refresh", "/api/users/register/guest" };
+
     public SecurityConfiguration(UserDetailsService userDetailsService,
                                  AuthEntryPoint unauthorizedHandler,
                                  TokenFilter tokenFilter) {
@@ -59,14 +61,11 @@ public class SecurityConfiguration {
         http
                 .csrf(AbstractHttpConfigurer::disable)
                 .cors(AbstractHttpConfigurer::disable)
-                .authorizeHttpRequests(auth -> auth
-                        // open these endpoints to everyone:
-                        .requestMatchers("/api/users/**").permitAll()
-                        .requestMatchers("/api/sessions/**").permitAll()
-                        .requestMatchers("/api/trade/**").permitAll()
-                        // any other request requires authentication:
-                        .anyRequest().authenticated()
-                )
+                .authorizeHttpRequests(req -> req.requestMatchers(WHITE_LIST_URL)
+                        .permitAll()
+                        .requestMatchers("/catan/**").permitAll()
+                        .anyRequest()
+                        .authenticated())
                 .exceptionHandling(ex -> ex.authenticationEntryPoint(unauthorizedHandler))
                 .sessionManagement(sess -> sess.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authenticationProvider(authenticationProvider())
