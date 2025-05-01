@@ -106,7 +106,7 @@ MonoBehaviour:
   - {fileID: 0}
   - {fileID: 0}
   - {fileID: 0}
-  cellHexMetrics: {fileID: 0}
+  cellHexMetrics: {fileID: 11400000, guid: 6912b000a78e2224e947e3a73e353455, type: 2}
   resourceType: 0
   numberToken: 0
   coordinates:

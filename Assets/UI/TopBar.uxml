@@ -40,9 +40,11 @@
             <engine:Button text="Buy Road" name="BuyRoadButton" class="purchase-button" />
             <engine:Button text="Buy Settlement" name="BuySettlementButton" class="purchase-button" />
             <engine:Button text="Buy City" name="BuyCityButton" class="purchase-button" />
-            <engine:Button text="Buy Dev Card" name="BuyDevCardButton" class="purchase-button" />
+            <engine:Button text="Buy Dev Card" name="BuyDevCardButton" display-tooltip-when-elided="true" enabled="false" class="purchase-button" />
         </engine:VisualElement>
         <engine:VisualElement name="DevCardPanel" class="devcard-panel" style="flex-grow: 1;" />
     </engine:VisualElement>
     <engine:Button text="Button" name="AddResourcesTestButton" />
+    <engine:Button text="End Turn" name="EndTurnButton" style="-unity-text-align: middle-left; height: 43px; width: 79px; white-space: pre; right: 0; align-self: flex-end; justify-content: flex-end; align-content: flex-start; align-items: stretch;" />
+    <engine:Label text="Label" name="TurnLabel" />
 </engine:UXML>
