@@ -1,168 +1,129 @@
+﻿// Assets/Scripts/TerrainGeneration/HexCell.cs
 using System.Collections.Generic;
-using UnityEditor;
 using UnityEngine;
+using UnityEditor;
 
+/// <summary>
+/// A single hex-tile of the board.  
+/// Holds its axial <see cref="coordinates"/> and run-time data such as
+/// resource type & number token.  
+/// **Does not** re-declare ResourceType / HexDirection – those now live in
+/// ResourceType.cs to avoid duplicate-type errors.
+/// </summary>
+[RequireComponent(typeof(MeshRenderer))]
 public class HexCell : MonoBehaviour
 {
-    [SerializeField] private HexCell[] neighbors = new HexCell[6];
-    [SerializeField] private SO_HexMetrics cellHexMetrics;
-    [SerializeField] private ResourceType resourceType;
-    [SerializeField] private int numberToken;
+    [SerializeField] HexCell[] neighbors = new HexCell[6];
+    [SerializeField] SO_HexMetrics cellHexMetrics;
 
-    private MeshRenderer meshRenderer;
+    [Header("Gameplay")]
+    [SerializeField] ResourceType resourceType;
+    [SerializeField] int numberToken = 0;
 
+    // ───────────────────────────── stored references
+    MeshRenderer _renderer;
+
+    // ───────────────────────────── public accessors
     public HexCoordinates coordinates;
     public HexCell[] Neighbors => neighbors;
-    public SO_HexMetrics CellHexMetrics { get { return cellHexMetrics; } set { cellHexMetrics = value; } }
-
-    private void Awake()
+    public SO_HexMetrics CellHexMetrics
     {
-        if (meshRenderer == null)
-            meshRenderer = GetComponent<MeshRenderer>();
+        get => cellHexMetrics;
+        set => cellHexMetrics = value;
     }
 
+    // ───────────────────────────── life-cycle
+    void Awake()
+    {
+        if (!_renderer) _renderer = GetComponent<MeshRenderer>();
+        ApplyColor();                     // show colour at play-time as well
+    }
+
+    void OnValidate()                     // editor updates
+    {
+        if (!_renderer) _renderer = GetComponent<MeshRenderer>();
+        ApplyColor();
+    }
+
+    // ───────────────────────────── API used by map-gen
     public void Initialize(ResourceType type, int number)
     {
         resourceType = type;
         numberToken = number;
-
-        if (meshRenderer == null)
-            meshRenderer = GetComponent<MeshRenderer>();
+        ApplyColor();
     }
 
-    public void DisplayCellInfo()
+    public HexCell GetNeighbor(HexDirection dir) => neighbors[(int)dir];
+
+    public void SetNeighbor(HexDirection dir, HexCell cell)
     {
-        Debug.Log($"Cell at {coordinates} has resource: {resourceType} and number: {numberToken}");
+        neighbors[(int)dir] = cell;
+        cell.neighbors[(int)dir.Opposite()] = this;
     }
 
-    public HexCell GetNeighbor(HexDirection direction)
+    public void DisplayCellInfo() =>
+        Debug.Log($"Cell {coordinates}: {resourceType}  #{numberToken}");
+
+    // ───────────────────────────── helpers
+    void ApplyColor()
     {
-        return neighbors[(int)direction];
-    }
+        if (!_renderer || !_renderer.sharedMaterial) return;
 
-    public void SetNeighbor(HexDirection direction, HexCell cell)
-    {
-        neighbors[(int)direction] = cell;
-        cell.neighbors[(int)direction.Opposite()] = this;
-    }
-
-    private void ApplyColor()
-    {
-        if (Application.isPlaying) return;
-        
-        if (meshRenderer == null || meshRenderer.sharedMaterial == null) return;
-
-        Color resourceColor = GetResourceColor(resourceType);
-
-        meshRenderer.material.color = resourceColor;
-    }
-
-
-    private Color GetResourceColor(ResourceType type)
-    {
-        switch (type)
+        _renderer.sharedMaterial.color = resourceType switch
         {
-            case ResourceType.Wood: return new Color(0.2f, 0.6f, 0.2f);
-            case ResourceType.Stone: return Color.gray;
-            case ResourceType.Wheat: return new Color(0.9f, 0.8f, 0.2f);
-            case ResourceType.Clay: return new Color(0.8f, 0.3f, 0.2f);
-            case ResourceType.Sheep: return new Color(0.6f, 1.0f, 0.6f);
-            case ResourceType.Desert: return new Color(1.0f, 1.0f, 0.5f);
-            default: return Color.white;
-        }
+            ResourceType.Lumber => new Color(0.20f, 0.60f, 0.20f),
+            ResourceType.Ore => Color.gray,
+            ResourceType.Grain => new Color(0.90f, 0.80f, 0.20f),
+            ResourceType.Brick => new Color(0.80f, 0.30f, 0.20f),
+            ResourceType.Wool => new Color(0.60f, 1.00f, 0.60f),
+            _ => new Color(1.00f, 1.00f, 0.50f)  // Desert
+        };
     }
 }
 
-public enum HexDirection
-{
-    NE, E, SE, SW, W, NW
-}
-
-public enum ResourceType
-{
-    Wood,
-    Stone,
-    Wheat,
-    Clay,
-    Sheep,
-    Desert
-}
-
-public static class HexDirectionExtensions
-{
-    public static HexDirection Opposite(this HexDirection direction)
-    {
-        return (int)direction < 3 ? (direction + 3) : (direction - 3);
-    }
-}
-
+/* ──────────────────────────────────────────────────────────────
+   OPTIONAL gizmo helper – keep it or delete it; but it does NOT
+   create duplicate types.
+──────────────────────────────────────────────────────────────── */
 #if UNITY_EDITOR
 [CustomEditor(typeof(HexCell))]
 public class HexCellEditor : Editor
 {
-    private static HexCell cell;
-    [SerializeField, Range(10, 200)] private float drawDistance = 50f;
+    [SerializeField, Range(10, 200)]
+    float drawDistance = 50f;
 
-    private void OnEnable()
-    {
-        cell = (HexCell)target;
-    }
+    HexCell _cell;
+
+    void OnEnable() => _cell = (HexCell)target;
 
     public override void OnInspectorGUI()
     {
         base.OnInspectorGUI();
-        drawDistance = EditorGUILayout.Slider("Draw Distance", drawDistance, 10f, 200f);
+        drawDistance = EditorGUILayout.Slider("Draw Distance",
+                                              drawDistance, 10f, 200f);
     }
 
-    private void OnSceneGUI()
+    void OnSceneGUI()
     {
-        if (cell == null) return;
-        if (cell.Neighbors == null || cell.Neighbors.Length == 0) return;
-        if (cell.CellHexMetrics == null) return;
+        if (!_cell || !_cell.CellHexMetrics) return;
 
-        foreach (var neighbor in cell.Neighbors)
-            if (neighbor != null)
-                DrawHexagon(neighbor, Color.blue);
+        Camera cam = SceneView.lastActiveSceneView?.camera;
+        if (!cam) return;
 
-        DrawHexagon(cell, Color.green);
-        DrawData();
-    }
+        if (Vector3.Distance(cam.transform.position, _cell.transform.position)
+            > drawDistance) return;
 
-    private void DrawHexagon(HexCell targetCell, Color color)
-    {
-        Handles.color = color;
-        List<Vector3> corners = new List<Vector3>();
+        // Draw hex outline
+        Handles.color = Color.green;
+        var corners = _cell.CellHexMetrics.Corners;
+        var world = new Vector3[corners.Length];
+        for (int i = 0; i < corners.Length; i++)
+            world[i] = _cell.transform.position + corners[i];
+        Handles.DrawPolyLine(world);
 
-        foreach (var corner in targetCell.CellHexMetrics.Corners)
-        {
-            corners.Add(corner + targetCell.transform.position);
-        }
-
-        Handles.DrawPolyLine(corners.ToArray());
-    }
-
-    private void DrawData()
-    {
-        Camera sceneCam = SceneView.lastActiveSceneView.camera;
-        if (sceneCam == null) return;
-
-        float distance = Vector3.Distance(sceneCam.transform.position, cell.transform.position);
-
-        if (distance < drawDistance)
-        {
-            int validNeighborCount = 0;
-
-            foreach (var neighbor in cell.Neighbors)
-                if (neighbor != null)
-                    validNeighborCount++;
-
-            string data =
-                "Coordinates: " + cell.coordinates.ToString() +
-                "\n" +
-                "Neigbours: " + validNeighborCount;
-
-            Handles.Label(cell.transform.position, data);
-        }
+        // Label with coords
+        Handles.Label(_cell.transform.position + Vector3.up * 0.2f,
+                      _cell.coordinates.ToString());
     }
 }
 #endif

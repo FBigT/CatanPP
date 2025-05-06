@@ -1,45 +1,40 @@
 ﻿// Assets/Scripts/UI/TopBarUI.cs
-using UnityEngine;
-using UnityEngine.UIElements;
 using System.Collections;
+using UnityEngine;
 using UnityEngine.Networking;
+using UnityEngine.UIElements;
 using Assets.Scripts.Utils;
-using System.Collections.Generic;            // ←  List<T>
+using Catan.GameMode;
+
 namespace Catan.UI
 {
     public class TopBarUI : MonoBehaviour
     {
-        // ── Singleton (lightweight) ───────────────────────────────────────────
         public static TopBarUI Instance { get; private set; }
 
         void Awake()
         {
             if (Instance != null && Instance != this) { Destroy(gameObject); return; }
             Instance = this;
-
-            _doc = GetComponent<UIDocument>();
-            _root = _doc.rootVisualElement;
-
-            // every label that has the class “resource‑value”
-            _valueLabels = _root.Query<Label>(className: "resource-value").ToList();
         }
 
-        // ── Public API you can call from buttons / managers ──────────────────
+        /// <summary>Called throughout the game to update your HUD.</summary>
         public void RefreshResources() => StartCoroutine(FetchAndUpdate());
 
-        // ── Implementation ────────────────────────────────────────────────────
         IEnumerator FetchAndUpdate()
         {
             var req = UnityWebRequest.Get(EndpointUtils.GetResources);
             if (LocalStorageService.GetString("token") is string t && t != "")
-                req.SetRequestHeader("Authorization", $"Bearer {t}");
-
+                req.SetRequestHeader("Authorization", t);
             yield return req.SendWebRequest();
 
             if (req.result != UnityWebRequest.Result.Success)
             {
-                Debug.LogWarning($"[TopBarUI] fallback to zeros ({req.error})");
-                SetValues(new int[8]);        // 8 zeros
+                Debug.LogWarning($"[TopBarUI] backend unavailable: using local ({req.error})");
+                if (CampaignGameMode.Instance != null)
+                    SetValues(CampaignGameMode.Instance.CurrentPlayer.Resources);
+                else
+                    SetValues(new int[8]);
             }
             else
             {
@@ -48,25 +43,22 @@ namespace Catan.UI
             }
         }
 
+        // called via SendMessage from elsewhere
         void SetValues(int[] v)
         {
-            for (int i = 0; i < _valueLabels.Count && i < v.Length; i++)
-                _valueLabels[i].text = v[i].ToString();
+            // find every label with class “resource-value” and write it
+            var doc = GetComponent<UIDocument>();
+            var root = doc.rootVisualElement;
+            var labels = root.Query<Label>(className: "resource-value").ToList();
+            for (int i = 0; i < labels.Count && i < v.Length; i++)
+                labels[i].text = v[i].ToString();
         }
 
-        // ── helpers / fields ──────────────────────────────────────────────────
         [System.Serializable]
         public class ResourceGroup
         {
             public int lumber, wool, grain, bricks, ore, gold, silver, obsidian;
-            public int[] ToArray() => new[]
-            {
-                lumber, wool, grain, bricks, ore, gold, silver, obsidian
-            };
+            public int[] ToArray() => new[] { lumber, wool, grain, bricks, ore, gold, silver, obsidian };
         }
-
-        UIDocument _doc;
-        VisualElement _root;
-        List<Label> _valueLabels;
     }
 }

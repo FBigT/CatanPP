@@ -1,16 +1,20 @@
-﻿using System.Text;
+﻿// Assets/Scripts/Utils/SecurityUtils.cs
 using System;
-using UnityEngine;
+using System.Text;
 using System.Security.Cryptography;
-using UnityEngine.InputSystem;
+using UnityEngine;
 
 namespace Assets.Scripts.Utils
 {
     public static class SecurityUtils
     {
-        private static readonly byte[] Key = Encoding.UTF8.GetBytes("12345678901234567890123456789012"); // 32 bytes = 256-bit
+        /* ──────────────────────────────────────────────────
+           AES helpers — untouched
+        ────────────────────────────────────────────────── */
+        static readonly byte[] Key =
+            Encoding.UTF8.GetBytes("12345678901234567890123456789012"); // 32 B
 
-        public static string Encrypt(string plainText)
+        public static string Encrypt(string plain)
         {
             using var aes = Aes.Create();
             aes.Key = Key;
@@ -18,26 +22,23 @@ namespace Assets.Scripts.Utils
             aes.Padding = PaddingMode.PKCS7;
             aes.GenerateIV();
 
-            using var encryptor = aes.CreateEncryptor();
-            byte[] plainBytes = Encoding.UTF8.GetBytes(plainText);
-            byte[] encryptedBytes = encryptor.TransformFinalBlock(plainBytes, 0, plainBytes.Length);
+            byte[] input = Encoding.UTF8.GetBytes(plain);
+            byte[] enc = aes.CreateEncryptor().TransformFinalBlock(input, 0, input.Length);
 
-            byte[] result = new byte[aes.IV.Length + encryptedBytes.Length];
-            Buffer.BlockCopy(aes.IV, 0, result, 0, aes.IV.Length);
-            Buffer.BlockCopy(encryptedBytes, 0, result, aes.IV.Length, encryptedBytes.Length);
-
-            return Convert.ToBase64String(result);
+            byte[] outBytes = new byte[aes.IV.Length + enc.Length];
+            Buffer.BlockCopy(aes.IV, 0, outBytes, 0, aes.IV.Length);
+            Buffer.BlockCopy(enc, 0, outBytes, aes.IV.Length, enc.Length);
+            return Convert.ToBase64String(outBytes);
         }
 
-        public static string Decrypt(string encryptedBase64)
+        public static string Decrypt(string base64)
         {
-            byte[] combinedBytes = Convert.FromBase64String(encryptedBase64);
-
+            byte[] combo = Convert.FromBase64String(base64);
             byte[] iv = new byte[16];
-            byte[] cipherBytes = new byte[combinedBytes.Length - 16];
+            byte[] enc = new byte[combo.Length - 16];
 
-            Buffer.BlockCopy(combinedBytes, 0, iv, 0, 16);
-            Buffer.BlockCopy(combinedBytes, 16, cipherBytes, 0, cipherBytes.Length);
+            Buffer.BlockCopy(combo, 0, iv, 0, 16);
+            Buffer.BlockCopy(combo, 16, enc, 0, enc.Length);
 
             using var aes = Aes.Create();
             aes.Key = Key;
@@ -45,46 +46,50 @@ namespace Assets.Scripts.Utils
             aes.Mode = CipherMode.CBC;
             aes.Padding = PaddingMode.PKCS7;
 
-            using var decryptor = aes.CreateDecryptor();
-            byte[] plainBytes = decryptor.TransformFinalBlock(cipherBytes, 0, cipherBytes.Length);
-            return Encoding.UTF8.GetString(plainBytes);
+            byte[] plain = aes.CreateDecryptor()
+                               .TransformFinalBlock(enc, 0, enc.Length);
+            return Encoding.UTF8.GetString(plain);
         }
 
-        private static byte[] GenerateRandomBytes(int length)
+        /* ──────────────────────────────────────────────────
+           JWT helpers — fixed for Bearer prefix + URL-safe b64
+        ────────────────────────────────────────────────── */
+        [Serializable] public class JwtPayload { public long exp; }
+
+        /// <summary>Decodes the middle part of a JWT (after stripping “Bearer ”).</summary>
+        static byte[] FromBase64Url(string value)
         {
-            byte[] bytes = new byte[length];
-            for (int i = 0; i < length; i++)
+            value = value.Replace('-', '+').Replace('_', '/');
+            switch (value.Length % 4)                       // pad to 4 bytes
             {
-                bytes[i] = (byte)UnityEngine.Random.Range(0, 256);
+                case 2: value += "=="; break;
+                case 3: value += "="; break;
             }
-            return bytes;
-        }
-
-        [Serializable]
-        public class JwtPayload
-        {
-            public long exp;
+            return Convert.FromBase64String(value);
         }
 
         public static DateTime? GetExpiryFromJwt(string jwt)
         {
             try
             {
-                var parts = jwt.Split('.');
-                if (parts.Length < 2)
+                if (string.IsNullOrEmpty(jwt)) return null;
+
+                string token = jwt.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase)
+                             ? jwt.Substring(7)
+                             : jwt;
+
+                string[] parts = token.Split('.');
+                if (parts.Length < 2)                       // header.payload.sig
                 {
                     Debug.LogError("Invalid JWT token format.");
                     return null;
                 }
 
-                string payload = parts[1];
-                byte[] payloadBytes = Convert.FromBase64String(payload);
+                byte[] payloadBytes = FromBase64Url(parts[1]);
                 string json = Encoding.UTF8.GetString(payloadBytes);
 
-                JwtPayload payloadData = JsonUtility.FromJson<JwtPayload>(json);
-
-                DateTime expiryDate = DateTimeOffset.FromUnixTimeSeconds(payloadData.exp).UtcDateTime;
-                return expiryDate;
+                var data = JsonUtility.FromJson<JwtPayload>(json);
+                return DateTimeOffset.FromUnixTimeSeconds(data.exp).UtcDateTime;
             }
             catch (Exception ex)
             {
@@ -95,22 +100,8 @@ namespace Assets.Scripts.Utils
 
         public static bool IsTokenValid(string jwt)
         {
-            try
-            {
-                if (string.IsNullOrEmpty(jwt)) { 
-                    return false;
-                }
-
-                if (GetExpiryFromJwt(jwt) != null && GetExpiryFromJwt(jwt).Value > DateTime.UtcNow) { 
-                    return true;
-                }
-                return false;
-            }
-            catch (Exception ex)
-            {
-                Debug.LogError("Failed to decode JWT: " + ex.Message);
-                return false;
-            }
+            DateTime? exp = GetExpiryFromJwt(jwt);
+            return exp != null && exp.Value > DateTime.UtcNow;
         }
     }
 }

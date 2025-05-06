@@ -5,53 +5,56 @@ namespace Catan.Placement
     [RequireComponent(typeof(SphereCollider), typeof(MeshRenderer))]
     public class Connector : MonoBehaviour
     {
-        [SerializeField] private ConnectionType connectionType;
+        [SerializeField] ConnectionType connectionType;
 
-        private SphereCollider sphereCollider;
-        private GameObject currentStructure;
-        private float edgeRotation;
+        SphereCollider _collider;
+        GameObject _currentStructure;
 
-        /// <summary>
-        /// Store the original MeshRenderer material so we can restore it.
-        /// </summary>
+        /// <summary>The material the prefab originally had (restored after highlighting).</summary>
         public Material OriginalMaterial { get; private set; }
 
-        public float EdgeRotation { get => edgeRotation; set => edgeRotation = value; }
-        public ConnectionType Connection { get => connectionType; set => connectionType = value; }
-        public bool IsOccupied => currentStructure != null;
-
-        private void Awake()
+        public float EdgeRotation { get; set; }
+        public ConnectionType Connection
         {
-            sphereCollider = GetComponent<SphereCollider>();
+            get => connectionType;
+            set => connectionType = value;          // **now writable for ConnectionSpawner**
+        }
+
+        public bool IsOccupied => _currentStructure != null;
+
+        void Awake()
+        {
+            _collider = GetComponent<SphereCollider>();
             OriginalMaterial = GetComponent<MeshRenderer>().material;
         }
 
-        public bool CanPlaceStructure(GameObject structure)
+        /* ------------------------------------------------ validation helpers */
+
+        public bool CanPlaceStructure(GameObject prefab)
         {
-            if (IsOccupied) return false;
-            if (connectionType == ConnectionType.Corner && structure.CompareTag("Corner")) return true;
-            if (connectionType == ConnectionType.Edge && structure.CompareTag("Edge")) return true;
-            return false;
+            if (IsOccupied || prefab == null) return false;
+
+            return (Connection == ConnectionType.Corner && prefab.CompareTag("Corner")) ||
+                   (Connection == ConnectionType.Edge && prefab.CompareTag("Edge"));
         }
 
-        public void PlaceStructure(GameObject structurePrefab)
+        public void PlaceStructure(GameObject prefab)
         {
-            if (IsOccupied) return;
-            var placed = Instantiate(structurePrefab, transform.position, Quaternion.identity);
-            currentStructure = placed;
+            if (IsOccupied || prefab == null) return;
+
+            _currentStructure = Instantiate(prefab, transform.position, Quaternion.identity);
         }
 
         public void RemoveStructure()
         {
             if (!IsOccupied) return;
-            Destroy(currentStructure);
-            currentStructure = null;
+
+            Destroy(_currentStructure);
+            _currentStructure = null;
         }
 
-        public enum ConnectionType
-        {
-            Corner,
-            Edge
-        }
+        /* ------------------------------------------------ types */
+
+        public enum ConnectionType { Corner, Edge }
     }
 }

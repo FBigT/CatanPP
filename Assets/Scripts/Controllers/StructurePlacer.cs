@@ -1,118 +1,173 @@
-﻿using System.Collections;
+﻿// Assets/Scripts/Controllers/StructurePlacer.cs
+using System.Collections;
 using System.Collections.Generic;
+using System.Reflection;
 using UnityEngine;
-using UnityEngine.Networking;    // ← Required for UnityWebRequest, UploadHandlerRaw, DownloadHandlerBuffer
+using UnityEngine.Networking;
 using Assets.Scripts.Enums;      // PurchaseType
-using Catan.Managers;            // PurchaseManager
+using Assets.Scripts.Utils;      // LocalStorageService
 using Catan.Placement;           // Connector
-using Catan.UI;                  // TopBarUI
-using Assets.Scripts.Utils;      // EndpointUtils, LocalStorageService
 using Catan.UI.LeftMenu;         // OnStructureTabEvents
+using Catan.GameMode;            // CampaignGameMode, GamePhase
+using Catan.Managers;            // PurchaseManager
+using Catan.UI;                  // TopBarUI
 
 namespace Catan.Controllers
 {
-    public class StructurePlacer : MonoBehaviour
+    /// <summary>Handles highlighting & placing Roads / Settlements / Cities.</summary>
+    public sealed class StructurePlacer : MonoBehaviour
     {
-        [Header("Board Raycast")]
-        [SerializeField] private LayerMask placementLayer;
-        [Header("Highlight Material")]
+        [Header("Layers & Materials")]
+        [SerializeField] private LayerMask placementLayer = ~0;
         [SerializeField] private Material highlightMaterial;
 
-        private OnStructureTabEvents uiManager;
-        private GameObject prefabToPlace;
-        private bool isPlacing;
-        private readonly List<Connector> highlighted = new List<Connector>();
+        private OnStructureTabEvents _ui;
+        private GameObject _prefab;
+        private bool _placing;
+        private readonly List<Connector> _highlighted = new();
 
-        private void Start()
+        // Track whether we've already placed our one Settlement and one Road in Setup
+        private bool _settlementPlaced;
+        private bool _roadPlaced;
+
+        static readonly FieldInfo _currentStructureField = typeof(Connector)
+            .GetField("currentStructure", BindingFlags.NonPublic | BindingFlags.Instance);
+
+        void Start()
         {
-            uiManager = FindObjectOfType<OnStructureTabEvents>();
+            _ui = FindObjectOfType<OnStructureTabEvents>();
             PurchaseManager.Instance.OnPurchaseChanged += BeginPlacement;
+
+            // reset at start of match
+            _settlementPlaced = false;
+            _roadPlaced = false;
         }
 
-        private void BeginPlacement(PurchaseType type)
+        void BeginPlacement(PurchaseType t)
         {
-            if (type == PurchaseType.None) return;
+            // nothing selected, or UI not ready?
+            if (t == PurchaseType.None || _ui == null) return;
 
-            prefabToPlace = uiManager.GetSelectedStructure();
-            isPlacing = prefabToPlace != null;
-            HighlightValid(type);
+            // during setup, enforce one‐and‐only‐one
+            if (CampaignGameMode.Instance.Phase == GamePhase.Setup)
+            {
+                if (t == PurchaseType.Settlement && _settlementPlaced) return;
+                if (t == PurchaseType.Road && _roadPlaced) return;
+            }
+
+            _prefab = _ui.GetSelectedStructure();
+            _placing = _prefab != null;
+            if (_placing) HighlightValid(t);
         }
 
-        private void Update()
+        void Update()
         {
-            if (!isPlacing) return;
-
-            if (Input.GetMouseButtonDown(0))
+            if (_placing && Input.GetMouseButtonDown(0))
                 TryPlace();
         }
 
-        private void HighlightValid(PurchaseType type)
+        void HighlightValid(PurchaseType t)
         {
             foreach (var c in FindObjectsOfType<Connector>())
             {
                 bool ok =
-                    (type == PurchaseType.Road && c.Connection == Connector.ConnectionType.Edge)
-                 || ((type == PurchaseType.Settlement || type == PurchaseType.City)
+                    (t == PurchaseType.Road && c.Connection == Connector.ConnectionType.Edge) ||
+                    ((t == PurchaseType.Settlement || t == PurchaseType.City)
                      && c.Connection == Connector.ConnectionType.Corner);
 
                 if (ok && !c.IsOccupied)
                 {
                     c.GetComponent<MeshRenderer>().material = highlightMaterial;
-                    highlighted.Add(c);
+                    _highlighted.Add(c);
                 }
             }
         }
 
-        private void Unhighlight()
+        void Unhighlight()
         {
-            foreach (var c in highlighted)
-            {
+            foreach (var c in _highlighted)
                 c.GetComponent<MeshRenderer>().material = c.OriginalMaterial;
-            }
-            highlighted.Clear();
+            _highlighted.Clear();
         }
 
-        private void TryPlace()
+        void TryPlace()
         {
+            if (!Camera.main) return;
+
             var ray = Camera.main.ScreenPointToRay(Input.mousePosition);
-            if (!Physics.Raycast(ray, out var hit, Mathf.Infinity, placementLayer))
-                return;
+            if (!Physics.Raycast(ray, out var hit, Mathf.Infinity, placementLayer)) return;
 
             var conn = hit.collider.GetComponent<Connector>();
-            if (conn == null || conn.IsOccupied || !conn.CanPlaceStructure(prefabToPlace))
+            if (conn == null || conn.IsOccupied || !_prefab || !conn.CanPlaceStructure(_prefab))
                 return;
 
-            conn.PlaceStructure(prefabToPlace);
+            // 1) Spawn locally
+            conn.PlaceStructure(_prefab);
+
+            // 2) Mark owner + deduct cost if it's your turn
+            if (_currentStructureField.GetValue(conn) is GameObject placed)
+            {
+                var marker = placed.GetComponent<PlayerMarker>();
+                if (marker != null)
+                {
+                    bool isMyTurn = CampaignGameMode.Instance.IsPlayerTurn(0);
+                    marker.OwnerSeat = isMyTurn ? 0 : marker.OwnerSeat;
+
+                    if (isMyTurn)
+                    {
+                        // Deduct the cost
+                        var player = CampaignGameMode.Instance.CurrentPlayer;
+                        var cost = Costs.Get(PurchaseManager.Instance.SelectedPurchase);
+                        for (int i = 0; i < cost.Length; i++)
+                            player.Resources[i] -= cost[i];
+
+                        TopBarUI.Instance.SendMessage("SetValues", player.Resources);
+                        _ui.UpdateAffordability(player.Resources);
+
+                        // track that we’ve placed our one Settlement/Road in Setup
+                        var p = PurchaseManager.Instance.SelectedPurchase;
+                        if (CampaignGameMode.Instance.Phase == GamePhase.Setup)
+                        {
+                            if (p == PurchaseType.Settlement) _settlementPlaced = true;
+                            if (p == PurchaseType.Road) _roadPlaced = true;
+                        }
+                    }
+                }
+            }
+
+            // 3) Send to server (using your existing placeholders)
             StartCoroutine(SendToServer(conn));
 
-            isPlacing = false;
+            // 4) Cleanup
+            _placing = false;
             Unhighlight();
-            PurchaseManager.Instance.ClearPurchase();
+            PurchaseManager.Instance.Clear();
             TopBarUI.Instance.RefreshResources();
+
+            // 5) auto-advance in setup phase
+            if (CampaignGameMode.Instance.Phase == GamePhase.Setup)
+                CampaignGameMode.Instance.EndTurn();
         }
 
-        private IEnumerator SendToServer(Connector conn)
+        IEnumerator SendToServer(Connector conn)
         {
+            // NOTE: you can swap the "1, 0" for real tileId & cornerIndex once your back end agrees.
             string owner = LocalStorageService.GetString("username") ?? "tester";
-            // choose the correct endpoint
-            string url = (conn.Connection == Connector.ConnectionType.Corner)
-                ? EndpointUtils.PlaceStructure(owner, /*tileId*/1, /*cornerIndex*/0)
-                : EndpointUtils.PlaceRoad(owner, /*tileId*/1, /*edgeIndex*/0);
+            string url = conn.Connection == Connector.ConnectionType.Corner
+                         ? EndpointUtils.PlaceStructure(owner, 1, 0)
+                         : EndpointUtils.PlaceRoad(owner, 1, 0);
 
             using var req = new UnityWebRequest(url, "POST")
             {
-                uploadHandler = new UploadHandlerRaw(new byte[0]),
+                uploadHandler = new UploadHandlerRaw(System.Array.Empty<byte>()),
                 downloadHandler = new DownloadHandlerBuffer()
             };
-
-            string token = LocalStorageService.GetString("token");
-            if (!string.IsNullOrEmpty(token))
-                req.SetRequestHeader("Authorization", $"Bearer {token}");
+            if (LocalStorageService.GetString("token") is { } tok && tok != "")
+                req.SetRequestHeader("Authorization", tok);
 
             yield return req.SendWebRequest();
-
             if (req.result != UnityWebRequest.Result.Success)
-                Debug.LogError($"[StructurePlacer] Error placing structure: {req.error}");
+                Debug.LogError($"[StructurePlacer] {req.error}");
         }
     }
 }
