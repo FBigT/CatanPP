@@ -34,15 +34,6 @@ namespace Assets.Scripts.TradingReasources
         long sessionId;
         string myUsername;
 
-        void Start()
-        {
-            sessionId = SessionContext.SessionId;
-            myUsername = SessionContext.Username;
-            RefreshCounterparties();
-
-
-            //confirmPanel?.SetActive(true);
-        }
 
         void OnEnable() => RefreshCounterparties();
 

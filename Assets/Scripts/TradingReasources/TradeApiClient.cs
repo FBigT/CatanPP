@@ -24,7 +24,6 @@ namespace Assets.Scripts.TradingReasources
         [Header("Backend URL")]
         public string baseUrl = "http://localhost:8080/api/trade";
 
-        string GetJwt() => AuthContext.JwtToken;
 
         IEnumerator PostJson(string url, string json, Action<UnityWebRequest> done)
         {
@@ -34,8 +33,7 @@ namespace Assets.Scripts.TradingReasources
                 downloadHandler = new DownloadHandlerBuffer()
             };
             req.SetRequestHeader("Content-Type", "application/json");
-            var jwt = GetJwt();
-            if (!string.IsNullOrEmpty(jwt)) req.SetRequestHeader("Authorization", jwt);
+
 
             yield return req.SendWebRequest();
             done?.Invoke(req);
@@ -62,8 +60,7 @@ namespace Assets.Scripts.TradingReasources
         {
             string url = $"http://localhost:8080/api/session-players/session/{id}";
             using var req = UnityWebRequest.Get(url);
-            var jwt = GetJwt();
-            if (!string.IsNullOrEmpty(jwt)) req.SetRequestHeader("Authorization", jwt);
+
 
             yield return req.SendWebRequest();
 
