@@ -1,8 +1,8 @@
-using Assets.Scripts.Utils;                     // for SessionManager, LocalStorageService
-using Assets.Scripts.TradingReasources.Models;  // for SessionCodeDto
+using Assets.Scripts.Utils;                     
+using Assets.Scripts.TradingReasources.Models; 
 using TMPro;
 using UnityEngine;
-using UnityEngine.SceneManagement;              // for SceneManager
+using UnityEngine.SceneManagement;             
 using UnityEngine.UI;
 using Unity.VisualScripting;
 
@@ -34,17 +34,14 @@ public class JoinGame : MonoBehaviour
 
     private void OnJoinError(string message)
     {
-        // if the server returns 400, this will be called
         errorMessage.text = message;
     }
 
     private void OnJoinSuccess(SessionCodeDto dto)
     {
-        // persist for later (trade screen, etc.)
         LocalStorageService.SetVariable("session-id", dto.id.ToString());
         LocalStorageService.SetVariable("session-code", dto.code);
 
-        // now load the campaign scene immediately
         SceneManager.LoadScene("GameModeCampaign");
     }
 }
