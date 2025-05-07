@@ -1,81 +1,124 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using Assets.Scripts.MainMenu;
 using Assets.Scripts.Utils;
+using Assets.Scripts.TradingReasources.Models;  // for SessionCodeDto
 using TMPro;
 using Unity.VisualScripting;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 
 public class LoadGame : MonoBehaviour
 {
+    [Header("Saved Games")]
     public GameObject template;
     public GameObject entries;
 
+    [Header("Join by Code")]
+    public TMP_InputField sessionCodeInput;
+    public Button btnJoinSession;
+    public TMP_Text joinErrorMessage;
+
+    [Header("Delete Confirmation")]
     public GameObject confirmDialog;
     public Button confirmDelete;
 
-    SessionManager sessionService;
-    Transform currentDeleteSelection;
+    private SessionManager sessionService;
+    private Transform currentDeleteSelection;
 
     void Awake()
     {
         sessionService = this.AddComponent<SessionManager>();
+
+        // initialize UI
         template.SetActive(false);
         confirmDialog.SetActive(false);
+        joinErrorMessage.text = string.Empty;
+
+        // join button listener
+        btnJoinSession.onClick.AddListener(() => {
+            joinErrorMessage.text = "";
+            var code = sessionCodeInput.text.Trim();
+            if (string.IsNullOrEmpty(code))
+            {
+                joinErrorMessage.text = "Please enter a session code.";
+                return;
+            }
+            sessionService.JoinSession(code, OnJoinSuccess, OnJoinError);
+        });
 
         confirmDelete.onClick.AddListener(() => DeleteSave(currentDeleteSelection));
-        PrintEntries(new List<SessionSave>() { new("Primjer2", 1, System.DateTime.Now), new("Primjer1", 1, System.DateTime.Now), new("Primjer3", 1, System.DateTime.Now), new("Primjer4", 1, System.DateTime.Now), new("Primjer", 1, System.DateTime.Now), new("Primjer", 1, System.DateTime.Now), new("Primjer", 1, System.DateTime.Now), new("Primjer", 1, System.DateTime.Now), new("Primjer", 1, System.DateTime.Now), new("Primjer", 1, System.DateTime.Now), new("Primjer", 1, System.DateTime.Now), new("Primjer", 1, System.DateTime.Now) });
+
+        // load existing saves from backend
+        sessionService.GetAllSessionSaves(PrintEntries, error => Debug.LogError("Failed to fetch saves: " + error));
     }
 
-    public void PrintEntries(IEnumerable<SessionSave> saves) {
+    public void PrintEntries(IEnumerable<SessionSave> saves)
+    {
+        // clear old entries
+        foreach (Transform child in entries.transform)
+            if (child != template.transform)
+                Destroy(child.gameObject);
 
-        for (int i = 0; i < saves.Count(); i++)
+        int index = 0;
+        foreach (var save in saves)
         {
-            Transform entry = Instantiate(template.transform, entries.transform);
-            Transform buttonHolder = entry.Find("ButtonHolder");
+            var entry = Instantiate(template, entries.transform);
+            entry.transform.Find("saveName").GetComponent<TMP_Text>().text = save.SaveName;
+            entry.transform.Find("turnNumber").GetComponent<TMP_Text>().text = save.TurnNumber.ToString();
+            entry.transform.Find("date").GetComponent<TMP_Text>().text = save.DateTime.ToString();
+            entry.transform.Find("id").GetComponent<TMP_Text>().text = save.Id.ToString();
 
-            var currentEntry = entry;
+            var buttonHolder = entry.transform.Find("ButtonHolder");
+            int idx = index; // capture for closure
+            buttonHolder.Find("btnLoad").GetComponent<Button>()
+                .onClick.AddListener(() => LoadGameSave(entry.transform));
+            buttonHolder.Find("btnDelete").GetComponent<Button>()
+                .onClick.AddListener(() => PrepareDeleteSave(entry.transform));
 
-            entry.Find("saveName").GetComponent<TMP_Text>().text = saves.ElementAt(i).SaveName;
-            entry.Find("turnNumber").GetComponent<TMP_Text>().text = saves.ElementAt(i).TurnNumber.ToString();
-            entry.Find("date").GetComponent<TMP_Text>().text = saves.ElementAt(i).DateTime.ToString();
-
-            buttonHolder.Find("btnLoad").GetComponent<Button>().onClick.AddListener(() => LoadGameSave(currentEntry));
-            buttonHolder.Find("btnDelete").GetComponent<Button>().onClick.AddListener(() => PrepareDeleteSave(currentEntry));
-
-            currentEntry.gameObject.SetActive(true);
+            entry.SetActive(true);
+            index++;
         }
     }
 
-    private void LoadGameSave(Transform transform)
+    private void OnJoinSuccess(SessionCodeDto dto)
     {
-        //Loads save
+        // persist session info
+        LocalStorageService.SetVariable("session-id", dto.sessionId.ToString());
+        LocalStorageService.SetVariable("session-code", dto.code);
+
+        // load the game scene
+        SceneManager.LoadScene("GameModeCampaign");
     }
 
-    private void PrepareDeleteSave(Transform transform)
+    private void OnJoinError(string error)
     {
-        currentDeleteSelection = transform;
+        joinErrorMessage.text = error;
+    }
+
+    private void LoadGameSave(Transform entry)
+    {
+        // loads a saved session by its ID (not covered here)
+    }
+
+    private void PrepareDeleteSave(Transform entry)
+    {
+        currentDeleteSelection = entry;
         confirmDialog.SetActive(true);
     }
 
-    private void DeleteSave(Transform transform) 
+    private void DeleteSave(Transform entry)
     {
-        long.TryParse(transform.Find("id").GetComponent<TMP_Text>().text, out long id);
-        //sessionService.DeleteSessionSave(id);
+        if (long.TryParse(entry.Find("id").GetComponent<TMP_Text>().text, out long id))
+        {
+            sessionService.DeleteSessionSave(id);
+        }
 
-        Transform buttonHolder = transform.Find("ButtonHolder");
-
-        var btnLoad = buttonHolder.Find("btnLoad").GetComponent<Button>();
-        var btnDelete = buttonHolder.Find("btnDelete").GetComponent<Button>();
-        btnLoad.interactable = false;
-        btnDelete.interactable = false;
-
-        btnLoad.onClick.RemoveAllListeners();
-        btnDelete.onClick.RemoveAllListeners();
-
-        transform.gameObject.SetActive(false);
-
-        Destroy(transform.gameObject, 0.1f);
+        // remove UI entry
+        entry.gameObject.SetActive(false);
+        Destroy(entry.gameObject, 0.1f);
+        confirmDialog.SetActive(false);
     }
 }

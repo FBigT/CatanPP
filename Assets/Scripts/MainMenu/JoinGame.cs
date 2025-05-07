@@ -1,10 +1,10 @@
-using Assets.Scripts;
-using Assets.Scripts.User;
-using Assets.Scripts.Utils;
+using Assets.Scripts.Utils;              // for SessionManager, LocalStorageService
+using Assets.Scripts.TradingReasources.Models;  // for SessionCodeDto
 using TMPro;
-using Unity.VisualScripting;
 using UnityEngine;
 using UnityEngine.UI;
+using Assets.Scripts.User;
+using Unity.VisualScripting;
 
 public class JoinGame : MonoBehaviour
 {
@@ -23,38 +23,37 @@ public class JoinGame : MonoBehaviour
         btnJoinGame.onClick.AddListener(() =>
         {
             ShowErrorMessage("");
-            if (string.IsNullOrEmpty(sessionCode.text)) {
+            if (string.IsNullOrEmpty(sessionCode.text))
+            {
                 ShowErrorMessage("Please enter a valid session code");
                 return;
             }
-            TryJoinGame(sessionCode.text);
+            sessionService.JoinSession(sessionCode.text, ShowSessionCode, ShowErrorMessage);
         });
     }
 
-    private void TryJoinGame(string code) {
-        if (sessionService == null) {
-            ShowErrorMessage("Please enter a session code");
-            return;
-        }
-
-        sessionService.JoinSession(code, ShowSessionCode, ShowErrorMessage);
-    }
-
-    public void ShowErrorMessage(string message) 
+    public void ShowErrorMessage(string message)
     {
         errorMessage.text = message;
     }
 
-    public void ShowSessionCode(SessionCodeDto sessionCodeDto)
+    public void ShowSessionCode(SessionCodeDto dto)
     {
-        WebSocketService.ConnectToChat(sessionCodeDto.code, OnMessage);
+        // connect your chat socket
+        WebSocketService.ConnectToChat(dto.code, OnMessage);
+
+        // hide controls, show success
         joinControls.SetActive(false);
-        lblSuccess.SetText("Successfully joined game " + sessionCodeDto.code);
-        Debug.Log(sessionCodeDto.id);
-        Debug.Log(sessionCodeDto.code);
+        lblSuccess.SetText($"Successfully joined game {dto.code}");
+
+        // store session for later
+        LocalStorageService.SetVariable("session-id", dto.sessionId.ToString());
+
+        Debug.Log($"Joined session: {dto.sessionId}");
     }
 
-    private void OnMessage(ChatMessage chatMessage) { 
+    private void OnMessage(ChatMessage chatMessage)
+    {
         Debug.Log(chatMessage);
     }
 }

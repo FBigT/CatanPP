@@ -26,76 +26,92 @@ public class Login : MonoBehaviour
         userManager = this.AddComponent<UserManager>();
         firstInput.Select();
         _eventSystem = EventSystem.current;
+
         btnLogin.onClick.AddListener(() => {
             SetErrorMessage("");
-            userManager.Login(new LoginForm(ifUsername.text, ifPassword.text), LoginSuccess, SetErrorMessage);
+            userManager.Login(
+                new LoginForm(ifUsername.text, ifPassword.text),
+                LoginSuccess,
+                SetErrorMessage
+            );
         });
+
         btnGuest.onClick.AddListener(() => {
             SetErrorMessage("");
             userManager.CreateGuest(GuestOnSuccess, SetErrorMessage);
             btnGuest.interactable = false;
         });
-        Debug.Log(LocalStorageService.GetString("refresh-token"));
-        Debug.Log(LocalStorageService.GetString("token"));
-        //PlayerPrefs.DeleteAll();
+
+        // Try refresh/guest auto?login if tokens are already in storage
         LoginWithRefresh();
         LoginGuest();
     }
 
+    private void LoginSuccess(LoginResponse response)
+    {
+        // store the JWT for subsequent API calls
+        LocalStorageService.SetVariable("token", response.tokenType + " " + response.token);
+        LocalStorageService.SetVariable("refresh-token", response.refreshToken);
+
+        // store the username so TradeScreen can read it
+        // adjust property name here if your LoginResponse uses "username" vs "userName"
+        LocalStorageService.SetVariable("username", response.username);
+
+        // now go to main menu
+        SceneManager.LoadScene("MainMenu");
+    }
+
+    private void LoginGuest()
+    {
+        var guestCode = LocalStorageService.GetString("guest-code");
+        if (!string.IsNullOrEmpty(guestCode))
+        {
+            userManager.GuestLogin(guestCode, LoginSuccess, PrintError);
+        }
+    }
+
+    private void LoginWithRefresh()
+    {
+        var refresh = LocalStorageService.GetString("refresh-token");
+        if (!string.IsNullOrEmpty(refresh))
+        {
+            userManager.RefreshToken(refresh, LoginSuccess, PrintError);
+        }
+    }
+
+    private void GuestOnSuccess(GuestRegisterResponse guestResponse)
+    {
+        LocalStorageService.SetVariable("guest-code", guestResponse.guestKey);
+        LoginGuest();
+    }
+
+    private void SetErrorMessage(string error)
+    {
+        errorMessage.text = error;
+    }
+
+    private void PrintError(string error)
+    {
+        Debug.LogError(error);
+    }
+
     void Update()
     {
-        if (Input.GetKeyDown(KeyCode.Tab) && Input.GetKeyDown(KeyCode.LeftShift))
+        // tab/shift-tab navigation & Enter = login
+        if (Input.GetKeyDown(KeyCode.Tab) && _eventSystem.currentSelectedGameObject != null)
         {
-            Selectable previous = _eventSystem.currentSelectedGameObject.GetComponent<Selectable>().FindSelectableOnUp();
-            if (previous != null)
+            var sel = _eventSystem.currentSelectedGameObject.GetComponent<Selectable>();
+            if (sel != null)
             {
-                previous.Select();
-            }
-        }
-        else if (Input.GetKeyDown(KeyCode.Tab))
-        {
-            Selectable next = _eventSystem.currentSelectedGameObject.GetComponent<Selectable>().FindSelectableOnDown();
-            if (next != null) { 
-                next.Select();
+                var next = Input.GetKey(KeyCode.LeftShift)
+                    ? sel.FindSelectableOnUp()
+                    : sel.FindSelectableOnDown();
+                next?.Select();
             }
         }
         else if (Input.GetKeyDown(KeyCode.Return))
         {
             btnLogin.onClick.Invoke();
         }
-    }
-
-    private void LoginSuccess(LoginResponse response) {
-        LocalStorageService.SetVariable("token", response.tokenType + " " + response.token);
-        LocalStorageService.SetVariable("refresh-token", response.refreshToken);
-        SceneManager.LoadScene("MainMenu");
-    }
-
-    private void LoginGuest() {
-        if (LocalStorageService.GetString("guest-code") != null)
-        {
-            userManager.GuestLogin(LocalStorageService.GetString("guest-code"), LoginSuccess, PrintError);
-        }
-    }
-
-    private void LoginWithRefresh()
-    {
-        if (LocalStorageService.GetString("refresh-token") != null)
-        {
-            userManager.RefreshToken(LocalStorageService.GetString("refresh-token"), LoginSuccess, PrintError);
-        }
-    }
-
-    private void GuestOnSuccess(GuestRegisterResponse guestResponse) {
-        LocalStorageService.SetVariable("guest-code", guestResponse.guestKey);
-        LoginGuest();
-    }
-
-    private void SetErrorMessage(string error){
-        errorMessage.text = error;
-    }
-
-    private void PrintError(string error) { 
-        Debug.Log(error);
     }
 }

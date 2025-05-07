@@ -1,6 +1,5 @@
-﻿// Assets/Scripts/MainMenu/MainMenu.cs
-using Assets.Scripts;
-using Assets.Scripts.Utils;
+﻿using Assets.Scripts.Utils;
+using Assets.Scripts.TradingReasources.Models;
 using TMPro;
 using UnityEngine;
 using UnityEngine.SceneManagement;
@@ -8,7 +7,6 @@ using UnityEngine.UI;
 
 public class MainMenu : MonoBehaviour
 {
-    [Header("UI References")]
     public Button btnStartGame;
     public Button btnCancleStartGame;
     public Button btnProfile;
@@ -22,23 +20,20 @@ public class MainMenu : MonoBehaviour
     public GameObject startPanel;
     public GameObject mainPanel;
 
-    /* ─────────────────────────────────────────────────────────────── */
     SessionManager _sessions;
 
     void Awake()
     {
-        // runtime helpers (adds components only once)
         _sessions = gameObject.AddComponent<SessionManager>();
         gameObject.AddComponent<UserManager>();
 
         if (LocalStorageService.GetString("guest-code") != null)
             btnProfile.gameObject.SetActive(false);
 
-        /* ---------- button wiring ---------------------------------- */
         btnStartGame.onClick.AddListener(OnStartCampaignClicked);
         btnCancleStartGame.onClick.AddListener(
-            () => _sessions.CloseSession(SessionClosed, SetError));
-
+            () => _sessions.CloseSession(SessionClosed, SetError)
+        );
         btnQuit.onClick.AddListener(Application.Quit);
         btnLogout.onClick.AddListener(() =>
         {
@@ -47,35 +42,37 @@ public class MainMenu : MonoBehaviour
         });
     }
 
-    /* ─────────────────────────────────────────────────────────────── */
-    /*  1) “Start Campaign” → close any open game then create a new one */
     void OnStartCampaignClicked()
     {
+        btnStartGame.interactable = false;
+        lblLoading.gameObject.SetActive(true);
         _sessions.CreateSession(
             4,
-            SessionCreated,          // success → normal flow
-            _ => LoadOfflineGame()   // any error → offline map
+            SessionCreated,
+            _ => LoadOfflineGame()
         );
     }
 
-    /*  2) backend answers with code → show HUD, join, load scene       */
-    void SessionCreated(SessionCodeDto result)
+    void SessionCreated(SessionCodeDto dto)
     {
         btnCancleStartGame.interactable = true;
-        lblCode.text = result.code;
-        lblCode.gameObject.SetActive(true);
         lblLoading.gameObject.SetActive(false);
+        lblCode.text = dto.code;
+        lblCode.gameObject.SetActive(true);
 
-        LocalStorageService.SetVariable("session-id", result.id);
+        // store the sessionId
+        LocalStorageService.SetVariable("session-id", dto.sessionId.ToString());
 
-        SceneManager.LoadScene("GameModeCampaign");                                    // fail
+        // go to the game scene
+        SceneManager.LoadScene("GameModeCampaign");
     }
+
     void LoadOfflineGame()
     {
         lblStartError.text = "Starting offline campaign …";
-        SceneManager.LoadScene("GameModeCampaign");   // map is generated locally
+        SceneManager.LoadScene("GameModeCampaign");
     }
-    /* ─────────────────────────────────────────────────────────────── */
+
     void SessionClosed()
     {
         lblCode.text = "";

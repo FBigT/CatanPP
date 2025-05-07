@@ -1,117 +1,143 @@
-using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 using UnityEngine.EventSystems;
-using Assets.Scripts.TradingReasources;
+using UnityEngine.UI;
+using Assets.Scripts.TradingResources;
+using Assets.Scripts.Utils;
+using Assets.Scripts.TradingReasources.Models;
 
 public class TradeScreenManager : MonoBehaviour
 {
+    [Header("Panels")]
     public GameObject mainTradePanel;
     public GameObject requestPanel;
     public GameObject offerPanel;
 
+    [Header("Resource Buttons")]
     public List<ResourceButtonHandler> requestResourceButtons;
     public List<ResourceButtonHandler> offerResourceButtons;
 
+    [Header("Player Dropdown")]
+    public Dropdown playerDropdown;  // UnityEngine.UI.Dropdown
+
+    // selections
     public List<string> selectedRequestedResources = new();
     public List<int> selectedRequestedQuantities = new();
-
     public List<string> selectedOfferedResources = new();
     public List<int> selectedOfferedQuantities = new();
 
-    public ResourceGroup OfferedGroup { get; private set; } = new();
-    public ResourceGroup RequestedGroup { get; private set; } = new();
+    // context
+    private long sessionId;
+    private string currentUserName;
 
-    static readonly Dictionary<string, System.Action<ResourceGroup, int>> MAP =
-        new()
-        {
-            { "brick"  , (g,q) => g.brick   = q },
-            { "crystal", (g,q) => g.crystal = q },
-            { "ore"    , (g,q) => g.ore     = q },
-            { "rice"   , (g,q) => g.rice    = q },
-            { "sheep"  , (g,q) => g.sheep   = q },
-            { "silver" , (g,q) => g.silver  = q },
-            { "gold"   , (g,q) => g.gold    = q },
-            { "wood"   , (g,q) => g.wood    = q }
-        };
-
-    void FillGroup(ResourceGroup g, List<string> names, List<int> qty)
+    void Start()
     {
-        foreach (var key in MAP.Keys) MAP[key](g, 0);
-        for (int i = 0; i < names.Count; i++)
-        {
-            string n = names[i].ToLowerInvariant();
-            if (MAP.TryGetValue(n, out var set)) set(g, qty[i]);
-        }
+        // grab what should already have been saved
+        sessionId = LocalStorageService.GetInt("session-id") ?? 0;
+        currentUserName = LocalStorageService.GetString("username") ?? "";
+
+        Debug.Log($"[TradeScreen] sessionId = {sessionId}, user = {currentUserName}");
+
+        // clear any placeholder options
+        playerDropdown.ClearOptions();
+
+        TradingManager.Instance.GetSessionPlayers(
+            sessionId,
+            OnPlayersLoaded,
+            err => Debug.LogError($"[TradeScreen] Load players failed: {err}")
+        );
     }
 
-    public void OnCancelClicked(GameObject panel)
+    private void OnPlayersLoaded(List<SessionPlayerDto> players)
     {
-        panel.SetActive(false);
-        mainTradePanel.SetActive(true);
+        // build a list: [ "Bank", other real players... ]
+        var otherNames = players
+            .Where(p => p.username != currentUserName && p.active && !p.isAi)
+            .Select(p => p.username)
+            .ToList();
+
+        // always put Bank at [0]
+        var dropdownOptions = new List<string> { "Bank" };
+        if (otherNames.Count > 0)
+            dropdownOptions.AddRange(otherNames);
+        else
+            dropdownOptions.Add("No other players");
+
+        Debug.Log($"[TradeScreen] Bank + players: {string.Join(", ", dropdownOptions)}");
+
+        playerDropdown.ClearOptions();
+        playerDropdown.AddOptions(dropdownOptions);
+        playerDropdown.value = 0;              // default-select Bank
+        playerDropdown.RefreshShownValue();    // update UI immediately
     }
 
-    public void OnApplyClicked(GameObject panel, List<ResourceButtonHandler> buttons,
-                               List<string> names, List<int> qty)
+    // panel nav
+    public void OpenRequestPanel() => SwitchPanel(requestPanel);
+    public void OpenOfferPanel() => SwitchPanel(offerPanel);
+    public void OpenMainTradePanel() => SwitchPanel(mainTradePanel);
+
+    private void SwitchPanel(GameObject panel)
+    {
+        mainTradePanel.SetActive(panel == mainTradePanel);
+        requestPanel.SetActive(panel == requestPanel);
+        offerPanel.SetActive(panel == offerPanel);
+        EventSystem.current.SetSelectedGameObject(null);
+    }
+
+    public void ApplyRequestSelection() =>
+        CaptureSelections(requestResourceButtons, selectedRequestedResources, selectedRequestedQuantities);
+
+    public void ApplyOfferSelection() =>
+        CaptureSelections(offerResourceButtons, selectedOfferedResources, selectedOfferedQuantities);
+
+    private void CaptureSelections(List<ResourceButtonHandler> buttons, List<string> names, List<int> qty)
     {
         names.Clear();
         qty.Clear();
-
         foreach (var b in buttons)
-        {
-            int q = b.GetQuantity();
-            if (q > 0)
+            if (b.GetQuantity() > 0)
             {
                 names.Add(b.resourceName);
-                qty.Add(q);
+                qty.Add(b.GetQuantity());
             }
+    }
+
+    // send the trade
+    public void OnApplyTradeClicked()
+    {
+        var toUser = playerDropdown.options[playerDropdown.value].text;
+
+        if (toUser == "Bank")
+        {
+            var bankDto = new BankTradeDto
+            {
+                sessionId = sessionId,
+                fromUser = currentUserName,
+                offered = ResourceGroup.FromLists(selectedOfferedResources, selectedOfferedQuantities),
+                requested = ResourceGroup.FromLists(selectedRequestedResources, selectedRequestedQuantities)
+            };
+            TradingManager.Instance.TradeWithBank(
+                bankDto,
+                () => Debug.Log("[TradeScreen] Bank trade successful"),
+                err => Debug.LogError("[TradeScreen] Bank trade failed: " + err)
+            );
         }
-
-        EventSystem.current.SetSelectedGameObject(null);
-        StartCoroutine(SwitchToMain(panel));
-    }
-
-    IEnumerator SwitchToMain(GameObject panel)
-    {
-        yield return new WaitForSeconds(0.1f);
-        panel.SetActive(false);
-        mainTradePanel.SetActive(true);
-    }
-
-    public void OpenRequestPanel()
-    {
-        mainTradePanel.SetActive(false);
-        offerPanel.SetActive(false);
-        requestPanel.SetActive(true);
-    }
-
-    public void OpenOfferPanel()
-    {
-        mainTradePanel.SetActive(false);
-        requestPanel.SetActive(false);
-        offerPanel.SetActive(true);
-    }
-
-    public void OpenMainTradePanel()
-    {
-        requestPanel.SetActive(false);
-        offerPanel.SetActive(false);
-        mainTradePanel.SetActive(true);
-    }
-
-    public void ApplyRequestSelection()
-    {
-        OnApplyClicked(requestPanel, requestResourceButtons,
-                       selectedRequestedResources, selectedRequestedQuantities);
-
-        FillGroup(RequestedGroup, selectedRequestedResources, selectedRequestedQuantities);
-    }
-
-    public void ApplyOfferSelection()
-    {
-        OnApplyClicked(offerPanel, offerResourceButtons,
-                       selectedOfferedResources, selectedOfferedQuantities);
-
-        FillGroup(OfferedGroup, selectedOfferedResources, selectedOfferedQuantities);
+        else
+        {
+            var playerDto = new PlayerTradeDto
+            {
+                sessionId = sessionId,
+                fromUser = currentUserName,
+                toUser = toUser,
+                offered = ResourceGroup.FromLists(selectedOfferedResources, selectedOfferedQuantities),
+                requested = ResourceGroup.FromLists(selectedRequestedResources, selectedRequestedQuantities)
+            };
+            TradingManager.Instance.TradeWithPlayer(
+                playerDto,
+                () => Debug.Log("[TradeScreen] Trade successful"),
+                err => Debug.LogError("[TradeScreen] Trade failed: " + err)
+            );
+        }
     }
 }
