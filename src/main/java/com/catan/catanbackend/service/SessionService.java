@@ -26,7 +26,12 @@ public class SessionService {
     private final SessionPlayerService sessionPlayerService;
     final Random random = new Random();
 
-    public SessionService(SessionRepository sessionRepository, SessionCodeRepository sessionCodeRepository, PlayerProfileService playerProfileService, UserService userService, SessionRecordRepository sessionRecordRepository, SessionPlayerService sessionPlayerService) {
+    public SessionService(SessionRepository sessionRepository,
+                          SessionCodeRepository sessionCodeRepository,
+                          PlayerProfileService playerProfileService,
+                          UserService userService,
+                          SessionRecordRepository sessionRecordRepository,
+                          SessionPlayerService sessionPlayerService) {
         this.sessionRepository = sessionRepository;
         this.sessionCodeRepository = sessionCodeRepository;
         this.playerProfileService = playerProfileService;
@@ -37,36 +42,40 @@ public class SessionService {
 
     public Optional<SessionCode> startSession(Long hostId, Integer maxPlayers) {
         Optional<User> host = userService.findById(hostId);
-        if (host.isEmpty() || maxPlayers <= MIN_PLAYERS) {
+        if (host.isEmpty() || maxPlayers < MIN_PLAYERS) {
             return Optional.empty();
         }
 
-        if ((long)sessionPlayerService.findActivePlayersByUserId(hostId).size() > 0) {
-            return Optional.empty();
-        }
-
+        // No longer preventing multiple active sessions per host:
         Session savedSession = sessionRepository.save(new Session(host.get(), maxPlayers));
 
         String newSessionCode;
         do {
             newSessionCode = generateSessionCode();
         } while (sessionCodeRepository.findByCode(newSessionCode).isPresent());
+
         sessionPlayerService.saveSessionPlayer(new SessionPlayer(savedSession, host.get()));
         return Optional.of(sessionCodeRepository.save(new SessionCode(savedSession, newSessionCode)));
     }
 
-    public Boolean endSession(SessionCode sessionCode, User winner){
-        Optional<PlayerProfile> playerProfileByUsername = playerProfileService.getPlayerProfileByUsername(winner.getUsername());
-        playerProfileByUsername.ifPresent(playerProfile -> playerProfile.setGamesWon(playerProfile.getGamesWon() + 1));
+    public Boolean endSession(SessionCode sessionCode, User winner) {
+        Optional<PlayerProfile> playerProfileByUsername =
+                playerProfileService.getPlayerProfileByUsername(winner.getUsername());
+        playerProfileByUsername.ifPresent(pp -> pp.setGamesWon(pp.getGamesWon() + 1));
 
-        List<SessionPlayer> players = getPlayers(sessionCode.getSession().getId());
-        for (SessionPlayer sessionPlayer : players) {
-            playerProfileService.getPlayerProfileByUserId(sessionPlayer.getUser().getId())
+        List<SessionPlayer> players =
+                getPlayers(sessionCode.getSession().getId());
+        for (SessionPlayer sp : players) {
+            playerProfileService.getPlayerProfileByUserId(sp.getUser().getId())
                     .ifPresent(profile -> profile.setGamesPlayed(profile.getGamesPlayed() + 1));
-            sessionPlayerService.deleteSessionPlayer(sessionPlayer);
+            sessionPlayerService.deleteSessionPlayer(sp);
         }
 
-        sessionRecordRepository.save(new SessionRecord(winner, sessionCode.getSession().getStartedAt(), OffsetDateTime.now()));
+        sessionRecordRepository.save(
+                new SessionRecord(winner,
+                        sessionCode.getSession().getStartedAt(),
+                        OffsetDateTime.now())
+        );
         sessionCodeRepository.delete(sessionCode);
         sessionRepository.delete(sessionCode.getSession());
         return true;
@@ -77,26 +86,35 @@ public class SessionService {
         Optional<SessionCode> sessionCode = sessionCodeRepository.findByCode(code);
 
         if (user.isPresent() && sessionCode.isPresent()) {
-            List<SessionPlayer> players = getPlayers(sessionCode.get().getSession().getId());
+            List<SessionPlayer> players =
+                    getPlayers(sessionCode.get().getSession().getId());
 
-            if (players.stream().anyMatch(player -> player.getUser().getId().equals(userId) && !player.getActive())){
-                SessionPlayer sessionPlayer = players.stream().filter(player -> player.getUser().getId().equals(userId)).findFirst().get();
-                sessionPlayer.setActive(true);
-                sessionPlayerService.saveSessionPlayer(sessionPlayer);
-            } else if (players.size() >= sessionCode.get().getSession().getMaxPlayers() ||
-                    players.stream().anyMatch(player -> player.getUser().getId().equals(userId) && player.getActive()))
+            if (players.stream().anyMatch(p ->
+                    p.getUser().getId().equals(userId) && !p.getActive())) {
+                SessionPlayer sp = players.stream()
+                        .filter(p -> p.getUser().getId().equals(userId))
+                        .findFirst().get();
+                sp.setActive(true);
+                sessionPlayerService.saveSessionPlayer(sp);
+            }
+            else if (players.size() >= sessionCode.get().getSession().getMaxPlayers()
+                    || players.stream().anyMatch(p ->
+                    p.getUser().getId().equals(userId) && p.getActive())) {
                 return Optional.empty();
-            else
-                sessionPlayerService.saveSessionPlayer(new SessionPlayer(sessionCode.get().getSession(), user.get()));
+            }
+            else {
+                sessionPlayerService.saveSessionPlayer(
+                        new SessionPlayer(sessionCode.get().getSession(), user.get())
+                );
+            }
         }
         return sessionCode;
     }
 
     public Boolean addBotToSession(String code) {
         Optional<Session> session = getSessionBySessionCode(code);
-
         if (session.isEmpty()
-            || getPlayers(session.get().getId()).size() >= session.get().getMaxPlayers()) {
+                || getPlayers(session.get().getId()).size() >= session.get().getMaxPlayers()) {
             return false;
         }
         sessionPlayerService.saveSessionPlayer(new SessionPlayer(session.get()));
@@ -105,13 +123,15 @@ public class SessionService {
 
     public Boolean leaveSession(Long userId, String code) {
         Optional<Session> session = getSessionBySessionCode(code);
-        Optional<List<SessionPlayer>> sessionPlayers = session.map(value ->
-                getPlayers(value.getId()).stream()
-                        .filter(player -> player.getUser().getId().equals(userId)).toList());
-        if (sessionPlayers.isPresent() && sessionPlayers.get().size() == 1 ) {
-            SessionPlayer sessionPlayer = sessionPlayers.get().stream().findFirst().get();
-            if (sessionPlayer.getActive()){
-                sessionPlayerService.saveSessionPlayer(sessionPlayer);
+        Optional<List<SessionPlayer>> sessionPlayers = session.map(s ->
+                getPlayers(s.getId()).stream()
+                        .filter(p -> p.getUser().getId().equals(userId))
+                        .toList()
+        );
+        if (sessionPlayers.isPresent() && sessionPlayers.get().size() == 1) {
+            SessionPlayer sp = sessionPlayers.get().get(0);
+            if (sp.getActive()) {
+                sessionPlayerService.saveSessionPlayer(sp);
                 return true;
             }
         }
@@ -123,13 +143,14 @@ public class SessionService {
     }
 
     public Optional<Session> getActiveSessionsByHostId(Long hostId) {
-        if (sessionRepository.findByHostId(hostId).stream().noneMatch(Session::getActive)) {
-            return Optional.empty();
+        List<Session> all = sessionRepository.findByHostId(hostId).stream()
+                .filter(Session::getActive)
+                .toList();
+        if (all.isEmpty()) return Optional.empty();
+        if (all.size() > 1) {
+            throw new RuntimeException("Multiple active sessions for host " + hostId);
         }
-        if (sessionRepository.findByHostId(hostId).stream().filter(Session::getActive).count() >= 2) {
-            throw new RuntimeException("Multiple active sessions found for host " + hostId);
-        }
-        return sessionRepository.findByHostId(hostId).stream().filter(Session::getActive).findFirst();
+        return Optional.of(all.get(0));
     }
 
     public void closeSession(Session session) {
@@ -138,31 +159,31 @@ public class SessionService {
         sessionPlayerService.deactivateSessionPlayers(session.getId());
     }
 
-    public Optional<Session> getSessionById(Long id){
+    public Optional<Session> getSessionById(Long id) {
         return sessionRepository.findById(id);
     }
 
-    public Optional<Session> getSessionBySessionCode(String code){
-        return sessionCodeRepository.findByCode(code).map(sessionCode -> {
-            Hibernate.initialize(sessionCode.getSession());
-            return sessionCode.getSession();
-        });
+    public Optional<Session> getSessionBySessionCode(String code) {
+        return sessionCodeRepository.findByCode(code)
+                .map(sc -> {
+                    Hibernate.initialize(sc.getSession());
+                    return sc.getSession();
+                });
     }
 
     private String generateSessionCode() {
         int leftLimit = 48; // '0'
         int rightLimit = 122; // 'z'
-        int targetStringLength = 6;
-
-        String generatedString = random.ints(leftLimit, rightLimit + 1)
+        int length = 6;
+        return random.ints(leftLimit, rightLimit + 1)
                 .filter(i -> (i <= 57 || i >= 65) && (i <= 90 || i >= 97))
-                .limit(targetStringLength)
-                .collect(StringBuilder::new, StringBuilder::appendCodePoint, StringBuilder::append)
-                .toString();
-
-        return generatedString.toUpperCase();
+                .limit(length)
+                .collect(StringBuilder::new,
+                        StringBuilder::appendCodePoint,
+                        StringBuilder::append)
+                .toString()
+                .toUpperCase();
     }
-
     public String createSaveJson(Session session) {
         //create save logic
         return "";
