@@ -431,8 +431,6 @@ GameObject:
   - component: {fileID: 138596339}
   - component: {fileID: 138596342}
   - component: {fileID: 138596341}
-  - component: {fileID: 138596340}
-  - component: {fileID: 138596343}
   - component: {fileID: 138596344}
   m_Layer: 5
   m_Name: CreatePanel
@@ -464,21 +462,6 @@ RectTransform:
   m_AnchoredPosition: {x: 0, y: 0}
   m_SizeDelta: {x: 0, y: 0}
   m_Pivot: {x: 0.5, y: 0.5}
---- !u!114 &138596340
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 138596338}
-  m_Enabled: 0
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: f51c3157159fb1247a07f3b5f8150bc4, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  sessionCode: {fileID: 1137813842}
-  btnJoinGame: {fileID: 1087203169}
-  errorMessage: {fileID: 2038584433}
 --- !u!114 &138596341
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -517,19 +500,6 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 138596338}
   m_CullTransparentMesh: 1
---- !u!114 &138596343
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 138596338}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e01f1fe780f9ef743a20762f6bcf68ae, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  createGamePanel: {fileID: 138596338}
 --- !u!114 &138596344
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -3787,7 +3757,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: Submit
+  m_text: Create
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
   m_sharedMaterial: {fileID: 2180264, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
@@ -5510,7 +5480,7 @@ GameObject:
   - component: {fileID: 1087203170}
   - component: {fileID: 1087203169}
   m_Layer: 5
-  m_Name: btnSubmit
+  m_Name: btnCreateGame
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
