@@ -12,10 +12,13 @@ namespace Assets.Scripts.Utils
     [Serializable]
     public class SessionCodeDto
     {
-        public long sessionId;
+        public long id;            // now matches {"id":...}
         public string code;
         public int maxPlayers;
         public string hostUserName;
+
+        // keep your existing sessionId usage:
+        public long sessionId => id;
     }
 
     public class SessionManager : MonoBehaviour
@@ -52,7 +55,11 @@ namespace Assets.Scripts.Utils
             StartCoroutine(JoinSessionRequest(sessionCode, onSuccess, onFail));
         }
 
-        private IEnumerator JoinSessionRequest(string sessionCode, Action<SessionCodeDto> onSuccess, Action<string> onFail)
+        private IEnumerator JoinSessionRequest(
+            string sessionCode,
+            Action<SessionCodeDto> onSuccess,
+            Action<string> onFail
+        )
         {
             UnityWebRequest req = null;
             yield return RequestService.ConstructSimpleWebRequest(
@@ -62,8 +69,18 @@ namespace Assets.Scripts.Utils
                 null,
                 result => req = result
             );
-            if (req == null) { onFail?.Invoke("Failed to construct request"); yield break; }
+            if (req == null)
+            {
+                onFail?.Invoke("Failed to construct request");
+                yield break;
+            }
+
+            // send the HTTP request
             yield return req.SendWebRequest();
+
+            // *** ADD THIS DEBUG LINE ***
+            Debug.Log($"[JoinSession] Raw JSON: {req.downloadHandler.text}");
+
             if (req.result == UnityWebRequest.Result.Success)
             {
                 var dto = JsonUtility.FromJson<SessionCodeDto>(req.downloadHandler.text);
@@ -71,8 +88,12 @@ namespace Assets.Scripts.Utils
                 LocalStorageService.SetVariable("session-code", dto.code);
                 onSuccess?.Invoke(dto);
             }
-            else onFail?.Invoke(req.error);
+            else
+            {
+                onFail?.Invoke(req.error);
+            }
         }
+
 
         public void CloseSession(Action onSuccess, Action<string> onFail)
         {
