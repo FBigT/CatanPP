@@ -1,5 +1,5 @@
 using Assets.Scripts.Utils;                     
-using Assets.Scripts.TradingReasources.Models; 
+using Assets.Scripts.GameMode.Trading.Models; 
 using TMPro;
 using UnityEngine;
 using UnityEngine.SceneManagement;             

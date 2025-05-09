@@ -3,7 +3,7 @@ using UnityEngine.UI;
 using TMPro;
 using UnityEngine.SceneManagement;
 using Assets.Scripts.Utils;                     // for SessionManager, LocalStorageService
-using Assets.Scripts.TradingReasources.Models;  // for SessionCodeDto
+using Assets.Scripts.GameMode.Trading.Models;  // for SessionCodeDto
 
 namespace Assets.Scripts.MainMenu
 {

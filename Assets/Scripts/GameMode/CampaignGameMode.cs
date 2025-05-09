@@ -109,7 +109,9 @@ namespace Catan.GameMode
         /// </summary>
         private void DistributeResources(int roll)
         {
-            foreach (var cell in FindObjectsOfType<HexCell>())
+            foreach (var cell in Object.FindObjectsByType<HexCell>(
+                    FindObjectsInactive.Include,
+                    FindObjectsSortMode.None))
             {
                 if (!cell.NumberTokenIs(roll)) continue;
                 var res = cell.GetResource();

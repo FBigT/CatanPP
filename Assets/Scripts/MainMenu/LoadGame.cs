@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Assets.Scripts.MainMenu;
 using Assets.Scripts.Utils;
-using Assets.Scripts.TradingReasources.Models;  // for SessionCodeDto
+using Assets.Scripts.GameMode.Trading.Models;  // for SessionCodeDto
 using TMPro;
 using Unity.VisualScripting;
 using UnityEngine;

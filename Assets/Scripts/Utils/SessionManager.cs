@@ -4,7 +4,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Networking;
 using Assets.Scripts.Utils;  // for RequestService, EndpointUtils, Methods, LocalStorageService
-using Assets.Scripts.TradingReasources.Models; // for SessionCodeDto
+using Assets.Scripts.GameMode.Trading.Models; // for SessionCodeDto
 using Assets.Scripts.MainMenu; // for SessionSave
 
 namespace Assets.Scripts.Utils

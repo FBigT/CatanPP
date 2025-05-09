@@ -1,14 +1,14 @@
 using Assets.Scripts.Utils;
-using Assets.Scripts.TradingReasources.Models;
+using Assets.Scripts.GameMode.Trading.Models;
 using TMPro;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 using Assets.Scripts.User;
-using Unity.VisualScripting;
 
 public class StartSession : MonoBehaviour
 {
-    SessionManager sessionService;
+    private SessionManager sessionService;
 
     public TMP_Text lblCode;
     public TMP_Text lblLoading;
@@ -17,23 +17,30 @@ public class StartSession : MonoBehaviour
     public Button btnCancleStartGame;
     public GameObject mainPanel;
 
-    void Awake()
+    async void Awake()
     {
-        sessionService = this.AddComponent<SessionManager>();
+        sessionService = gameObject.AddComponent<SessionManager>();
         btnCancleStartGame.onClick.AddListener(() =>
         {
             sessionService.CloseSession(SessionClosed, SetError);
         });
+
+        // Ensure we have a valid token before any WebSocket traffic
+        // (you can remove if EnsureAuthToken already covers this)
+        string token = LocalStorageService.GetString("token") ?? "";
+        Debug.Log($"[StartSession] auth token = {token}");
     }
 
     void Update()
     {
+        // Dispatch any pending WebSocket messages (still synchronous)
         WebSocketService.DispatchMessageQueue();
 
         if (Input.GetKeyDown(KeyCode.Return)
             && !string.IsNullOrEmpty(tfMessage.text))
         {
-            WebSocketService.SendMessage(tfMessage.text);
+            // fire-and-forget send
+            _ = WebSocketService.SendMessage(tfMessage.text);
             tfMessage.text = "";
         }
     }
@@ -47,9 +54,11 @@ public class StartSession : MonoBehaviour
         sessionService.CreateSession(4, SessionCreated, SetError);
     }
 
-    private void SessionCreated(SessionCodeDto dto)
+    // now async so we can await ConnectToChat
+    private async void SessionCreated(SessionCodeDto dto)
     {
-        WebSocketService.ConnectToChat(dto.code, OnMessage);
+        // connect and wait
+        await WebSocketService.ConnectToChat(dto.code, OnMessage);
 
         btnCancleStartGame.interactable = true;
         lblLoading.gameObject.SetActive(false);
@@ -76,6 +85,5 @@ public class StartSession : MonoBehaviour
 
     private void OnMessage(ChatMessage chatMessage)
     {
-        // handle incoming chat
     }
 }

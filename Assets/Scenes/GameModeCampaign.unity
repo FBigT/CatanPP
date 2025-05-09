@@ -1902,7 +1902,6 @@ GameObject:
   - component: {fileID: 119275970}
   - component: {fileID: 119275969}
   - component: {fileID: 119275968}
-  - component: {fileID: 119275967}
   m_Layer: 5
   m_Name: OfferPanel
   m_TagString: Untagged
@@ -1910,36 +1909,6 @@ GameObject:
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 0
---- !u!114 &119275967
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 119275966}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 0709d21a5e344694a960dcd85003a7c6, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  mainTradePanel: {fileID: 1756616177}
-  requestPanel: {fileID: 0}
-  offerPanel: {fileID: 119275966}
-  requestResourceButtons: []
-  offerResourceButtons:
-  - {fileID: 1893501193}
-  - {fileID: 496023358}
-  - {fileID: 529767641}
-  - {fileID: 1254078868}
-  - {fileID: 1102302036}
-  - {fileID: 393534571}
-  - {fileID: 1498836345}
-  - {fileID: 1655894877}
-  playerDropdown: {fileID: 0}
-  selectedRequestedResources: []
-  selectedRequestedQuantities: 
-  selectedOfferedResources: []
-  selectedOfferedQuantities: 
 --- !u!114 &119275968
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -7332,10 +7301,10 @@ MonoBehaviour:
   m_GameObject: {fileID: 393534566}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 751cc0029afa0554ebf842b2e96cac9d, type: 3}
+  m_Script: {fileID: 11500000, guid: 7460391048b988e46a50b45fec03fdb8, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  resourceName: 
+  resourceName: Sheep
   quantityText: {fileID: 1050711571}
 --- !u!1 &398397608
 GameObject:
@@ -9428,10 +9397,10 @@ MonoBehaviour:
   m_GameObject: {fileID: 485740511}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 751cc0029afa0554ebf842b2e96cac9d, type: 3}
+  m_Script: {fileID: 11500000, guid: 7460391048b988e46a50b45fec03fdb8, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  resourceName: 
+  resourceName: Wood
   quantityText: {fileID: 1397297746}
 --- !u!224 &485740513
 RectTransform:
@@ -9916,10 +9885,10 @@ MonoBehaviour:
   m_GameObject: {fileID: 496023353}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 751cc0029afa0554ebf842b2e96cac9d, type: 3}
+  m_Script: {fileID: 11500000, guid: 7460391048b988e46a50b45fec03fdb8, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  resourceName: 
+  resourceName: Crystal
   quantityText: {fileID: 718540847}
 --- !u!1 &498575918
 GameObject:
@@ -10489,10 +10458,10 @@ MonoBehaviour:
   m_GameObject: {fileID: 529767636}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 751cc0029afa0554ebf842b2e96cac9d, type: 3}
+  m_Script: {fileID: 11500000, guid: 7460391048b988e46a50b45fec03fdb8, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  resourceName: 
+  resourceName: GoldBar
   quantityText: {fileID: 1084612158}
 --- !u!1 &530481906
 GameObject:
@@ -12659,10 +12628,10 @@ MonoBehaviour:
   m_GameObject: {fileID: 620889169}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 751cc0029afa0554ebf842b2e96cac9d, type: 3}
+  m_Script: {fileID: 11500000, guid: 7460391048b988e46a50b45fec03fdb8, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  resourceName: 
+  resourceName: Crystal
   quantityText: {fileID: 670669759}
 --- !u!1 &624581395
 GameObject:
@@ -15080,10 +15049,10 @@ MonoBehaviour:
   m_GameObject: {fileID: 750460868}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 751cc0029afa0554ebf842b2e96cac9d, type: 3}
+  m_Script: {fileID: 11500000, guid: 7460391048b988e46a50b45fec03fdb8, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  resourceName: 
+  resourceName: GoldBar
   quantityText: {fileID: 1911311538}
 --- !u!1 &750564294
 GameObject:
@@ -22419,7 +22388,7 @@ MonoBehaviour:
   m_GameObject: {fileID: 1065544734}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: dcb4850ee2096ed47a19cfa917da0dec, type: 3}
+  m_Script: {fileID: 11500000, guid: 3750cf914d7dc6a45a64a08246d14418, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
 --- !u!4 &1065544736
@@ -23417,10 +23386,10 @@ MonoBehaviour:
   m_GameObject: {fileID: 1101172296}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 751cc0029afa0554ebf842b2e96cac9d, type: 3}
+  m_Script: {fileID: 11500000, guid: 7460391048b988e46a50b45fec03fdb8, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  resourceName: 
+  resourceName: Silver
   quantityText: {fileID: 889172890}
 --- !u!1 &1102302031
 GameObject:
@@ -23565,10 +23534,10 @@ MonoBehaviour:
   m_GameObject: {fileID: 1102302031}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 751cc0029afa0554ebf842b2e96cac9d, type: 3}
+  m_Script: {fileID: 11500000, guid: 7460391048b988e46a50b45fec03fdb8, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  resourceName: 
+  resourceName: Rice
   quantityText: {fileID: 736378508}
 --- !u!1 &1108097937
 GameObject:
@@ -23826,10 +23795,10 @@ MonoBehaviour:
   m_GameObject: {fileID: 1109997989}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 751cc0029afa0554ebf842b2e96cac9d, type: 3}
+  m_Script: {fileID: 11500000, guid: 7460391048b988e46a50b45fec03fdb8, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  resourceName: 
+  resourceName: Brick
   quantityText: {fileID: 915953039}
 --- !u!1 &1110968723
 GameObject:
@@ -25751,24 +25720,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0709d21a5e344694a960dcd85003a7c6, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  mainTradePanel: {fileID: 1756616177}
-  requestPanel: {fileID: 1204369157}
-  offerPanel: {fileID: 0}
-  requestResourceButtons:
-  - {fileID: 1109997994}
-  - {fileID: 620889174}
-  - {fileID: 750460873}
-  - {fileID: 1361738342}
-  - {fileID: 1211279139}
-  - {fileID: 1411231819}
-  - {fileID: 1101172301}
-  - {fileID: 485740512}
-  offerResourceButtons: []
-  playerDropdown: {fileID: 0}
-  selectedRequestedResources: []
-  selectedRequestedQuantities: 
-  selectedOfferedResources: []
-  selectedOfferedQuantities: 
 --- !u!114 &1204369159
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -26324,10 +26275,10 @@ MonoBehaviour:
   m_GameObject: {fileID: 1211279134}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 751cc0029afa0554ebf842b2e96cac9d, type: 3}
+  m_Script: {fileID: 11500000, guid: 7460391048b988e46a50b45fec03fdb8, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  resourceName: 
+  resourceName: Rice
   quantityText: {fileID: 498575920}
 --- !u!1 &1216424161
 GameObject:
@@ -26950,10 +26901,10 @@ MonoBehaviour:
   m_GameObject: {fileID: 1254078863}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 751cc0029afa0554ebf842b2e96cac9d, type: 3}
+  m_Script: {fileID: 11500000, guid: 7460391048b988e46a50b45fec03fdb8, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  resourceName: 
+  resourceName: Ore
   quantityText: {fileID: 2073677176}
 --- !u!1 &1259433750
 GameObject:
@@ -28046,16 +27997,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0709d21a5e344694a960dcd85003a7c6, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  mainTradePanel: {fileID: 0}
-  requestPanel: {fileID: 0}
-  offerPanel: {fileID: 0}
-  requestResourceButtons: []
-  offerResourceButtons: []
-  playerDropdown: {fileID: 0}
-  selectedRequestedResources: []
-  selectedRequestedQuantities: 
-  selectedOfferedResources: []
-  selectedOfferedQuantities: 
 --- !u!114 &1299167504
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -29406,10 +29347,10 @@ MonoBehaviour:
   m_GameObject: {fileID: 1361738337}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 751cc0029afa0554ebf842b2e96cac9d, type: 3}
+  m_Script: {fileID: 11500000, guid: 7460391048b988e46a50b45fec03fdb8, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  resourceName: 
+  resourceName: Ore
   quantityText: {fileID: 1745647784}
 --- !u!1 &1364444356
 GameObject:
@@ -30987,10 +30928,10 @@ MonoBehaviour:
   m_GameObject: {fileID: 1411231814}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 751cc0029afa0554ebf842b2e96cac9d, type: 3}
+  m_Script: {fileID: 11500000, guid: 7460391048b988e46a50b45fec03fdb8, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  resourceName: 
+  resourceName: Sheep
   quantityText: {fileID: 1331554408}
 --- !u!1 &1411521852
 GameObject:
@@ -32529,19 +32470,31 @@ MonoBehaviour:
   m_GameObject: {fileID: 1489411408}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 0709d21a5e344694a960dcd85003a7c6, type: 3}
+  m_Script: {fileID: 11500000, guid: 9b2bd2aa6d17e914a88e70e2244736da, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
   mainTradePanel: {fileID: 1756616177}
   requestPanel: {fileID: 1204369157}
   offerPanel: {fileID: 119275966}
-  requestResourceButtons: []
-  offerResourceButtons: []
+  requestResourceButtons:
+  - {fileID: 1109997994}
+  - {fileID: 620889174}
+  - {fileID: 750460873}
+  - {fileID: 1361738342}
+  - {fileID: 1211279139}
+  - {fileID: 1411231819}
+  - {fileID: 1101172301}
+  - {fileID: 485740512}
+  offerResourceButtons:
+  - {fileID: 1893501193}
+  - {fileID: 496023358}
+  - {fileID: 529767641}
+  - {fileID: 1254078868}
+  - {fileID: 1102302036}
+  - {fileID: 393534571}
+  - {fileID: 1498836345}
+  - {fileID: 1655894877}
   playerDropdown: {fileID: 1676602440}
-  selectedRequestedResources: []
-  selectedRequestedQuantities: 
-  selectedOfferedResources: []
-  selectedOfferedQuantities: 
 --- !u!1 &1490857080
 GameObject:
   m_ObjectHideFlags: 0
@@ -32911,10 +32864,10 @@ MonoBehaviour:
   m_GameObject: {fileID: 1498836340}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 751cc0029afa0554ebf842b2e96cac9d, type: 3}
+  m_Script: {fileID: 11500000, guid: 7460391048b988e46a50b45fec03fdb8, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  resourceName: 
+  resourceName: Silver
   quantityText: {fileID: 1296972880}
 --- !u!1 &1498907521
 GameObject:
@@ -36077,10 +36030,10 @@ MonoBehaviour:
   m_GameObject: {fileID: 1655894876}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 751cc0029afa0554ebf842b2e96cac9d, type: 3}
+  m_Script: {fileID: 11500000, guid: 7460391048b988e46a50b45fec03fdb8, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  resourceName: 
+  resourceName: Woof
   quantityText: {fileID: 1086138388}
 --- !u!224 &1655894878
 RectTransform:
@@ -41265,10 +41218,10 @@ MonoBehaviour:
   m_GameObject: {fileID: 1893501188}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 751cc0029afa0554ebf842b2e96cac9d, type: 3}
+  m_Script: {fileID: 11500000, guid: 7460391048b988e46a50b45fec03fdb8, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  resourceName: 
+  resourceName: Brick
   quantityText: {fileID: 1932185227}
 --- !u!1 &1894756920
 GameObject:
