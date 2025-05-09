@@ -129,7 +129,7 @@ public class SessionPlayerController {
 //    @PutMapping("/{playerId}/resources")
 //    public ResponseEntity<SessionPlayerDto> updateResources(
 //            @PathVariable Long playerId,
-//            @RequestBody ResourceGroup resources    // import your model: com.catan.catanbackend.model.ResourceGroup
+//            @RequestBody ResourceGroup resources
 //    ) {
 //        return sessionPlayerService.findById(playerId)
 //                .map(sp -> {

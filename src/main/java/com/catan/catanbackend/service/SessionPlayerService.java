@@ -18,8 +18,24 @@ public class SessionPlayerService {
         this.sessionPlayerRepository = sessionPlayerRepository;
     }
 
+//    public SessionPlayer saveSessionPlayer(SessionPlayer sessionPlayer) {
+//        return sessionPlayerRepository.saveAndFlush(sessionPlayer);
+//    }
+
     public SessionPlayer saveSessionPlayer(SessionPlayer sessionPlayer) {
+        assignInitialResources(sessionPlayer);
         return sessionPlayerRepository.saveAndFlush(sessionPlayer);
+    }
+
+    private void assignInitialResources(SessionPlayer player) {
+        player.setBrick(10);
+        player.setCrystal(10);
+        player.setOre(10);
+        player.setRice(10);
+        player.setSheep(10);
+        player.setSilver(10);
+        player.setGold(10);
+        player.setWood(10);
     }
 
     public SessionPlayer updateSessionPlayer(SessionPlayer sessionPlayer) {
