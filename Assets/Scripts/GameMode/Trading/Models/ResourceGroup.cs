@@ -1,8 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Assets.Scripts.GameMode.Trading.Models
 {
@@ -39,6 +36,24 @@ namespace Assets.Scripts.GameMode.Trading.Models
                 }
             }
             return rg;
+        }
+
+        /// <summary>
+        /// Returns a dictionary containing all resources and their quantities.
+        /// </summary>
+        public Dictionary<string, int> GetResourceDictionary()
+        {
+            return new Dictionary<string, int>
+            {
+                { "brick", brick },
+                { "crystal", crystal },
+                { "ore", ore },
+                { "rice", rice },
+                { "sheep", sheep },
+                { "silver", silver },
+                { "gold", gold },
+                { "wood", wood }
+            };
         }
     }
 }

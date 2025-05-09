@@ -35,14 +35,14 @@ namespace Assets.Scripts.GameMode.Trading
                                     Action onSuccess,
                                     Action<string> onError)
         {
-            StartCoroutine(TradeRoutine("/api/trade/player", JsonUtility.ToJson(dto), onSuccess, onError));
+            StartCoroutine(TradeRoutine(EndpointUtils.TradeWithPlayer, JsonUtility.ToJson(dto), onSuccess, onError));
         }
 
         public void TradeWithBank(BankTradeDto dto,
                                   Action onSuccess,
                                   Action<string> onError)
         {
-            StartCoroutine(TradeRoutine("/api/trade/bank", JsonUtility.ToJson(dto), onSuccess, onError));
+            StartCoroutine(TradeRoutine(EndpointUtils.TradeWithBank, JsonUtility.ToJson(dto), onSuccess, onError));
         }
 
         // INTERNAL HELPERS
@@ -119,7 +119,7 @@ namespace Assets.Scripts.GameMode.Trading
                 yield break;
             }
 
-            string url = $"{EndpointUtils.BaseUrl}/session-players/session/{sessionId}";
+            string url = EndpointUtils.GetSessionPlayers(sessionId);
             using UnityWebRequest req = UnityWebRequest.Get(url);
             req.SetRequestHeader("Authorization", jwt);
 
@@ -138,10 +138,8 @@ namespace Assets.Scripts.GameMode.Trading
 
                 try
                 {
-                    // Deserialize raw array into strongly typed list
                     SessionPlayerDto[] playerArray = JsonHelper.FromJson<SessionPlayerDto>(req.downloadHandler.text);
                     var playerList = new List<SessionPlayerDto>(playerArray);
-
                     onSuccess?.Invoke(playerList);
                 }
                 catch (Exception ex)
@@ -152,8 +150,7 @@ namespace Assets.Scripts.GameMode.Trading
             }
         }
 
-
-        IEnumerator TradeRoutine(string path,
+        IEnumerator TradeRoutine(string fullUrl,
                                  string jsonBody,
                                  Action onSuccess,
                                  Action<string> onError)
@@ -168,8 +165,7 @@ namespace Assets.Scripts.GameMode.Trading
                 yield break;
             }
 
-            string url = EndpointUtils.BaseUrl + path;
-            using UnityWebRequest req = new UnityWebRequest(url, "POST")
+            using UnityWebRequest req = new UnityWebRequest(fullUrl, "POST")
             {
                 uploadHandler = new UploadHandlerRaw(System.Text.Encoding.UTF8.GetBytes(jsonBody)),
                 downloadHandler = new DownloadHandlerBuffer()
@@ -178,7 +174,7 @@ namespace Assets.Scripts.GameMode.Trading
             req.SetRequestHeader("Content-Type", "application/json");
             req.SetRequestHeader("Authorization", jwt);
 
-            Debug.Log($"[TradeRoutine] Sending POST to {url} with payload: {jsonBody}");
+            Debug.Log($"[TradeRoutine] Sending POST to {fullUrl} with payload: {jsonBody}");
             Debug.Log($"[TradeRoutine] Authorization: {jwt}");
 
             yield return req.SendWebRequest();
@@ -195,7 +191,6 @@ namespace Assets.Scripts.GameMode.Trading
             }
         }
 
-        // DTOs
         [Serializable]
         class AuthResponse
         {
