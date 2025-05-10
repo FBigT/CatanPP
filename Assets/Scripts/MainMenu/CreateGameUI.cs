@@ -3,7 +3,8 @@ using UnityEngine.UI;
 using TMPro;
 using UnityEngine.SceneManagement;
 using Assets.Scripts.Utils;                     // for SessionManager, LocalStorageService
-using Assets.Scripts.GameMode.Trading.Models;  // for SessionCodeDto
+using Assets.Scripts.GameMode.Trading.Models;
+using Assets.Scripts.User;  // for SessionCodeDto
 
 namespace Assets.Scripts.MainMenu
 {
@@ -76,6 +77,10 @@ namespace Assets.Scripts.MainMenu
 
         private void OnSessionCreated(SessionCodeDto dto)
         {
+            Debug.Log("Session created");
+            WebSocketService.OnChatMessageReceived += OnMessage;
+            WebSocketService.ConnectToChat(dto.code);
+
             // store session info for later screens
             LocalStorageService.SetVariable("session-id", dto.id.ToString());
             LocalStorageService.SetVariable("session-code", dto.code);
@@ -89,6 +94,11 @@ namespace Assets.Scripts.MainMenu
             // display error and re-enable submit
             errorText.text = err;
             submitButton.interactable = true;
+        }
+
+        private void OnMessage(ChatMessage chatMessage)
+        {
+            Debug.Log(chatMessage);
         }
     }
 }

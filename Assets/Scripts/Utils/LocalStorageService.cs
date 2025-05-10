@@ -44,8 +44,13 @@ namespace Assets.Scripts.Utils
         }
 #nullable disable
 
-        public static void Clear() {
+        public static void ClearAll() {
             PlayerPrefs.DeleteAll();
+        }
+
+        public static void Clear(string name)
+        {
+            PlayerPrefs.DeleteKey(name);
         }
     }
 }

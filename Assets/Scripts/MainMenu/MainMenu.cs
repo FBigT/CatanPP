@@ -37,7 +37,7 @@ public class MainMenu : MonoBehaviour
         btnQuit.onClick.AddListener(Application.Quit);
         btnLogout.onClick.AddListener(() =>
         {
-            LocalStorageService.Clear();
+            LocalStorageService.ClearAll();
             SceneManager.LoadScene("Login");
         });
     }

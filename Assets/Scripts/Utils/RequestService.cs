@@ -19,6 +19,8 @@ namespace Assets.Scripts.Utils
             };
             request.SetRequestHeader("Content-Type", "application/json");
 
+            bool badRequest = false;
+
             if (requiresAuthorization) {
                 if (string.IsNullOrEmpty(LocalStorageService.GetString("token")) || !SecurityUtils.IsTokenValid(LocalStorageService.GetString("token"))) {
                     if (!string.IsNullOrEmpty(LocalStorageService.GetString("refresh-token")))
@@ -28,27 +30,35 @@ namespace Assets.Scripts.Utils
                             LocalStorageService.SetVariable("refresh-token", response.refreshToken);
                             Debug.Log("REFRESH");
                         }, (error) => {
+                            badRequest = true;
                             Debug.Log(error);
-                            LocalStorageService.Clear();
+                            LocalStorageService.ClearAll();
                             onReady?.Invoke(null);
                         });
                     }
                 }
+
+                if (badRequest)
+                {
+                    yield break;
+                }
+
                 request.SetRequestHeader("Authorization", LocalStorageService.GetString("token"));
             }
 
             if (jsonBody != null) {
-                try
+                /*try
                 {
                     JsonUtility.FromJsonOverwrite(jsonBody, new object());
                 }
                 catch (Exception)
                 {
                     onReady?.Invoke(null);
-                }
+                }*/
                 request.uploadHandler = new UploadHandlerRaw(Encoding.UTF8.GetBytes(jsonBody));
             }
             onReady?.Invoke(request);
+            yield break;
         }
         #nullable disable
 

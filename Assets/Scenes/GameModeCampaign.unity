@@ -9023,6 +9023,7 @@ GameObject:
   - component: {fileID: 469276492}
   - component: {fileID: 469276491}
   - component: {fileID: 469276498}
+  - component: {fileID: 469276499}
   m_Layer: 0
   m_Name: TopResourceBarUI
   m_TagString: Untagged
@@ -9142,6 +9143,19 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 3f318672f3459f4439c2f9897795460d, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+--- !u!114 &469276499
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 469276490}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ba997ac9e83a3a74db7e5633b697dbd5, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  chatEntryTemplateUxml: {fileID: 9197481963319205126, guid: 846792d3b08c38143a1affaa702cb014, type: 3}
 --- !u!1 &471202990
 GameObject:
   m_ObjectHideFlags: 0

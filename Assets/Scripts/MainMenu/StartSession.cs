@@ -57,8 +57,10 @@ public class StartSession : MonoBehaviour
     // now async so we can await ConnectToChat
     private async void SessionCreated(SessionCodeDto dto)
     {
+        Debug.Log("Session created");
+        WebSocketService.OnChatMessageReceived += OnMessage;
         // connect and wait
-        await WebSocketService.ConnectToChat(dto.code, OnMessage);
+        await WebSocketService.ConnectToChat(dto.code);
 
         btnCancleStartGame.interactable = true;
         lblLoading.gameObject.SetActive(false);
@@ -76,6 +78,7 @@ public class StartSession : MonoBehaviour
         lblLoading.gameObject.SetActive(true);
         mainPanel.SetActive(true);
         gameObject.SetActive(false);
+        WebSocketService.OnChatMessageReceived -= OnMessage;
     }
 
     private void SetError(string error)
@@ -85,5 +88,6 @@ public class StartSession : MonoBehaviour
 
     private void OnMessage(ChatMessage chatMessage)
     {
+        Debug.Log(chatMessage);
     }
 }

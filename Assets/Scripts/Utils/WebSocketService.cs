@@ -9,11 +9,13 @@ namespace Assets.Scripts.Utils
 {
     public static class WebSocketService
     {
+        public static event Action<ChatMessage> OnChatMessageReceived;
+
         private static WebSocket webSocket;
         public static bool Connected { get; private set; } = false;
         private static string sessionCode;
 
-        public static async Task ConnectToChat(string code, Action<ChatMessage> onMessage)
+        public static async Task ConnectToChat(string code)
         {
             sessionCode = code;
 
@@ -45,11 +47,31 @@ namespace Assets.Scripts.Utils
                 }
                 else if (message.StartsWith("MESSAGE"))
                 {
+                    Debug.Log(message);
                     int index = message.IndexOf("\n\n");
                     if (index != -1)
                     {
+                        string headers = message[..index];
                         string jsonBody = message[(index + 2)..].TrimEnd('\u0000');
-                        onMessage?.Invoke(JsonUtility.FromJson<ChatMessage>(jsonBody));
+
+                        // Extract destination from headers
+                        string destination = null;
+                        var lines = headers.Split('\n');
+                        foreach (var line in lines)
+                        {
+                            if (line.StartsWith("destination:"))
+                            {
+                                destination = line["destination:".Length..];
+                                break;
+                            }
+                        }
+
+                        // Now you can route based on the destination
+                        if (destination != null && destination.Contains(WebSocketBrokerDestinations.Chat.Value))
+                        {
+                            ChatMessage chatMsg = JsonUtility.FromJson<ChatMessage>(jsonBody);
+                            OnChatMessageReceived?.Invoke(chatMsg);
+                        }
                     }
                 }
             };
@@ -59,15 +81,13 @@ namespace Assets.Scripts.Utils
 
         private static async Task SendConnectFrame()
         {
-            Debug.Log("Sending CONNECT frame...");
+            Debug.Log(WebSocketEndpointsUtils.ConnectFrame);
             await webSocket.SendText(WebSocketEndpointsUtils.ConnectFrame);
         }
 
         private static async Task SendSubscribeFrame()
         {
-            Debug.Log("Sending chat SUBSCRIBE frame...");
             await webSocket.SendText(WebSocketEndpointsUtils.SubscribeFrame(WebSocketBrokerDestinations.Chat, sessionCode));
-            Debug.Log("Sending players SUBSCRIBE frame...");
             await webSocket.SendText(WebSocketEndpointsUtils.SubscribeFrame(WebSocketBrokerDestinations.Players, sessionCode));
         }
 
@@ -80,7 +100,6 @@ namespace Assets.Scripts.Utils
             }
 
             string messageFrame = WebSocketEndpointsUtils.MessageFrame(WebSocketApplicationDestinations.Chat, sessionCode, new ChatMessageOut(message));
-            Debug.Log("Sending MESSAGE frame...");
             await webSocket.SendText(messageFrame);
         }
 

@@ -1,89 +1,87 @@
-/* Root: ensures the document fills the screen */
 :root {
     position: relative;
     width: 100%;
     height: 100%;
 }
 
-/* Container for the resource bar */
 .top-bar {
     position: absolute;
-    bottom: 20px;                /* A bit above the bottom */
-    right: 20px;                 /* Shift toward the right edge */
+    bottom: 20px;
+    right: 20px;
     display: flex;
     flex-direction: row;
     align-items: center;
     justify-content: space-evenly;
-
-    /* Larger overall size */
-    min-width: 500px;            /* Increase the width */
+    min-width: 500px;
     padding: 12px 24px;
     border-radius: 12px;
-
-    /* Golden gradient background */
-    background: linear-gradient(135deg, #FFD700, #FFC400);
+    background: linear-gradient(135deg, rgb(255, 215, 0), rgb(255, 196, 0));
     box-shadow: 0 3px 12px rgba(0, 0, 0, 0.5);
 }
 
-/* Each resource's container: icon + label in a "chip" */
 .resource-item {
     display: flex;
     flex-direction: row;
     align-items: center;
     padding: 6px 12px;
     margin: 0 10px;
-
-    /* Slight translucent overlay so the gold background peeks through */
     background-color: rgba(255, 255, 255, 0.1);
     border-radius: 6px;
     transition: background-color 0.2s ease;
 }
 
 .resource-item:hover {
-    background-color: rgba(255, 255, 255, 0.2); /* Hover effect for clarity */
+    background-color: rgba(255, 255, 255, 0.2);
 }
 
-/* Base icon styling */
 .resource-icon {
-    width: 36px;                   /* Larger icons */
+    width: 36px;
     height: 36px;
     margin-right: 10px;
     background-size: contain;
     background-repeat: no-repeat;
 }
 
-/* One class per resource icon (assuming your USS is in Assets/UI/...) */
 .lumber-icon {
-    background-image: url("../Resources/Icons/wood.png");
+    background-image: url("project://database/Assets/Resources/Icons/wood.png?fileID=21300000&guid=459c36ed2e18f094d87180989285d6cb&type=3#wood");
 }
+
 .wool-icon {
-    background-image: url("../Resources/Icons/sheep.png");
+    background-image: url("project://database/Assets/Resources/Icons/sheep.png?fileID=21300000&guid=169a723da556f8747bc04da56da524e8&type=3#sheep");
 }
+
 .grain-icon {
-    background-image: url("../Resources/Icons/rice.png");
+    background-image: url("project://database/Assets/Resources/Icons/rice.png?fileID=21300000&guid=d8a6d6c5bbbb7db41a11be7ba846040a&type=3#rice");
 }
+
 .bricks-icon {
-    background-image: url("../Resources/Icons/brick.png");
+    background-image: url("project://database/Assets/Resources/Icons/brick.png?fileID=21300000&guid=409bb31892a33a3468a8e6b13dd5c567&type=3#brick");
     background-size: contain;
     background-repeat: no-repeat;
 }
+
 .ore-icon {
-    background-image: url("../Resources/Icons/ore.png");
-}
-.gold-icon {
-    background-image: url("../Resources/Icons/gold-bars.png");
-}
-.silver-icon {
-    background-image: url("../Resources/Icons/silver.png");
-}
-.obsidian-icon {
-    background-image: url("../Resources/Icons/crystal.png");
+    background-image: url("project://database/Assets/Resources/Icons/ore.png?fileID=21300000&guid=0c2540bbb6abce749b56697de47bad69&type=3#ore");
 }
 
-/* Style for each resource label */
+.gold-icon {
+    background-image: url("project://database/Assets/Resources/Icons/gold-bars.png?fileID=21300000&guid=deac10fa4f8ba5248aef4100520dcec1&type=3#gold-bars");
+}
+
+.silver-icon {
+    background-image: url("project://database/Assets/Resources/Icons/silver.png?fileID=21300000&guid=b16af7434dd5df240aa538f01674443d&type=3#silver");
+}
+
+.obsidian-icon {
+    background-image: url("project://database/Assets/Resources/Icons/crystal.png?fileID=21300000&guid=919fb3d3856c4b442af0201b54f1e65a&type=3#crystal");
+}
+
 .resource-label {
-    font-size: 20px;               /* Slightly bigger font */
+    font-size: 20px;
     color: white;
     margin: 0;
     text-shadow: 0 0 3px rgba(0, 0, 0, 0.8);
+}
+
+.unity-base-field--no-label {
 }

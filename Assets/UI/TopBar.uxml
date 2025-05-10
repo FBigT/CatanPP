@@ -1,6 +1,7 @@
 <engine:UXML xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:engine="UnityEngine.UIElements" xmlns:editor="UnityEditor.UIElements" noNamespaceSchemaLocation="../../UIElementsSchema/UIElements.xsd" editor-extension-mode="True">
     <Style src="project://database/Assets/UI/TopBarStyles.uss?fileID=7433441132597879392&amp;guid=87cf812f84cae0f48947416b72bdb86e&amp;type=3#TopBarStyles" />
     <Style src="project://database/Assets/UI/LeftMenuStyles.uss?fileID=7433441132597879392&amp;guid=eabe73bf616f0be41bdc8d2ac3e57f2f&amp;type=3#LeftMenuStyles" />
+    <Style src="project://database/Assets/UI/ChatBoxStyles.uss?fileID=7433441132597879392&amp;guid=0ac29c630ccac8746b3aeb212c4aa8a5&amp;type=3#ChatBoxStyles" />
     <engine:VisualElement name="TopBarContainer" class="top-bar" style="flex-grow: 1;">
         <engine:VisualElement name="LumberContainer" class="resource-item" style="flex-grow: 1;">
             <engine:VisualElement name="LumberIcon" class="resource-icon lumber-icon" style="flex-grow: 1;" />
@@ -47,4 +48,8 @@
     <engine:Button text="Button" name="AddResourcesTestButton" />
     <engine:Button text="End Turn" name="EndTurnButton" style="-unity-text-align: middle-left; height: 43px; width: 79px; white-space: pre; right: 0; align-self: flex-end; justify-content: flex-end; align-content: flex-start; align-items: stretch;" />
     <engine:Label text="Label" name="TurnLabel" />
+    <engine:VisualElement name="ChatBox" style="flex-grow: 1;">
+        <engine:ListView name="ChatContainer" show-border="true" selection-type="None" show-alternating-row-backgrounds="None" horizontal-scrolling="false" style="height: 42px;" />
+        <engine:TextField password="false" name="ChatInput" class="no-padding-textfield" style="height: 30px; -unity-text-align: middle-left; font-size: 40%; margin-top: 0; margin-bottom: 0; margin-left: 0; margin-right: 0;" />
+    </engine:VisualElement>
 </engine:UXML>

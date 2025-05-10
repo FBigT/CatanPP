@@ -146,10 +146,15 @@ public class UserManager : MonoBehaviour
         {
             LoginResponse loginResponse = JsonUtility.FromJson<LoginResponse>(request.downloadHandler.text);
             onSuccess?.Invoke(loginResponse);
+            yield break;
         }
         else
         {
+            LocalStorageService.Clear("refresh-token");
+            Debug.Log(request.result);
+            Debug.LogError($"Response Body: {request.downloadHandler.text}");
             onFail?.Invoke(request.error);
+            yield break;
         }
     }
 

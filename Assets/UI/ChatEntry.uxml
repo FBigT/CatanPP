@@ -1,0 +1,6 @@
+<engine:UXML xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:engine="UnityEngine.UIElements" xmlns:editor="UnityEditor.UIElements" noNamespaceSchemaLocation="../../UIElementsSchema/UIElements.xsd" editor-extension-mode="False">
+    <Style src="project://database/Assets/UI/ChatBoxStyles.uss?fileID=7433441132597879392&amp;guid=0ac29c630ccac8746b3aeb212c4aa8a5&amp;type=3#ChatBoxStyles" />
+    <engine:VisualElement name="ChatEntry" style="flex-grow: 1; height: auto;">
+        <engine:Label text="Label" name="ChatContent" class="chat-label" />
+    </engine:VisualElement>
+</engine:UXML>
