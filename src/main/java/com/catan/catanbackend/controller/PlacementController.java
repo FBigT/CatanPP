@@ -1,7 +1,7 @@
 package com.catan.catanbackend.controller;
 
-import com.catan.catanbackend.model.Road;
-import com.catan.catanbackend.model.Structure;
+import com.catan.catanbackend.model.tile.Road;
+import com.catan.catanbackend.model.tile.Structure;
 import com.catan.catanbackend.service.PlacementService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -22,11 +22,11 @@ public class PlacementController {
     // 1) Place Settlement (Structure)
     // ----------------------------------------------------------------
     @PostMapping("/structure")
-    public ResponseEntity<?> placeStructure(@RequestParam String owner,
+    public ResponseEntity<?> placeStructure(@RequestParam Long sessionPlayerId,
                                             @RequestParam Long tileId,
                                             @RequestParam int cornerIndex) {
         try {
-            Structure s = placementService.placeStructure(owner, tileId, cornerIndex);
+            Structure s = placementService.placeStructure(sessionPlayerId, tileId, cornerIndex);
             return ResponseEntity.ok(s);
         } catch (IllegalArgumentException e) {
             // e.g. "Not enough resources" or "Cannot place structure here"
@@ -38,11 +38,11 @@ public class PlacementController {
     // 2) Place Road
     // ----------------------------------------------------------------
     @PostMapping("/road")
-    public ResponseEntity<?> placeRoad(@RequestParam String owner,
+    public ResponseEntity<?> placeRoad(@RequestParam Long sessionPlayerId,
                                        @RequestParam Long tileId,
                                        @RequestParam int edgeIndex) {
         try {
-            Road r = placementService.placeRoad(owner, tileId, edgeIndex);
+            Road r = placementService.placeRoad(sessionPlayerId, tileId, edgeIndex);
             return ResponseEntity.ok(r);
         } catch (IllegalArgumentException e) {
             // e.g. "Not enough resources" or "Cannot place road here"
@@ -56,9 +56,9 @@ public class PlacementController {
     @PutMapping("/structure/upgrade")
     public ResponseEntity<?> upgradeStructure(@RequestParam Long tileId,
                                               @RequestParam int cornerIndex,
-                                              @RequestParam String owner) {
+                                              @RequestParam Long sessionPlayerId) {
         try {
-            Structure upgraded = placementService.upgradeSettlementToCity(tileId, cornerIndex, owner);
+            Structure upgraded = placementService.upgradeSettlementToCity(tileId, cornerIndex, sessionPlayerId);
             return ResponseEntity.ok(upgraded);
         } catch (IllegalArgumentException e) {
             // e.g. "Not enough resources" or "Only settlements can be upgraded"

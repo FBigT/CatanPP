@@ -1,6 +1,6 @@
-package com.catan.catanbackend.repository;
+package com.catan.catanbackend.repository.tiles;
 
-import com.catan.catanbackend.model.Tile;
+import com.catan.catanbackend.model.tile.Tile;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 

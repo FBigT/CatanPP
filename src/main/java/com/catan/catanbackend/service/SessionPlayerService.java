@@ -90,8 +90,8 @@ public class SessionPlayerService {
     }
 
 
-//    public Optional<SessionPlayer> findById(Long playerId) {
-//        return sessionPlayerRepository.findById(playerId);
-//    }
+    public Optional<SessionPlayer> findById(Long playerId) {
+        return sessionPlayerRepository.findById(playerId);
+    }
 
 }

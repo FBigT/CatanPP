@@ -1,7 +1,7 @@
 package com.catan.catanbackend.controller;
 
-import com.catan.catanbackend.model.Tile;
-import com.catan.catanbackend.repository.TileRepository;
+import com.catan.catanbackend.model.tile.Tile;
+import com.catan.catanbackend.repository.tiles.TileRepository;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 

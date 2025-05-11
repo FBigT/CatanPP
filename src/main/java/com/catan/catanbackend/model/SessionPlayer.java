@@ -11,6 +11,8 @@ import org.hibernate.annotations.ColumnDefault;
 import org.hibernate.annotations.OnDelete;
 import org.hibernate.annotations.OnDeleteAction;
 
+import java.util.Objects;
+
 @Data
 @Entity
 @Table(name = "session_players")
@@ -119,5 +121,18 @@ public class SessionPlayer {
         silver = resourceGroup.getSilver();
         gold = resourceGroup.getGold();
         wood = resourceGroup.getWood();
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        SessionPlayer that = (SessionPlayer) o;
+        return Objects.equals(id, that.id);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(id);
     }
 }
