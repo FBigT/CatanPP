@@ -1,117 +1,189 @@
 ﻿// Assets/Scripts/GameMode/CampaignGameMode.cs
+using System;
+using System.Collections;
 using System.Collections.Generic;
+using System.Linq;                            // for Contains()
 using UnityEngine;
-using Catan.TerrainGeneration;    // brings in NumberTokenIs, GetResource, GetCornerConnectors
-using Catan.UI;                   // for TurnBannerUI
-using Catan.Managers;             // for PurchaseManager
-using Assets.Scripts.Enums;       // for PurchaseType
+using Object = UnityEngine.Object;             // disambiguate Object.FindObjectsOfType
+using Catan.TerrainGeneration;                 // NumberTokenIs(), GetResource(), GetCornerConnectors()
+using Catan.UI;                                // TurnBannerUI, TopBarUI
+using Catan.Managers;                          // ResourceManager, PurchaseManager
+using Assets.Scripts.Enums;                    // PurchaseType
+using Catan.Placement;                         // Connector, PlayerMarker
+using DiceRNG = Catan.GameMode.Dice.Dice;      // handy alias
 
 namespace Catan.GameMode
 {
-    /// <summary>
-    /// Drives your Catan match: map generation, setup & play turns, resource distribution.
-    /// </summary>
     [DefaultExecutionOrder(-100)]
     public class CampaignGameMode : MonoBehaviour
     {
         public static CampaignGameMode Instance { get; private set; }
 
+        [Header("Scene refs & tuning")]
         [SerializeField] private MapGenerator mapGenerator;
         [Min(0)] public int botSeats = 3;
+        [SerializeField] private float botThinkTime = .6f;
 
+        /// <summary>
+        /// Fired to gate the buy-buttons UI. (isMyTurn, inSetupPhase)
+        /// </summary>
+        public event Action<bool, bool> TurnChangedForUI;
+
+        // ── core managers & state ───────────────────────────────────
         private TurnManager _turns;
         private ResourceManager _bank;
         private List<PlayerState> _players;
 
-        // 4-step free-build setup: Settlement → Road → Settlement → Road
-        private readonly PurchaseType[] SetupSequence =
-        {
-            PurchaseType.Settlement,
-            PurchaseType.Road,
-            PurchaseType.Settlement,
-            PurchaseType.Road
-        };
-        private int _setupStep = 0;
+        // ── setup-phase helper ───────────────────────────────────────
+        private bool _awaitFreeRoad;
+
+        // ── so we can cancel mid-routine ─────────────────────────────
+        private Coroutine _botRoutine;
+
+        // to detect transition out of setup
+        private GamePhase _lastPhase;
 
         void Awake()
         {
-            // singleton pattern
-            if (Instance != null)
-            {
-                Destroy(gameObject);
-                return;
-            }
+            if (Instance != null) { Destroy(gameObject); return; }
             Instance = this;
             DontDestroyOnLoad(gameObject);
         }
 
-        void Start()
-        {
-            BootNewMatch();
-        }
+        void Start() => BootNewMatch();
 
-        /// <summary>
-        /// Initializes map, players, turn manager, and kicks off the first turn.
-        /// </summary>
         private void BootNewMatch()
         {
-            // 1) Generate a fresh map
+            if (_botRoutine != null) StopCoroutine(_botRoutine);
+
+            // 1) generate the map
             mapGenerator.GenerateMap();
 
-            // 2) Create player states: you + N bots
+            // 2) create players (seat 0 = human)
             _players = new List<PlayerState> { new PlayerState(0, "You", false) };
             for (int i = 1; i <= botSeats; i++)
                 _players.Add(new PlayerState(i, $"Bot {i}", true));
 
-            // 3) Resource & turn managers
+            // 3) set up managers
             _bank = new ResourceManager(_players);
             _turns = new TurnManager(_players);
 
-            // 4) Subscribe to events
+            // 4) wire up events
             _turns.OnTurnChanged += OnTurnChanged;
-            Dice.DiceTotalHook.OnRollTotal += DistributeResources;
+            DiceRNG.DiceTotalHook.OnRollTotal += DistributeResources;
 
-            // 5) Fire the very first turn
+            // 5) start the first turn
             OnTurnChanged(_turns.Current, _turns.Phase);
         }
 
-        /// <summary>
-        /// Handles both the free-build setup sequence and normal play turns.
-        /// </summary>
-        private void OnTurnChanged(PlayerState player, GamePhase phase)
+        private void OnTurnChanged(PlayerState p, GamePhase phase)
         {
+            // fire UI gate
+            TurnChangedForUI?.Invoke(p.Seat == 0, phase == GamePhase.Setup);
+
+            // update the banner
+            TurnBannerUI.Instance?.ShowTurn(p, phase);
+
+            // if we just left setup, grant the two free settlements’ resources
+            if (_lastPhase == GamePhase.Setup && phase == GamePhase.Play)
+            {
+                GrantSetupResources();
+                TopBarUI.Instance?.RefreshResources();
+            }
+            _lastPhase = phase;
+
             if (phase == GamePhase.Setup)
             {
-                // Determine which free item to build this step
-                var toBuild = SetupSequence[_setupStep++];
-
-                if (player.IsBot)
+                if (p.IsBot)
                 {
-                    Debug.Log($"[Campaign] Bot {player.Seat} auto-skips {toBuild}");
+                    // bots instantly skip both freebies
                     _turns.EndTurn();
                 }
                 else
                 {
-                    // Queue up your free build (zero-cost)
-                    PurchaseManager.Instance.SetPurchase(toBuild);
-                    TurnBannerUI.Instance?.ShowTurn(player, phase);
+                    // human setup: place settlement first, then road
+                    _awaitFreeRoad = true;
+                    PurchaseManager.Instance.SetPurchase(PurchaseType.Settlement);
                 }
+                return; // no dice roll in setup
+            }
+
+            // ── Play phase ──
+            PurchaseManager.Instance.Clear(); // turn off any free-build UI
+
+            if (p.IsBot)
+            {
+                if (_botRoutine != null) StopCoroutine(_botRoutine);
+                _botRoutine = StartCoroutine(BotPlayRoutine());
             }
             else
             {
-                // Normal play phase: just update the banner
-                TurnBannerUI.Instance?.ShowTurn(player, phase);
+                DiceRNG.Roll(); // human rolls to start
+            }
+        }
+
+        private IEnumerator BotPlayRoutine()
+        {
+            DiceRNG.Roll();
+            yield return new WaitForSeconds(botThinkTime);
+            _turns.EndTurn();
+        }
+
+        /// <summary>
+        /// Called by StructurePlacer after each free placement in setup.
+        /// </summary>
+        public void NotifyFreeStructurePlaced(PurchaseType placed)
+        {
+            if (_turns.Phase != GamePhase.Setup || CurrentPlayer.IsBot) return;
+
+            if (_awaitFreeRoad && placed == PurchaseType.Settlement)
+            {
+                // queue the free road
+                _awaitFreeRoad = false;
+                PurchaseManager.Instance.SetPurchase(PurchaseType.Road);
+            }
+            else if (placed == PurchaseType.Road)
+            {
+                // done with this setup turn
+                _turns.EndTurn();
             }
         }
 
         /// <summary>
-        /// When a dice roll happens, distribute resources from matching hexes.
+        /// Once setup ends, grant 1 resource from each adjacent tile of your two settlements.
         /// </summary>
+        private void GrantSetupResources()
+        {
+            // grab all corners & all cells
+            var corners = Object.FindObjectsOfType<Connector>();
+            var cells = Object.FindObjectsOfType<HexCell>();
+
+            // for each corner you occupy as seat 0
+            foreach (var corner in corners)
+            {
+                if (corner.Connection != Connector.ConnectionType.Corner || !corner.IsOccupied)
+                    continue;
+
+                var marker = corner.GetComponentInChildren<PlayerMarker>();
+                if (marker == null || marker.OwnerSeat != 0) continue;
+
+                // for each hex whose corner-list contains this connector
+                foreach (var cell in cells)
+                {
+                    var adj = cell.GetCornerConnectors();
+                    if (adj.Contains(corner))
+                    {
+                        var res = cell.GetResource();
+                        _bank.Grant(_players[0], res, 1);
+                    }
+                }
+            }
+        }
+
         private void DistributeResources(int roll)
         {
-            foreach (var cell in Object.FindObjectsByType<HexCell>(
-                    FindObjectsInactive.Include,
-                    FindObjectsSortMode.None))
+            // parameterless FindObjectsOfType<T>() only
+            foreach (var cell in Object.FindObjectsOfType<HexCell>())
             {
                 if (!cell.NumberTokenIs(roll)) continue;
                 var res = cell.GetResource();
@@ -128,29 +200,46 @@ namespace Catan.GameMode
         }
 
         /// <summary>
-        /// Called by your UI’s End Turn button.
+        /// Give the current player +5 of each resource type,
+        /// update the TopBar HUD, and re-fire the UI gate so the
+        /// structure buttons re-check affordability.
         /// </summary>
+        public void AwardStartTurnResources()
+        {
+            var p = CurrentPlayer;
+            for (int i = 0; i < p.Resources.Length; i++)
+                p.Resources[i] += 5;
+
+            // 1) push the new values to TopBarUI (fires OnResourcesChanged)
+            TopBarUI.Instance.SendMessage("SetValues", p.Resources);
+
+            // 2) re-fire the structure-tab gate → UpdateAffordability()
+            TurnChangedForUI?.Invoke(true, false);
+        }
+            /// <summary>
+    /// Test helper: re-fire the buy-buttons UI gate from tests.
+    /// </summary>
+    public void SimulateUiGate(bool isMyTurn, bool inSetupPhase)
+    {
+        TurnChangedForUI?.Invoke(isMyTurn, inSetupPhase);
+    }
+
+        /// <summary>Called by the End Turn button.</summary>
         public void EndTurn()
         {
-            if (_turns.Current.IsBot)
-                Debug.LogWarning("Cannot end turn: it’s not your turn!");
-            else
+            if (!CurrentPlayer.IsBot)
+            {
+                // advance turn…
                 _turns.EndTurn();
+
+                // …then award +5 of each to the new active player
+                AwardStartTurnResources();
+            }
         }
 
-        /// <summary>
-        /// Returns true if it’s currently the given seat’s turn.
-        /// </summary>
+        // ── Public API ───────────────────────────────────────────
         public bool IsPlayerTurn(int seat) => _turns.Current.Seat == seat;
-
-        /// <summary>
-        /// What phase are we in? (Setup vs Play)
-        /// </summary>
         public GamePhase Phase => _turns.Phase;
-
-        /// <summary>
-        /// Alias property for UI code that expects “CurrentPlayer”.
-        /// </summary>
         public PlayerState CurrentPlayer => _turns.Current;
     }
 }

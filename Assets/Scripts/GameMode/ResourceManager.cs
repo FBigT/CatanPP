@@ -1,4 +1,4 @@
-// Assets/Scripts/GameMode/ResourceManager.cs
+﻿// Assets/Scripts/GameMode/ResourceManager.cs
 using System.Collections.Generic;
 using UnityEngine;
 using Catan.UI;

@@ -1,4 +1,5 @@
-﻿using System;
+﻿// Assets/Scripts/Utils/RequestService.cs
+using System;
 using System.Collections;
 using System.Text;
 using UnityEngine;
@@ -6,62 +7,113 @@ using UnityEngine.Networking;
 
 namespace Assets.Scripts.Utils
 {
+    /// <summary>
+    /// Helper for building/sending UnityWebRequests.
+    /// – No longer instantiates a MonoBehaviour with `new` –
+    ///   we create one hidden GameObject once and run coroutines there.
+    /// </summary>
     public static class RequestService
     {
-        static UserManager userManager = new UserManager(); 
+        /* ------------------------------------------------------------
+         *  MonoBehaviour host for coroutines
+         * ---------------------------------------------------------- */
+        private sealed class RequestServiceHost : MonoBehaviour { }
+        private static RequestServiceHost _host;          // created lazily
+        private static UserManager _userManager;   // lives on that host
 
-        #nullable enable
-        public static IEnumerator ConstructSimpleWebRequest(string endpoint, Methods method, bool requiresAuthorization, string? jsonBody, Action<UnityWebRequest?> onReady) {
-            UnityWebRequest request = new(endpoint, method.ToString())
+        private static void EnsureHost()
+        {
+            if (_host != null) return;
+
+            var go = new GameObject("[RequestService]");
+            UnityEngine.Object.DontDestroyOnLoad(go);
+            _host = go.AddComponent<RequestServiceHost>();
+            _userManager = go.AddComponent<UserManager>();     // legit AddComponent!
+        }
+
+        /* ------------------------------------------------------------
+         *  Public helper
+         * ---------------------------------------------------------- */
+#nullable enable
+        public static IEnumerator ConstructSimpleWebRequest(
+            string endpoint,
+            Methods method,
+            bool requiresAuthorization,
+            string? jsonBody,
+            Action<UnityWebRequest?> onReady)
+        {
+            EnsureHost();
+
+            var request = new UnityWebRequest(endpoint, method.ToString())
             {
-                uploadHandler = new UploadHandlerRaw(Encoding.UTF8.GetBytes(JsonUtility.ToJson(jsonBody))),
+                uploadHandler = new UploadHandlerRaw(Array.Empty<byte>()),
                 downloadHandler = new DownloadHandlerBuffer()
             };
             request.SetRequestHeader("Content-Type", "application/json");
 
-            bool badRequest = false;
-
-            if (requiresAuthorization) {
-                if (string.IsNullOrEmpty(LocalStorageService.GetString("token")) || !SecurityUtils.IsTokenValid(LocalStorageService.GetString("token"))) {
-                    if (!string.IsNullOrEmpty(LocalStorageService.GetString("refresh-token")))
+            /* ---------- JWT handling ---------- */
+            if (requiresAuthorization)
+            {
+                yield return _host.StartCoroutine(
+                    EnsureValidToken(success =>
                     {
-                        yield return userManager.RefreshTokenRequest(LocalStorageService.GetString("refresh-token"), (response) => {
-                            LocalStorageService.SetVariable("token", response.tokenType + " " + response.token);
-                            LocalStorageService.SetVariable("refresh-token", response.refreshToken);
-                            Debug.Log("REFRESH");
-                        }, (error) => {
-                            badRequest = true;
-                            Debug.Log(error);
-                            LocalStorageService.ClearAll();
+                        if (!success)
+                        {
                             onReady?.Invoke(null);
-                        });
-                    }
-                }
+                        }
+                    }));
 
-                if (badRequest)
-                {
-                    yield break;
-                }
+                if (onReady == null) yield break;   // aborted above
 
-                request.SetRequestHeader("Authorization", LocalStorageService.GetString("token"));
+                request.SetRequestHeader("Authorization",
+                                         LocalStorageService.GetString("token"));
             }
 
-            if (jsonBody != null) {
-                /*try
-                {
-                    JsonUtility.FromJsonOverwrite(jsonBody, new object());
-                }
-                catch (Exception)
-                {
-                    onReady?.Invoke(null);
-                }*/
-                request.uploadHandler = new UploadHandlerRaw(Encoding.UTF8.GetBytes(jsonBody));
-            }
+            /* ---------- payload ---------- */
+            if (!string.IsNullOrEmpty(jsonBody))
+                request.uploadHandler = new UploadHandlerRaw(
+                    Encoding.UTF8.GetBytes(jsonBody));
+
             onReady?.Invoke(request);
-            yield break;
         }
-        #nullable disable
+#nullable disable
 
+        /* ------------------------------------------------------------
+         *  Internal – make sure our JWT is still good
+         * ---------------------------------------------------------- */
+        private static IEnumerator EnsureValidToken(Action<bool> after)
+        {
+            string jwt = LocalStorageService.GetString("token");
+            string refresh = LocalStorageService.GetString("refresh-token");
 
+            if (SecurityUtils.IsTokenValid(jwt))
+            {
+                after?.Invoke(true);
+                yield break;
+            }
+
+            if (string.IsNullOrEmpty(refresh))
+            {
+                after?.Invoke(false);
+                yield break;
+            }
+
+            bool done = false;
+            bool ok = false;
+            yield return _host.StartCoroutine(
+                _userManager.RefreshTokenRequest(refresh,
+                    resp => {
+                        LocalStorageService.SetVariable("token",
+                            resp.tokenType + " " + resp.token);
+                        LocalStorageService.SetVariable("refresh-token",
+                            resp.refreshToken);
+                        ok = true;
+                        done = true;
+                    },
+                    err => { done = true; }
+                ));
+            while (!done) yield return null;
+            after?.Invoke(ok);
+        }
     }
 }

@@ -1,5 +1,4 @@
-﻿// Assets/Scripts/UI/TopBarUI.cs
-using System.Collections;
+﻿using System.Collections;
 using UnityEngine;
 using UnityEngine.Networking;
 using UnityEngine.UIElements;
@@ -11,6 +10,11 @@ namespace Catan.UI
     public class TopBarUI : MonoBehaviour
     {
         public static TopBarUI Instance { get; private set; }
+
+        /// <summary>
+        /// Fires whenever SetValues(...) writes out new resource totals.
+        /// </summary>
+        public event System.Action<int[]> OnResourcesChanged;
 
         void Awake()
         {
@@ -43,15 +47,17 @@ namespace Catan.UI
             }
         }
 
-        // called via SendMessage from elsewhere
+        // called via SendMessage from elsewhere (e.g. after purchases, trades, etc.)
         void SetValues(int[] v)
         {
-            // find every label with class “resource-value” and write it
             var doc = GetComponent<UIDocument>();
             var root = doc.rootVisualElement;
             var labels = root.Query<Label>(className: "resource-value").ToList();
             for (int i = 0; i < labels.Count && i < v.Length; i++)
                 labels[i].text = v[i].ToString();
+
+            // 🔔 fire the event so any affordability logic can re-run
+            OnResourcesChanged?.Invoke(v);
         }
 
         [System.Serializable]

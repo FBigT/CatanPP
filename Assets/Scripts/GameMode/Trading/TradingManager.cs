@@ -1,4 +1,5 @@
-﻿using System;
+﻿// Assets/Scripts/GameMode/Trading/TradingManager.cs
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
@@ -8,11 +9,18 @@ using Assets.Scripts.GameMode.Trading.Models;
 
 namespace Assets.Scripts.GameMode.Trading
 {
+    /// <summary>
+    /// Manages REST calls for session players and trades, keeps auth fresh,
+    /// exposes <c>OnPlayersLoaded</c> so other systems (StructurePlacer, etc.)
+    /// can cache their <c>sessionPlayerId</c>.
+    /// </summary>
     public class TradingManager : MonoBehaviour
     {
+        /* ────────────────────────── singleton ───────────────────────── */
         public static TradingManager Instance { get; private set; }
-
-        void Awake()
+        /* ---------- NEW: let other scripts know when players arrive ---------- */
+        public static event Action<List<SessionPlayerDto>> OnPlayersLoaded = delegate { };
+        private void Awake()
         {
             if (Instance != null && Instance != this)
             {
@@ -23,7 +31,9 @@ namespace Assets.Scripts.GameMode.Trading
             DontDestroyOnLoad(gameObject);
         }
 
-        // PUBLIC API
+        
+
+        /* ────────────────────────── public API ───────────────────────── */
         public void GetSessionPlayers(long sessionId,
                                       Action<List<SessionPlayerDto>> onSuccess,
                                       Action<string> onError)
@@ -35,18 +45,23 @@ namespace Assets.Scripts.GameMode.Trading
                                     Action onSuccess,
                                     Action<string> onError)
         {
-            StartCoroutine(TradeRoutine(EndpointUtils.TradeWithPlayer, JsonUtility.ToJson(dto), onSuccess, onError));
+            StartCoroutine(TradeRoutine(EndpointUtils.TradeWithPlayer,
+                                        JsonUtility.ToJson(dto),
+                                        onSuccess, onError));
         }
 
         public void TradeWithBank(BankTradeDto dto,
                                   Action onSuccess,
                                   Action<string> onError)
         {
-            StartCoroutine(TradeRoutine(EndpointUtils.TradeWithBank, JsonUtility.ToJson(dto), onSuccess, onError));
+            StartCoroutine(TradeRoutine(EndpointUtils.TradeWithBank,
+                                        JsonUtility.ToJson(dto),
+                                        onSuccess, onError));
         }
 
-        // INTERNAL HELPERS
+        /* ───────────────────────‑ internals ‑────────────────────────── */
 
+        #region Auth refresh
         IEnumerator EnsureValidToken()
         {
             string jwt = LocalStorageService.GetString("token");
@@ -67,15 +82,12 @@ namespace Assets.Scripts.GameMode.Trading
                 yield break;
             }
 
-            string url = EndpointUtils.Refresh;
-            var requestBody = System.Text.Encoding.UTF8.GetBytes($"\"{refresh}\"");
-
-            using UnityWebRequest req = new UnityWebRequest(url, "POST")
+            var body = System.Text.Encoding.UTF8.GetBytes($"\"{refresh}\"");
+            using UnityWebRequest req = new UnityWebRequest(EndpointUtils.Refresh, "POST")
             {
-                uploadHandler = new UploadHandlerRaw(requestBody),
+                uploadHandler = new UploadHandlerRaw(body),
                 downloadHandler = new DownloadHandlerBuffer()
             };
-
             req.SetRequestHeader("Content-Type", "application/json");
 
             Debug.Log("[TokenCheck] Attempting to refresh token...");
@@ -83,24 +95,25 @@ namespace Assets.Scripts.GameMode.Trading
 
             if (req.result == UnityWebRequest.Result.Success)
             {
-                var resp = JsonUtility.FromJson<AuthResponse>(req.downloadHandler.text);
+                AuthResponse resp = JsonUtility.FromJson<AuthResponse>(req.downloadHandler.text);
                 string newToken = resp.tokenType + " " + resp.token;
 
                 LocalStorageService.SetVariable("token", newToken);
                 LocalStorageService.SetVariable("refresh-token", resp.refreshToken);
 
-                Debug.Log($"[TokenCheck] Token refresh successful. New JWT: {newToken}");
+                Debug.Log("[TokenCheck] Token refresh successful.");
             }
             else
             {
                 Debug.LogError("[TokenCheck] Token refresh failed: " + req.error);
-                yield break;
             }
         }
+        #endregion
 
+        #region GET players
         IEnumerator GetPlayersRoutine(long sessionId,
-                                     Action<List<SessionPlayerDto>> onSuccess,
-                                     Action<string> onError)
+                                      Action<List<SessionPlayerDto>> onSuccess,
+                                      Action<string> onError)
         {
             if (sessionId <= 0)
             {
@@ -111,11 +124,9 @@ namespace Assets.Scripts.GameMode.Trading
             yield return StartCoroutine(EnsureValidToken());
 
             string jwt = LocalStorageService.GetString("token");
-
             if (!SecurityUtils.IsTokenValid(jwt))
             {
                 onError?.Invoke("User not authenticated (token invalid)");
-                Debug.LogError("[GetPlayersRoutine] Token invalid even after refresh.");
                 yield break;
             }
 
@@ -123,34 +134,38 @@ namespace Assets.Scripts.GameMode.Trading
             using UnityWebRequest req = UnityWebRequest.Get(url);
             req.SetRequestHeader("Authorization", jwt);
 
-            Debug.Log($"[GetPlayersRoutine] Sending GET to {url} with Authorization: {jwt}");
-
+            Debug.Log($"[GetPlayersRoutine] GET {url}");
             yield return req.SendWebRequest();
 
             if (req.result != UnityWebRequest.Result.Success)
             {
-                Debug.LogError($"[GetPlayersRoutine] Request failed: {req.error}, Status Code: {req.responseCode}");
+                Debug.LogError($"[GetPlayersRoutine] {req.error} ({req.responseCode})");
                 onError?.Invoke(req.error);
+                yield break;
             }
-            else
-            {
-                Debug.Log("[GetPlayersRoutine] Request successful. Response: " + req.downloadHandler.text);
 
-                try
-                {
-                    SessionPlayerDto[] playerArray = JsonHelper.FromJson<SessionPlayerDto>(req.downloadHandler.text);
-                    var playerList = new List<SessionPlayerDto>(playerArray);
-                    onSuccess?.Invoke(playerList);
-                }
-                catch (Exception ex)
-                {
-                    Debug.LogError("[GetPlayersRoutine] JSON parse error: " + ex.Message);
-                    onError?.Invoke("Failed to parse player data.");
-                }
+            Debug.Log("[GetPlayersRoutine] Response: " + req.downloadHandler.text);
+
+            try
+            {
+                SessionPlayerDto[] arr =
+                    JsonHelper.FromJson<SessionPlayerDto>(req.downloadHandler.text);
+                var list = new List<SessionPlayerDto>(arr);
+
+                onSuccess?.Invoke(list);
+                /* >>> notify subscribers (StructurePlacer, etc.) <<< */
+                OnPlayersLoaded?.Invoke(list);
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError("[GetPlayersRoutine] JSON parse error: " + ex.Message);
+                onError?.Invoke("Failed to parse player data.");
             }
         }
+        #endregion
 
-        IEnumerator TradeRoutine(string fullUrl,
+        #region POST trades
+        IEnumerator TradeRoutine(string url,
                                  string jsonBody,
                                  Action onSuccess,
                                  Action<string> onError)
@@ -158,30 +173,27 @@ namespace Assets.Scripts.GameMode.Trading
             yield return StartCoroutine(EnsureValidToken());
 
             string jwt = LocalStorageService.GetString("token");
-
             if (!SecurityUtils.IsTokenValid(jwt))
             {
                 onError?.Invoke("User not authenticated (token invalid)");
                 yield break;
             }
 
-            using UnityWebRequest req = new UnityWebRequest(fullUrl, "POST")
+            using UnityWebRequest req = new UnityWebRequest(url, "POST")
             {
-                uploadHandler = new UploadHandlerRaw(System.Text.Encoding.UTF8.GetBytes(jsonBody)),
+                uploadHandler = new UploadHandlerRaw(
+                                    System.Text.Encoding.UTF8.GetBytes(jsonBody)),
                 downloadHandler = new DownloadHandlerBuffer()
             };
-
             req.SetRequestHeader("Content-Type", "application/json");
             req.SetRequestHeader("Authorization", jwt);
 
-            Debug.Log($"[TradeRoutine] Sending POST to {fullUrl} with payload: {jsonBody}");
-            Debug.Log($"[TradeRoutine] Authorization: {jwt}");
-
+            Debug.Log($"[TradeRoutine] POST {url} – payload: {jsonBody}");
             yield return req.SendWebRequest();
 
             if (req.result != UnityWebRequest.Result.Success)
             {
-                Debug.LogError($"[TradeRoutine] Request failed: {req.error}, Status Code: {req.responseCode}");
+                Debug.LogError($"[TradeRoutine] {req.error} ({req.responseCode})");
                 onError?.Invoke(req.error);
             }
             else
@@ -190,19 +202,15 @@ namespace Assets.Scripts.GameMode.Trading
                 onSuccess?.Invoke();
             }
         }
+        #endregion
 
+        /* ──────────────────── DTOs for internal use ─────────────────── */
         [Serializable]
         class AuthResponse
         {
             public string tokenType;
             public string token;
             public string refreshToken;
-        }
-
-        [Serializable]
-        class PlayerWrap
-        {
-            public List<SessionPlayerDto> players;
         }
     }
 }
