@@ -5,9 +5,10 @@ import com.catan.catanbackend.repository.SessionCodeRepository;
 import com.catan.catanbackend.repository.SessionRecordRepository;
 import com.catan.catanbackend.repository.SessionRepository;
 import org.hibernate.Hibernate;
+
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
+import org.springframework.context.annotation.Lazy;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Optional;
@@ -25,19 +26,24 @@ public class SessionService {
     final UserService userService;
     private final SessionPlayerService sessionPlayerService;
     final Random random = new Random();
+    private final DevCardService devCardService;
 
     public SessionService(SessionRepository sessionRepository,
                           SessionCodeRepository sessionCodeRepository,
                           PlayerProfileService playerProfileService,
                           UserService userService,
                           SessionRecordRepository sessionRecordRepository,
-                          SessionPlayerService sessionPlayerService) {
+                          SessionPlayerService sessionPlayerService, @Lazy DevCardService devCardService) {
         this.sessionRepository = sessionRepository;
         this.sessionCodeRepository = sessionCodeRepository;
         this.playerProfileService = playerProfileService;
         this.userService = userService;
         this.sessionRecordRepository = sessionRecordRepository;
         this.sessionPlayerService = sessionPlayerService;
+        // inject DevCardService into SessionService via constructor
+
+
+        this.devCardService = devCardService;
     }
 
     public Optional<SessionCode> startSession(Long hostId, Integer maxPlayers) {
@@ -48,6 +54,7 @@ public class SessionService {
 
         // No longer preventing multiple active sessions per host:
         Session savedSession = sessionRepository.save(new Session(host.get(), maxPlayers));
+        devCardService.initDeckForSession(savedSession);
 
         String newSessionCode;
         do {
