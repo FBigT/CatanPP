@@ -30,24 +30,34 @@ namespace Catan.Managers
         /* ── API called by UI scripts ───────────────────────────── */
 
         /// <summary>
-        /// Newer call-site: checks affordability if <paramref name="playerStock"/> is supplied.
+        /// Sets which structure you want to build next—but DevCard is handled
+        /// separately in the DevCardPanelController, so we ignore it here.
         /// </summary>
         public bool SetPurchase(PurchaseType type, int[] playerStock)
         {
-            if (playerStock != null && !CanAfford(type, playerStock))
-                return false;                         // can’t afford → ignore
+            // 1) Block DevCard here so it doesn't interfere with your panel logic:
+            if (type == PurchaseType.DevCard)
+            {
+                Debug.LogWarning("Dev Card purchases are handled via the DevCard panel.");
+                return false;
+            }
 
+            // 2) Affordability check for the other types:
+            if (playerStock != null && !CanAfford(type, playerStock))
+                return false;  // can't afford → ignore
+
+            // 3) Commit the selection and notify listeners:
             Selected = type;
             OnPurchaseChanged?.Invoke(type);
             return true;
         }
 
         /// <summary>
-        /// Compatibility overload – keeps all old one-argument calls working.
+        /// Keep the old overload working (it now respects the DevCard check above).
         /// </summary>
         public bool SetPurchase(PurchaseType type) => SetPurchase(type, null);
 
-        /// <summary>Clears the selection (modern name).</summary>
+        /// <summary>Clears the current selection (modern name).</summary>
         public void Clear()
         {
             Selected = PurchaseType.None;
@@ -60,7 +70,7 @@ namespace Catan.Managers
         /* ── helpers ────────────────────────────────────────────── */
         public bool CanAfford(PurchaseType type, int[] have)
         {
-            if (have == null) return true;            // no stock → skip check
+            if (have == null) return true;            // no stock info → skip check
             int[] need = Costs.Get(type);
             for (int i = 0; i < need.Length && i < have.Length; i++)
                 if (have[i] < need[i]) return false;

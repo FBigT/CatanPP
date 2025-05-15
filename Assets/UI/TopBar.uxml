@@ -52,4 +52,5 @@
         <engine:ListView name="ChatContainer" show-border="true" selection-type="None" show-alternating-row-backgrounds="None" horizontal-scrolling="false" style="height: 42px;" />
         <engine:TextField password="false" name="ChatInput" class="no-padding-textfield" style="height: 30px; -unity-text-align: middle-left; font-size: 40%; margin-top: 0; margin-bottom: 0; margin-left: 0; margin-right: 0;" />
     </engine:VisualElement>
+    <engine:Button text="My Dev Cards" name="ShowDevCardsButton" />
 </engine:UXML>

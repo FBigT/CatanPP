@@ -85,3 +85,9 @@
 
 .unity-base-field--no-label {
 }
+#ShowDevCardsButton {
+  /* e.g. same size & color as BuyDevCardButton */
+  width: 120px;
+  height: 30px;
+  /* ... */
+}
