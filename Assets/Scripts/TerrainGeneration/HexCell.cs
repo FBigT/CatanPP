@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEditor;
+using NUnit.Framework;
 
 /// <summary>
 /// A single hex-tile of the board.  
@@ -32,6 +33,8 @@ public class HexCell : MonoBehaviour
         set => cellHexMetrics = value;
     }
 
+    public int NumberToken { get { return numberToken; } }
+
     // ───────────────────────────── life-cycle
     void Awake()
     {
@@ -54,7 +57,7 @@ public class HexCell : MonoBehaviour
 
         if (mat != null)
             _renderer.sharedMaterial = mat;
-            
+
         ApplyColor();
     }
 
@@ -84,7 +87,7 @@ public class HexCell : MonoBehaviour
 [CustomEditor(typeof(HexCell))]
 public class HexCellEditor : Editor
 {
-    [SerializeField, Range(10, 200)]
+    [SerializeField, UnityEngine.Range(10, 200)]
     float drawDistance = 50f;
 
     HexCell _cell;

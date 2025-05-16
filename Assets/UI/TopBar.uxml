@@ -5,6 +5,7 @@
     <engine:VisualElement style="flex-grow: 1; flex-direction: row; height: auto; align-items: stretch; justify-content: flex-start; align-self: center; max-height: 45px;">
         <engine:Button name="EndTurnButton" text="End Turn" class="end-turn-button" style="white-space: pre-wrap; -unity-text-align: middle-left;" />
         <engine:Button name="AddResourcesTestButton" text="DEBUG Add resources" style="white-space: nowrap; text-overflow: clip; -unity-text-align: middle-center; width: 260px; height: 41px;" />
+        <engine:Button text="Role dice" name="btnDiceRole" style="-unity-text-align: middle-center; white-space: nowrap; text-overflow: clip;" />
     </engine:VisualElement>
     <engine:VisualElement name="LeftMenuContainer" class="left-menu">
         <engine:VisualElement name="PurchasePanel" class="purchase-panel" style="height: 203px;">

@@ -9943,6 +9943,8 @@ GameObject:
   - component: {fileID: 469276491}
   - component: {fileID: 469276498}
   - component: {fileID: 469276499}
+  - component: {fileID: 469276500}
+  - component: {fileID: 469276501}
   m_Layer: 0
   m_Name: TopResourceBarUI
   m_TagString: Untagged
@@ -9982,7 +9984,7 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 469276490}
-  m_Enabled: 1
+  m_Enabled: 0
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: e361aa8e11e7cd74d9f63a89d97ff5ed, type: 3}
   m_Name: 
@@ -10004,6 +10006,17 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 34f48442a8812fa45b6a8c81517ce22f, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  roadPrefab: {fileID: 2644415273911902033, guid: 5d586a69f027c6443b87d841f31466d5, type: 3}
+  settlementPrefab: {fileID: 2416815274884582457, guid: 6c37a2710815307438fd92b4a77fbebc, type: 3}
+  cityPrefab: {fileID: 2037119556831705602, guid: 8c39b66210a31924e83443e6e78673d4, type: 3}
+  devCardPrefab: {fileID: 0}
+  hologramMaterial: {fileID: 2100000, guid: b27dc0b4e305be4ac9b500a4d48d6219, type: 2}
+  localInventory:
+    Brick: 12
+    Lumber: 12
+    Wool: 12
+    Grain: 12
+    Ore: 12
 --- !u!114 &469276495
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -10075,6 +10088,32 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   chatEntryTemplateUxml: {fileID: 9197481963319205126, guid: 846792d3b08c38143a1affaa702cb014, type: 3}
+--- !u!114 &469276500
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 469276490}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4bd19f66cad7f91b58a4d9f7c032d143, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+--- !u!114 &469276501
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 469276490}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4bd4a5abdb89dd931927adaa0071894c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  connectionSpawner: {fileID: 1207200681}
+  leftMenuUI: {fileID: 469276494}
 --- !u!1 &470634021
 GameObject:
   m_ObjectHideFlags: 0
