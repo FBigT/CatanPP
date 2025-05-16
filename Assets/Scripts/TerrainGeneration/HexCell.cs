@@ -46,10 +46,15 @@ public class HexCell : MonoBehaviour
     }
 
     // ───────────────────────────── API used by map-gen
-    public void Initialize(ResourceType type, int number)
+    public void Initialize(ResourceType type, int number, Material mat = null)
     {
         resourceType = type;
         numberToken = number;
+        if (!_renderer) _renderer = GetComponent<MeshRenderer>();
+
+        if (mat != null)
+            _renderer.sharedMaterial = mat;
+            
         ApplyColor();
     }
 
@@ -67,17 +72,7 @@ public class HexCell : MonoBehaviour
     // ───────────────────────────── helpers
     void ApplyColor()
     {
-        if (!_renderer || !_renderer.sharedMaterial) return;
 
-        _renderer.sharedMaterial.color = resourceType switch
-        {
-            ResourceType.Lumber => new Color(0.20f, 0.60f, 0.20f),
-            ResourceType.Ore => Color.gray,
-            ResourceType.Grain => new Color(0.90f, 0.80f, 0.20f),
-            ResourceType.Brick => new Color(0.80f, 0.30f, 0.20f),
-            ResourceType.Wool => new Color(0.60f, 1.00f, 0.60f),
-            _ => new Color(1.00f, 1.00f, 0.50f)  // Desert
-        };
     }
 }
 

@@ -4,78 +4,86 @@
     height: 100%;
 }
 
-.top-bar {
+/* === BOTTOM BAR SCROLL CONTAINER === */
+.top-bar-scroll {
     position: absolute;
-    bottom: 20px;
-    right: 20px;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 80px;
     display: flex;
     flex-direction: row;
     align-items: center;
-    justify-content: space-evenly;
-    min-width: 500px;
-    padding: 12px 24px;
-    border-radius: 12px;
+    overflow-x: auto;
+    overflow-y: hidden;
     background: linear-gradient(135deg, rgb(255, 215, 0), rgb(255, 196, 0));
-    box-shadow: 0 3px 12px rgba(0, 0, 0, 0.5);
+    padding: 8px 12px;
+    box-shadow: 0 -3px 12px rgba(0, 0, 0, 0.5);
+    border-top: 1px solid rgba(0, 0, 0, 0.2);
+    z-index: 999;
 }
 
+/* === RESOURCE CONTAINER INSIDE THE SCROLL === */
+.top-bar {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: nowrap;
+    min-width: max-content;
+    gap: 12px;
+}
+
+/* === INDIVIDUAL RESOURCE ITEM === */
 .resource-item {
     display: flex;
     flex-direction: row;
     align-items: center;
-    padding: 6px 12px;
-    margin: 0 10px;
-    background-color: rgba(255, 255, 255, 0.1);
-    border-radius: 6px;
+    padding: 6px 10px;
+    margin: 0 4px;
+    background-color: rgba(0, 0, 0, 0.2);
+    border-radius: 8px;
     transition: background-color 0.2s ease;
 }
 
 .resource-item:hover {
-    background-color: rgba(255, 255, 255, 0.2);
+    background-color: rgba(0, 0, 0, 0.3);
 }
 
+/* === RESOURCE ICON === */
 .resource-icon {
     width: 36px;
     height: 36px;
-    margin-right: 10px;
     background-size: contain;
     background-repeat: no-repeat;
+    margin-right: 8px;
 }
 
+/* === RESOURCE ICON TYPES === */
 .lumber-icon {
     background-image: url("project://database/Assets/Resources/Icons/wood.png?fileID=21300000&guid=459c36ed2e18f094d87180989285d6cb&type=3#wood");
 }
-
 .wool-icon {
     background-image: url("project://database/Assets/Resources/Icons/sheep.png?fileID=21300000&guid=169a723da556f8747bc04da56da524e8&type=3#sheep");
 }
-
 .grain-icon {
     background-image: url("project://database/Assets/Resources/Icons/rice.png?fileID=21300000&guid=d8a6d6c5bbbb7db41a11be7ba846040a&type=3#rice");
 }
-
 .bricks-icon {
     background-image: url("project://database/Assets/Resources/Icons/brick.png?fileID=21300000&guid=409bb31892a33a3468a8e6b13dd5c567&type=3#brick");
-    background-size: contain;
-    background-repeat: no-repeat;
 }
-
 .ore-icon {
     background-image: url("project://database/Assets/Resources/Icons/ore.png?fileID=21300000&guid=0c2540bbb6abce749b56697de47bad69&type=3#ore");
 }
-
 .gold-icon {
     background-image: url("project://database/Assets/Resources/Icons/gold-bars.png?fileID=21300000&guid=deac10fa4f8ba5248aef4100520dcec1&type=3#gold-bars");
 }
-
 .silver-icon {
     background-image: url("project://database/Assets/Resources/Icons/silver.png?fileID=21300000&guid=b16af7434dd5df240aa538f01674443d&type=3#silver");
 }
-
 .obsidian-icon {
     background-image: url("project://database/Assets/Resources/Icons/crystal.png?fileID=21300000&guid=919fb3d3856c4b442af0201b54f1e65a&type=3#crystal");
 }
 
+/* === RESOURCE LABEL === */
 .resource-label {
     font-size: 20px;
     color: white;
@@ -83,11 +91,49 @@
     text-shadow: 0 0 3px rgba(0, 0, 0, 0.8);
 }
 
+/* === OTHER LAYOUT SECTIONS === */
+.left-menu {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.purchase-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.chat-box {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
 .unity-base-field--no-label {
+    /* Empty for now */
 }
-#ShowDevCardsButton {
-  /* e.g. same size & color as BuyDevCardButton */
-  width: 120px;
-  height: 30px;
-  /* ... */
+
+.end-turn-container {
+    position: absolute;
+    bottom: 90px; /* just above the bottom bar */
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: auto;
+    z-index: 998;
 }
+
+.end-turn-button {
+    height: 43px;
+    width: 100px;
+    font-size: 16px;
+    background-color: rgb(255, 196, 0);
+    color: black;
+    border-radius: 8px;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+    -unity-text-align: middle-center;
+}
+

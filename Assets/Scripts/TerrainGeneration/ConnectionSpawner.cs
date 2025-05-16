@@ -14,6 +14,7 @@ public class ConnectionSpawner : MonoBehaviour
     [SerializeField] private HexCell cellPrefab;
     [SerializeField] private Connector connectorPrefab;
     [SerializeField] private string cornerTag = "Corner", edgeTag = "Edge";
+    [SerializeField] private ResourceMaterialDictionary materialDictionary;
 
     private HexCell[] hexCells;
     private Dictionary<Vector3, Connector> connectors = new();
@@ -100,11 +101,13 @@ public class ConnectionSpawner : MonoBehaviour
 
     private void AssignCellProperties(HexCell cell)
     {
-        // Randomly pick a resource type and number token for each hex
         var type = ResourceTypes[Random.Range(0, ResourceTypes.Length)];
         var token = NumberTokens[Random.Range(0, NumberTokens.Length)];
-        cell.Initialize(type, token);
+        var mat = materialDictionary.GetMaterial(type);
+
+        cell.Initialize(type, token, mat);
     }
+
 
     public void DestroyChildren()
     {

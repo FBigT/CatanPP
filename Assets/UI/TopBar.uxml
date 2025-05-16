@@ -2,55 +2,59 @@
     <Style src="project://database/Assets/UI/TopBarStyles.uss?fileID=7433441132597879392&amp;guid=87cf812f84cae0f48947416b72bdb86e&amp;type=3#TopBarStyles" />
     <Style src="project://database/Assets/UI/LeftMenuStyles.uss?fileID=7433441132597879392&amp;guid=eabe73bf616f0be41bdc8d2ac3e57f2f&amp;type=3#LeftMenuStyles" />
     <Style src="project://database/Assets/UI/ChatBoxStyles.uss?fileID=7433441132597879392&amp;guid=0ac29c630ccac8746b3aeb212c4aa8a5&amp;type=3#ChatBoxStyles" />
-    <engine:VisualElement name="TopBarContainer" class="top-bar" style="flex-grow: 1;">
-        <engine:VisualElement name="LumberContainer" class="resource-item" style="flex-grow: 1;">
-            <engine:VisualElement name="LumberIcon" class="resource-icon lumber-icon" style="flex-grow: 1;" />
-            <engine:Label text="Label" name="LumberCount" class="resource-label resource-value" />
-        </engine:VisualElement>
-        <engine:VisualElement name="WoolContainer" class="resource-item" style="flex-grow: 1;">
-            <engine:VisualElement name="WoolIcon" class="resource-icon wool-icon" style="flex-grow: 1;" />
-            <engine:Label text="Label" name="WoolCount" class="resource-label resource-value" />
-        </engine:VisualElement>
-        <engine:VisualElement name="GrainContainer" class="resource-item" style="flex-grow: 1;">
-            <engine:VisualElement name="GrainIcon" class="resource-icon grain-icon" style="flex-grow: 1;" />
-            <engine:Label text="Label" name="GrainCount" class="resource-label resource-value" />
-        </engine:VisualElement>
-        <engine:VisualElement name="BricksContainer" class="resource-item" style="flex-grow: 1;">
-            <engine:VisualElement name="BricksIcon" class="resource-icon bricks-icon" style="flex-grow: 1;" />
-            <engine:Label text="Label" name="BricksCount" class="resource-label resource-value" />
-        </engine:VisualElement>
-        <engine:VisualElement name="OreContainer" class="resource-item" style="flex-grow: 1;">
-            <engine:VisualElement name="OreIcon" class="resource-icon ore-icon" style="flex-grow: 1;" />
-            <engine:Label text="Label" name="OreCount" class="resource-label resource-value" />
-        </engine:VisualElement>
-        <engine:VisualElement name="GoldContainer" class="resource-item" style="flex-grow: 1;">
-            <engine:VisualElement name="GoldIcon" class="resource-icon gold-icon" style="flex-grow: 1;" />
-            <engine:Label text="Label" name="GoldCount" class="resource-label resource-value" />
-        </engine:VisualElement>
-        <engine:VisualElement name="SilverContainer" class="resource-item" style="flex-grow: 1;">
-            <engine:VisualElement name="SilverIcon" class="resource-icon silver-icon" style="flex-grow: 1;" />
-            <engine:Label text="Label" name="SilverCount" class="resource-label resource-value" />
-        </engine:VisualElement>
-        <engine:VisualElement name="ObsidianContainer" class="resource-item" style="flex-grow: 1;">
-            <engine:VisualElement name="ObsidianIcon" class="resource-icon obsidian-icon" style="flex-grow: 1;" />
-            <engine:Label text="Label" name="ObsidianCount" class="resource-label resource-value" />
-        </engine:VisualElement>
+    <engine:VisualElement style="flex-grow: 1; flex-direction: row; height: auto; align-items: stretch; justify-content: flex-start; align-self: center; max-height: 45px;">
+        <engine:Button name="EndTurnButton" text="End Turn" class="end-turn-button" style="white-space: pre-wrap; -unity-text-align: middle-left;" />
+        <engine:Button name="AddResourcesTestButton" text="DEBUG Add resources" style="white-space: nowrap; text-overflow: clip; -unity-text-align: middle-center; width: 260px; height: 41px;" />
     </engine:VisualElement>
-    <engine:VisualElement name="LeftMenuContainer" class="left-menu" style="flex-grow: 1;">
-        <engine:VisualElement name="PurchasePanel" class="purchase-panel" style="flex-grow: 1;">
-            <engine:Button text="Buy Road" name="BuyRoadButton" class="purchase-button" />
-            <engine:Button text="Buy Settlement" name="BuySettlementButton" class="purchase-button" />
-            <engine:Button text="Buy City" name="BuyCityButton" class="purchase-button" />
-            <engine:Button text="Buy Dev Card" name="BuyDevCardButton" display-tooltip-when-elided="true" enabled="false" class="purchase-button" />
+    <engine:VisualElement name="LeftMenuContainer" class="left-menu">
+        <engine:VisualElement name="PurchasePanel" class="purchase-panel" style="height: 203px;">
+            <engine:Button name="BuyRoadButton" text="Buy Road" class="purchase-button" />
+            <engine:Button name="BuySettlementButton" text="Buy Settlement" class="purchase-button" />
+            <engine:Button name="BuyCityButton" text="Buy City" class="purchase-button" />
+            <engine:Button name="BuyDevCardButton" text="Buy Dev Card" display-tooltip-when-elided="true" enabled="false" class="purchase-button" />
         </engine:VisualElement>
-        <engine:VisualElement name="DevCardPanel" class="devcard-panel" style="flex-grow: 1;" />
+        <engine:VisualElement name="DevCardPanel" class="devcard-panel" style="height: 99px;" />
     </engine:VisualElement>
-    <engine:Button text="Button" name="AddResourcesTestButton" />
-    <engine:Button text="End Turn" name="EndTurnButton" style="-unity-text-align: middle-left; height: 43px; width: 79px; white-space: pre; right: 0; align-self: flex-end; justify-content: flex-end; align-content: flex-start; align-items: stretch;" />
-    <engine:Label text="Label" name="TurnLabel" />
-    <engine:VisualElement name="ChatBox" style="flex-grow: 1;">
+    <engine:VisualElement name="EndTurnContainer" class="end-turn-container" />
+    <engine:VisualElement name="ChatBox" class="chat-box">
+        <engine:Label name="TurnLabel" text="Current Turn" />
         <engine:ListView name="ChatContainer" show-border="true" selection-type="None" show-alternating-row-backgrounds="None" horizontal-scrolling="false" style="height: 42px;" />
-        <engine:TextField password="false" name="ChatInput" class="no-padding-textfield" style="height: 30px; -unity-text-align: middle-left; font-size: 40%; margin-top: 0; margin-bottom: 0; margin-left: 0; margin-right: 0;" />
+        <engine:TextField name="ChatInput" class="no-padding-textfield" style="height: 30px; -unity-text-align: middle-left; font-size: 40%; margin: 0;" />
     </engine:VisualElement>
-    <engine:Button text="My Dev Cards" name="ShowDevCardsButton" />
+    <engine:ScrollView name="BottomBarScroll" mode="Horizontal" class="bottom-bar-scroll" style="align-self: flex-end; align-items: flex-end; justify-content: space-around; height: 378px; width: 195px;">
+        <engine:VisualElement name="BottomBarContainer" class="bottom-bar">
+            <engine:VisualElement name="LumberContainer" class="resource-item">
+                <engine:VisualElement name="LumberIcon" class="resource-icon lumber-icon" />
+                <engine:Label name="LumberCount" text="0" class="resource-label resource-value" />
+            </engine:VisualElement>
+            <engine:VisualElement name="WoolContainer" class="resource-item">
+                <engine:VisualElement name="WoolIcon" class="resource-icon wool-icon" />
+                <engine:Label name="WoolCount" text="0" class="resource-label resource-value" />
+            </engine:VisualElement>
+            <engine:VisualElement name="GrainContainer" class="resource-item">
+                <engine:VisualElement name="GrainIcon" class="resource-icon grain-icon" />
+                <engine:Label name="GrainCount" text="0" class="resource-label resource-value" />
+            </engine:VisualElement>
+            <engine:VisualElement name="BricksContainer" class="resource-item">
+                <engine:VisualElement name="BricksIcon" class="resource-icon bricks-icon" />
+                <engine:Label name="BricksCount" text="0" class="resource-label resource-value" />
+            </engine:VisualElement>
+            <engine:VisualElement name="OreContainer" class="resource-item">
+                <engine:VisualElement name="OreIcon" class="resource-icon ore-icon" />
+                <engine:Label name="OreCount" text="0" class="resource-label resource-value" />
+            </engine:VisualElement>
+            <engine:VisualElement name="GoldContainer" class="resource-item">
+                <engine:VisualElement name="GoldIcon" class="resource-icon gold-icon" />
+                <engine:Label name="GoldCount" text="0" class="resource-label resource-value" />
+            </engine:VisualElement>
+            <engine:VisualElement name="SilverContainer" class="resource-item">
+                <engine:VisualElement name="SilverIcon" class="resource-icon silver-icon" />
+                <engine:Label name="SilverCount" text="0" class="resource-label resource-value" />
+            </engine:VisualElement>
+            <engine:VisualElement name="ObsidianContainer" class="resource-item">
+                <engine:VisualElement name="ObsidianIcon" class="resource-icon obsidian-icon" />
+                <engine:Label name="ObsidianCount" text="0" class="resource-label resource-value" />
+            </engine:VisualElement>
+        </engine:VisualElement>
+    </engine:ScrollView>
 </engine:UXML>
