@@ -23,14 +23,14 @@ public class WebSocketConfiguration implements WebSocketMessageBrokerConfigurer 
 
     @Override
     public void configureMessageBroker(MessageBrokerRegistry config) {
-        config.enableSimpleBroker("/game");
+        config.enableSimpleBroker("/game", "/queue");
         config.setApplicationDestinationPrefixes("/send");
+        config.setUserDestinationPrefix("/user");
     }
 
     @Override
     public void registerStompEndpoints(StompEndpointRegistry registry) {
         registry.addEndpoint("/catan").setAllowedOriginPatterns("*")
-                //.addInterceptors(new JwtHandshakeInterceptor(tokenService));
                 .withSockJS();
     }
 }

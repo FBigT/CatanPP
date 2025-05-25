@@ -1,6 +1,8 @@
 package com.catan.catanbackend.service;
 
 import com.catan.catanbackend.model.*;
+import com.catan.catanbackend.model.dto.move_dtos.RobberMoveDto;
+import com.catan.catanbackend.model.helper.StructureTypeEnum;
 import com.catan.catanbackend.model.tile.*;
 import com.catan.catanbackend.repository.tiles.*;
 import org.springframework.stereotype.Service;
@@ -11,7 +13,7 @@ import java.util.Optional;
 @Service
 public class PlacementService {
 
-    private final TileRepository tileRepository;
+    private final TileService tileService;
     private final StructureRepository structureRepository;
     private final StructureTypeRepository structureTypeRepository;
     private final RoadRepository roadRepository;
@@ -20,43 +22,34 @@ public class PlacementService {
 
     // We add references to these services so we can access the player's resources.
     private final SessionPlayerService sessionPlayerService;
-    private final UserService userService;
 
-    public PlacementService(TileRepository tileRepository,
+    public PlacementService(TileService tileService,
                             StructureRepository structureRepository,
                             StructureTypeRepository structureTypeRepository,
                             RoadRepository roadRepository,
                             TileEdgeRepository tileEdgeRepository,
                             TileCornerRepository tileCornerRepository,
-                            SessionPlayerService sessionPlayerService,
-                            UserService userService) {
-        this.tileRepository = tileRepository;
+                            SessionPlayerService sessionPlayerService) {
+        this.tileService = tileService;
         this.structureRepository = structureRepository;
         this.structureTypeRepository = structureTypeRepository;
         this.roadRepository = roadRepository;
         this.tileEdgeRepository = tileEdgeRepository;
         this.tileCornerRepository = tileCornerRepository;
         this.sessionPlayerService = sessionPlayerService;
-        this.userService = userService;
     }
 
     // ----------------------------------------------------
     // 1) Place a Settlement
     // ----------------------------------------------------
-    public Structure placeStructure(Long owner, Long tileId, int cornerIndex) {
-        /*Optional<User> userOpt = userService.getUserByUsername(owner);
-        if (userOpt.isEmpty()) {
-            throw new IllegalArgumentException("No such user: " + owner);
-        }
-        User user = userOpt.get();*/
-
+    public Structure placeStructure(Long owner, Long tileId, Integer cornerIndex, StructureTypeEnum structureType) {
         Optional<SessionPlayer> spOpt = sessionPlayerService.findCurrentSessionPlayerByUserId(owner);
         if (spOpt.isEmpty()) {
             throw new IllegalArgumentException("User has no active session player");
         }
         SessionPlayer sp = spOpt.get();
 
-        Tile tile = tileRepository.findById(tileId)
+        Tile tile = tileService.findById(tileId)
                 .orElseThrow(() -> new IllegalArgumentException("Tile not found: " + tileId));
 
         if (!canPlaceStructureWithDistanceRule(tileId, cornerIndex)) {
@@ -75,14 +68,16 @@ public class PlacementService {
         sp.setRice(sp.getRice() - 1);
         sessionPlayerService.updateSessionPlayer(sp);
 
-        Structure structure = new Structure(sp, tile, cornerIndex);
+        Structure structure = new Structure(sp, tile, cornerIndex, structureTypeRepository.findByEnumOrCreate(structureType));
         structure = structureRepository.save(structure);
 
         Optional<TileCornerMap> tileCornerMap = tile.getTileCornerMaps().stream().filter(x -> x.getCornerIndex() == cornerIndex).findFirst();
         if (tileCornerMap.isPresent()) {
             TileCorner tileCorner = tileCornerMap.get().getCorner();
+            structure.setCorner(tileCorner);
             tileCorner.setStructure(structure);
             tileCornerRepository.save(tileCorner);
+            structureRepository.save(structure);
         }
 
         return structure;
@@ -91,35 +86,31 @@ public class PlacementService {
     // ----------------------------------------------------
     // 2) Place a Road
     // ----------------------------------------------------
-    public Road placeRoad(Long sessionPlayerId, Long tileId, int edgeIndex) {
-        /*Optional<User> userOpt = userService.getUserByUsername(sessionPlayerId);
-        if (userOpt.isEmpty()) {
-            throw new IllegalArgumentException("No such user: " + sessionPlayerId);
-        }
-        User user = userOpt.get();*/
-
+    public Road placeRoad(Long sessionPlayerId, Long tileId, int edgeIndex, Boolean ignoreCost) {
         Optional<SessionPlayer> spOpt = sessionPlayerService.findById(sessionPlayerId);
         if (spOpt.isEmpty()) {
             throw new IllegalArgumentException("User has no active session player");
         }
         SessionPlayer sp = spOpt.get();
 
-        Tile tile = tileRepository.findById(tileId)
+        Tile tile = tileService.findById(tileId)
                 .orElseThrow(() -> new IllegalArgumentException("Tile not found: " + tileId));
 
         if (!canPlaceRoad(sessionPlayerId, tileId, edgeIndex)) {
             throw new IllegalArgumentException("Cannot place road at tile=" + tileId + ", edge=" + edgeIndex);
         }
 
-        // 4. Check Resource Cost for Road: (1 Brick, 1 Lumber)
-        if (sp.getBrick() < 1 || sp.getWood() < 1) {
-            throw new IllegalArgumentException("Not enough resources to buy a road");
-        }
+        if (!ignoreCost) {
+            // 4. Check Resource Cost for Road: (1 Brick, 1 Lumber)
+            if (sp.getBrick() < 1 || sp.getWood() < 1) {
+                throw new IllegalArgumentException("Not enough resources to buy a road");
+            }
 
-        // 5. Deduct resources
-        sp.setBrick(sp.getBrick() - 1);
-        sp.setWood(sp.getWood() - 1);
-        sessionPlayerService.updateSessionPlayer(sp);
+            // 5. Deduct resources
+            sp.setBrick(sp.getBrick() - 1);
+            sp.setWood(sp.getWood() - 1);
+            sessionPlayerService.updateSessionPlayer(sp);
+        }
 
         Optional<TileEdge> tileEdgeMap = tile.getTileEdge(edgeIndex);
         if (tileEdgeMap.isEmpty()) {
@@ -142,12 +133,6 @@ public class PlacementService {
     // 3) Upgrade a Settlement to City
     // ----------------------------------------------------
     public Structure upgradeSettlementToCity(Long tileId, int cornerIndex, Long ownerId) {
-        /*Optional<User> userOpt = userService.getUserByUsername(owner);
-        if (userOpt.isEmpty()) {
-            throw new IllegalArgumentException("No such user: " + owner);
-        }
-        User user = userOpt.get();*/
-
         Optional<SessionPlayer> spOpt = sessionPlayerService.findById(ownerId);
         if (spOpt.isEmpty()) {
             throw new IllegalArgumentException("User has no active session player");
@@ -181,11 +166,38 @@ public class PlacementService {
         return structureRepository.save(structure);
     }
 
+    public void moveRobber(RobberMoveDto moveDto, SessionPlayer sessionPlayer) {
+        Optional<Tile> robberTile = tileService.getRobberTile(sessionPlayer.getSession().getId());
+        if (robberTile.isEmpty()) {
+            throw new IllegalArgumentException("No robber found");
+        }
+        if (!robberTile.get().isHasRobber()
+                || robberTile.get().getX() != moveDto.getOriginatingTileX()
+                || robberTile.get().getY() != moveDto.getOriginatingTileY()) {
+            throw new IllegalArgumentException("Invalid move (originating coordinates for robber are wrong)");
+        }
+
+        Optional<Tile> destinationTile = tileService.findByXAndYAndSession(moveDto.getDestinationTileX(), moveDto.getDestinationTileY(), sessionPlayer.getSession().getId());
+        if (destinationTile.isEmpty()) {
+            throw new IllegalArgumentException("No destination found");
+        }
+        if (destinationTile.get().isHasRobber()
+                || destinationTile.get().getX() != moveDto.getDestinationTileX()
+                || destinationTile.get().getY() != moveDto.getDestinationTileY()){
+            throw new IllegalArgumentException("Invalid move (destination coordinates for robber are invalid)");
+        }
+
+        robberTile.get().setHasRobber(false);
+        destinationTile.get().setHasRobber(true);
+        tileService.save(robberTile.get());
+        tileService.save(destinationTile.get());
+    }
+
     // ----------------------------------------------------
     // Helper: canPlaceStructureWithDistanceRule
     // ----------------------------------------------------
     public boolean canPlaceStructureWithDistanceRule(Long tileId, int cornerIndex) {
-        Tile tile = tileRepository.findById(tileId)
+        Tile tile = tileService.findById(tileId)
                 .orElseThrow(() -> new IllegalArgumentException("Tile not found"));
         Optional<TileCorner> optionalTileCorner = tile.getTileCorner(cornerIndex);
         if (optionalTileCorner.isEmpty() || optionalTileCorner.get().getStructure() != null) {
@@ -204,18 +216,11 @@ public class PlacementService {
         return true;
     }
 
-    /*private boolean areCornersTooClose(Tile t1, int c1, Tile t2, int c2) {
-        if (t1.getId().equals(t2.getId())) {
-            return Math.abs(c1 - c2) == 1 || Math.abs(c1 - c2) == 5;
-        }
-        return false;
-    }*/
-
     // ----------------------------------------------------
     // Helper: canPlaceRoad
     // ----------------------------------------------------
     public boolean canPlaceRoad(Long sessionPlayerId, Long tileId, int edgeIndex) {
-        Tile tile = tileRepository.findById(tileId)
+        Tile tile = tileService.findById(tileId)
                 .orElseThrow(() -> new IllegalArgumentException("Tile not found"));
         Optional<TileEdge> optionalTileEdge = tile.getTileEdge(edgeIndex);
         if (optionalTileEdge.isEmpty() || optionalTileEdge.get().getRoad() != null) {
@@ -248,8 +253,4 @@ public class PlacementService {
         }
         return false; // or true, depending on your adjacency logic
     }
-
-    /*private boolean isCornerAdjacentToEdge(int cornerIndex, int edgeIndex) {
-        return cornerIndex == edgeIndex || cornerIndex == (edgeIndex + 1) % 6;
-    }*/
 }

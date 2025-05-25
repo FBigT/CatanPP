@@ -14,6 +14,6 @@ public class GuestKey {
     @MapsId
     @JoinColumn(name = "guest_id")
     User guest;
-    @Column(name = "key", nullable = false)
+    @Column(name = "\"key\"", nullable = false)
     String key;
 }

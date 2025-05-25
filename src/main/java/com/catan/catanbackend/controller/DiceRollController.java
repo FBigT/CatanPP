@@ -1,13 +1,11 @@
 package com.catan.catanbackend.controller;
 
 
-import com.catan.catanbackend.model.Session;
 import com.catan.catanbackend.model.SessionPlayer;
 import com.catan.catanbackend.service.*;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.client.HttpClientErrorException;
 
 import java.util.Optional;
 
@@ -39,7 +37,7 @@ public class DiceRollController {
         }
 
         int result = diceRollService.rollDice();
-        if (result == 7 && !gameService.activateRobber(player.get().getSession().getId(), player.get()))
+        if (result == 7 && !gameService.activateRobber(player.get(), true))
                 return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
 
         return ResponseEntity.ok(result);

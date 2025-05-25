@@ -1,6 +1,6 @@
 package com.catan.catanbackend.config;
 
-import com.catan.catanbackend.controller.webSocket.ChatController;
+import com.catan.catanbackend.controller.web_socket.WebSocketController;
 import com.catan.catanbackend.model.SessionPlayer;
 import com.catan.catanbackend.service.SessionPlayerService;
 import com.catan.catanbackend.service.SessionService;
@@ -15,6 +15,8 @@ import org.springframework.messaging.simp.stomp.StompHeaderAccessor;
 import org.springframework.messaging.support.ChannelInterceptor;
 import org.springframework.messaging.support.MessageHeaderAccessor;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
@@ -23,6 +25,8 @@ import java.util.concurrent.ConcurrentHashMap;
 
 @Component
 public class JwtChannelInterceptor implements ChannelInterceptor {
+    public static final String AUTH_HEADER = "Authorization";
+    private final UserDetailsService userDetailsService;
     final TokenService tokenService;
     final SessionPlayerService sessionPlayerService;
     final SessionService sessionService;
@@ -30,7 +34,8 @@ public class JwtChannelInterceptor implements ChannelInterceptor {
     private SimpMessagingTemplate messagingTemplate;
     private final Map<String, Long> subscribers = new ConcurrentHashMap<>();
 
-    public JwtChannelInterceptor(TokenService tokenService, SessionPlayerService sessionPlayerService, SessionService sessionService, ApplicationContext applicationContext) {
+    public JwtChannelInterceptor(UserDetailsService userDetailsService, TokenService tokenService, SessionPlayerService sessionPlayerService, SessionService sessionService, ApplicationContext applicationContext) {
+        this.userDetailsService = userDetailsService;
         this.tokenService = tokenService;
         this.sessionPlayerService = sessionPlayerService;
         this.sessionService = sessionService;
@@ -46,53 +51,83 @@ public class JwtChannelInterceptor implements ChannelInterceptor {
 
     @Override
     public Message<?> preSend(Message<?> message, MessageChannel channel) {
-        StompHeaderAccessor accessor =
-                MessageHeaderAccessor.getAccessor(message, StompHeaderAccessor.class);
+        StompHeaderAccessor accessor = MessageHeaderAccessor.getAccessor(message, StompHeaderAccessor.class);
         if (accessor == null) {
             throw new MessageDeliveryException("Malformed header received");
         }
-        if (accessor.getFirstNativeHeader("Authorization") == null || accessor.getFirstNativeHeader("Authorization").isBlank()) {
-            throw new MessageDeliveryException("Authorization header not found");
+
+        StompCommand cmd = accessor.getCommand();
+
+        // 1) CONNECT must supply a valid Authorization header
+        if (StompCommand.CONNECT.equals(cmd)) {
+            String auth = accessor.getFirstNativeHeader(AUTH_HEADER);
+            if (auth == null || !auth.startsWith("Bearer ")) {
+                throw new MessageDeliveryException("Authorization header not found or invalid on CONNECT");
+            }
+            String token = auth.substring(7);
+            if (!tokenService.validateJwtToken(token)) {
+                throw new MessageDeliveryException("Unauthorized: Invalid JWT token");
+            }
+            // bind the user once, for the rest of the session
+            UserDetails userDetails = userDetailsService.loadUserByUsername(
+                    tokenService.getUsernameFromJwtToken(token)
+            );
+            UsernamePasswordAuthenticationToken userAuth =
+                    new UsernamePasswordAuthenticationToken(
+                            userDetails,
+                            null,
+                            userDetails.getAuthorities()
+                    );
+            accessor.setUser(userAuth);
+            return message;
         }
-        String authorizationHeader = accessor.getFirstNativeHeader("Authorization");
-        StompCommand command = accessor.getCommand();
 
-        if (authorizationHeader != null && authorizationHeader.startsWith("Bearer ")) {
-            String token = authorizationHeader.substring(7);
-
-            if (tokenService.validateJwtToken(token)) {
-                String username = tokenService.getUsernameFromJwtToken(token);
-                Long userId = tokenService.getUserIdFromJwtToken(token);
-
-                UsernamePasswordAuthenticationToken user =
-                        new UsernamePasswordAuthenticationToken(username, null, List.of());
-                accessor.setUser(user);
-
-
-                if (command == StompCommand.SUBSCRIBE && accessor.getDestination() != null && accessor.getDestination().contains("/game/players/")) {
-                    String gameSessionCode = accessor.getDestination().substring(accessor.getDestination().lastIndexOf("/")+1);
-                    sessionService.joinSession(userId, gameSessionCode);
-                    subscribers.put(accessor.getSessionId(), userId);
-
-                    sendJoinSessionUpdate(gameSessionCode);
-                }
-
-                if (command == StompCommand.DISCONNECT && accessor.getDestination() != null && accessor.getDestination().contains("/game/players/")) {
-                    String gameSessionCode = accessor.getDestination().substring(accessor.getDestination().lastIndexOf("/")+1);
-                    sessionService.leaveSession(userId, gameSessionCode);
-                    subscribers.remove(accessor.getSessionId());
-
-                    sendJoinSessionUpdate(gameSessionCode);
-                }
-
+        // 2) SEND: allow if we've already bound a user, or re-validate header if present
+        if (StompCommand.SEND.equals(cmd)) {
+            if (accessor.getUser() != null) {
                 return message;
             }
+            // fallback: if no user yet, require header
+            String auth = accessor.getFirstNativeHeader(AUTH_HEADER);
+            if (auth == null || !auth.startsWith("Bearer ")) {
+                throw new MessageDeliveryException("Authorization header missing on SEND");
+            }
+            String token = auth.substring(7);
+            if (!tokenService.validateJwtToken(token)) {
+                throw new MessageDeliveryException("Unauthorized: Invalid JWT token on SEND");
+            }
+            return message;
         }
-        throw new MessageDeliveryException("Unauthorized: Invalid or missing JWT token");
+
+        // 3) SUBSCRIBE/DISCONNECT for your join/leave logic only
+        if (StompCommand.SUBSCRIBE.equals(cmd) || StompCommand.DISCONNECT.equals(cmd)) {
+            String dest = accessor.getDestination();
+            if (dest != null && dest.contains("/game/players/")) {
+                Long userId = tokenService.getUserIdFromJwtToken(
+                        accessor.getFirstNativeHeader(AUTH_HEADER).substring(7)
+                );
+                String code = dest.substring(dest.lastIndexOf('/') + 1);
+                if (StompCommand.SUBSCRIBE.equals(cmd)) {
+                    sessionService.joinSession(userId, code);
+                    subscribers.put(accessor.getSessionId(), userId);
+                } else {
+                    sessionService.leaveSession(userId, code);
+                    subscribers.remove(accessor.getSessionId());
+                }
+                sendJoinSessionUpdate(code);
+            }
+            return message;
+        }
+
+        // 4) All other frames: require that we've already authenticated
+        if (accessor.getUser() == null) {
+            throw new MessageDeliveryException("Unauthorized: no authenticated user in session");
+        }
+        return message;
     }
 
     private void sendJoinSessionUpdate(String sessionCode) {
         List<SessionPlayer> players = sessionService.getPlayersBySessionCode(sessionCode);
-        ChatController.sendJoinSessionUpdate(getMessagingTemplate(), sessionCode, players.stream().map(SessionPlayer::getUser).toList());
+        WebSocketController.sendJoinSessionUpdate(getMessagingTemplate(), sessionCode, players.stream().map(SessionPlayer::getUser).toList());
     }
 }

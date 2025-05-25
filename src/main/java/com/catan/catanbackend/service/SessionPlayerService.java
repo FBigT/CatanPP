@@ -18,10 +18,6 @@ public class SessionPlayerService {
         this.sessionPlayerRepository = sessionPlayerRepository;
     }
 
-//    public SessionPlayer saveSessionPlayer(SessionPlayer sessionPlayer) {
-//        return sessionPlayerRepository.saveAndFlush(sessionPlayer);
-//    }
-
     public SessionPlayer saveSessionPlayer(SessionPlayer sessionPlayer) {
         assignInitialResources(sessionPlayer);
         return sessionPlayerRepository.saveAndFlush(sessionPlayer);
@@ -89,6 +85,9 @@ public class SessionPlayerService {
         return sessionPlayerRepository.findAllBySessionCodeWithUser(sessionCode);
     }
 
+    public Optional<SessionPlayer> findPlayerBySessionCodeAndUserId(String sessionCode, Long userId) {
+        return sessionPlayerRepository.findPlayerBySessionCodeAndUserId(sessionCode, userId);
+    }
 
     public Optional<SessionPlayer> findById(Long playerId) {
         return sessionPlayerRepository.findById(playerId);

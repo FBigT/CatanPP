@@ -20,11 +20,11 @@ public class TileEdgeMap {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @ManyToOne
+    @ManyToOne(cascade = { CascadeType.PERSIST, CascadeType.MERGE })
     @JoinColumn(name = "tile_id", nullable = false)
     private Tile tile;
 
-    @ManyToOne
+    @ManyToOne(cascade =  { CascadeType.PERSIST, CascadeType.MERGE })
     @JoinColumn(name = "edge_id", nullable = false)
     private TileEdge edge;
 

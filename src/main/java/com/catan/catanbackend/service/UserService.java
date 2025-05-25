@@ -51,6 +51,10 @@ public class UserService {
         return false;
     }
 
+    public void deleteUser(Long id) {
+        userRepository.deleteById(id);
+    }
+
     public Optional<User> findById(Long id) {
         return userRepository.findById(id);
     }
@@ -73,5 +77,9 @@ public class UserService {
         } while (userRepository.findByUsername(guestUser.getUsername()).isPresent());
 
         return createUser(guestUser);
+    }
+
+    public void deleteAllUsers() {
+        userRepository.deleteAll();
     }
 }

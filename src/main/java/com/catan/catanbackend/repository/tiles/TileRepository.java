@@ -5,6 +5,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
+import java.util.Optional;
 
 @Repository
 public interface TileRepository extends JpaRepository<Tile, Long> {
@@ -13,4 +14,8 @@ public interface TileRepository extends JpaRepository<Tile, Long> {
 
     // Ako budeš radio učitavanje svih tile-ova u određenom području (npr. svijet generacije)
     List<Tile> findByXBetweenAndYBetween(int xMin, int xMax, int yMin, int yMax);
+
+    Optional<Tile> findTileByXAndYAndSessionId(Integer x, Integer y, Long sessionId);
+
+    List<Tile> findBySessionId(Long sessionId);
 }

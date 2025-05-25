@@ -1,17 +1,21 @@
 package com.catan.catanbackend.service;
 
-import com.catan.catanbackend.model.ResourceGroup;
-import com.catan.catanbackend.model.RobberBlocker;
-import com.catan.catanbackend.model.RobberMoveBlocker;
-import com.catan.catanbackend.model.SessionPlayer;
+import com.catan.catanbackend.model.*;
+import com.catan.catanbackend.model.dto.PlayerScoreDto;
+import com.catan.catanbackend.model.dto.TradeOfferMessage;
+import com.catan.catanbackend.model.dto.move_dtos.PlaceRoadDto;
+import com.catan.catanbackend.model.dto.move_dtos.responses.PlaceRoadResponseDto;
+import com.catan.catanbackend.model.dto.move_dtos.RobberMoveDto;
+import com.catan.catanbackend.model.dto.move_dtos.responses.PlayCardResponseDto;
+import com.catan.catanbackend.model.helper.DevCardType;
+import com.catan.catanbackend.model.tile.Tile;
 import com.catan.catanbackend.repository.RobberBlockerRepository;
 import com.catan.catanbackend.repository.RobberMoveBlockerRepository;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.List;
-import java.util.Optional;
-import java.util.Random;
+import java.util.*;
 
 @Service
 @Transactional
@@ -19,18 +23,28 @@ public class GameService {
     static Random rand = new Random();
     static String[] names = { "Mirko", "Marko", "Mio", "Febo", "Gjuro", "Pero", "Nano", "Fico" };
 
-    private final Mapper mapper;
     private final SessionService sessionService;
     private final SessionPlayerService sessionPlayerService;
     private final RobberBlockerRepository robberBlockerRepository;
     private final RobberMoveBlockerRepository robberMoveBlockerRepository;
+    private final TileService tileService;
+    private final DevCardService devCardService;
+    private final PlacementService placementService;
+    private final ObjectMapper objectMapper;
+    private final TradeService tradeService;
+    private final ResourceService resourceService;
 
-    public GameService(SessionService sessionService, RobberBlockerRepository robberBlockerRepository, Mapper mapper, SessionPlayerService sessionPlayerService, RobberMoveBlockerRepository robberMoveBlockerRepository) {
+    public GameService(SessionService sessionService, RobberBlockerRepository robberBlockerRepository, SessionPlayerService sessionPlayerService, RobberMoveBlockerRepository robberMoveBlockerRepository, TileService tileService, DevCardService devCardService, PlacementService placementService, ObjectMapper objectMapper, TradeService tradeService, ResourceService resourceService) {
         this.sessionService = sessionService;
         this.robberBlockerRepository = robberBlockerRepository;
-        this.mapper = mapper;
         this.sessionPlayerService = sessionPlayerService;
         this.robberMoveBlockerRepository = robberMoveBlockerRepository;
+        this.tileService = tileService;
+        this.devCardService = devCardService;
+        this.placementService = placementService;
+        this.objectMapper = objectMapper;
+        this.tradeService = tradeService;
+        this.resourceService = resourceService;
     }
 
     public static String generateRandomName(){
@@ -38,26 +52,32 @@ public class GameService {
         return names[index];
     }
 
-    public Boolean activateRobber(Long sessionId, SessionPlayer sessionPlayer) {
-        List<SessionPlayer> players = sessionService.getPlayers(sessionId);
+    public Boolean activateRobber(SessionPlayer sessionPlayer, Boolean extort) {
+        List<SessionPlayer> players = sessionService.getPlayers(sessionPlayer.getSession().getId());
         if (!players.contains(sessionPlayer)) {
             return false;
         }
-        for (SessionPlayer player : players) {
-            if (player.getNumberOfResources() > 7){
-                int amount = (int) (player.getNumberOfResources() / 2.0);
-                robberBlockerRepository.saveAndFlush(new RobberBlocker(player, amount));
+        if (extort) {
+            for (SessionPlayer player : players) {
+                if (player.getNumberOfResources() > 7){
+                    int amount = (int) (player.getNumberOfResources() / 2.0);
+                    robberBlockerRepository.saveAndFlush(new RobberDebtBlocker(player, amount));
+                }
             }
         }
-        //Find robber position
-        robberMoveBlockerRepository.saveAndFlush(new RobberMoveBlocker(sessionPlayer, 0, 0));
+
+        Optional<Tile> robberTile = tileService.getRobberTile(sessionPlayer.getSession().getId());
+        if (robberTile.isEmpty())
+            return false;
+        robberMoveBlockerRepository.saveAndFlush(
+                new RobberMoveBlocker(sessionPlayer, robberTile.get().getX(), robberTile.get().getY()));
         return true;
     }
 
-    public Optional<RobberBlocker> findDebtByUserId(Long userId) {
+    public Optional<RobberDebtBlocker> findDebtByUserId(Long userId) {
         Optional<SessionPlayer> player = sessionPlayerService.findCurrentSessionPlayerByUserId(userId);
         if (player.isPresent()) {
-            Optional<RobberBlocker> debt = robberBlockerRepository.findBySessionPlayerId(player.get().getId());
+            Optional<RobberDebtBlocker> debt = robberBlockerRepository.findBySessionPlayerId(player.get().getId());
             if (debt.isPresent()) {
                 return debt;
             }
@@ -65,23 +85,77 @@ public class GameService {
         return Optional.empty();
     }
 
-    public Boolean settleDebtByUserId(RobberBlocker debt, Long userId, ResourceGroup resourceGroup) {
+    public Boolean settleDebtByUserId(RobberDebtBlocker debt, Long userId, ResourceGroup resourceGroup) {
         Optional<SessionPlayer> player = sessionPlayerService.findCurrentSessionPlayerByUserId(userId);
-        if (player.isPresent() && subtractResources(player.get(), resourceGroup)) {
+        if (player.isPresent() && resourceService.subtractResources(player.get(), resourceGroup)) {
             robberBlockerRepository.delete(debt);
             return true;
         }
         return false;
     }
 
-    public Boolean subtractResources(SessionPlayer player, ResourceGroup resourceGroup) {
-        ResourceGroup playerResources = mapper.mapSessionPlayerToResource(player);
-        if (playerResources.compareTo(resourceGroup) < 0) {
-            return false;
+    public Object activateDevCard(DevCard devCard, Map<String, Object> playData) {
+        devCardService.useCard(devCard.getId(), devCard.getOwner().getId());
+
+        switch (devCard.getType()) {
+            case KNIGHT -> {
+                Optional<Tile> robberTile = tileService.getRobberTile(devCard.getOwner().getSession().getId());
+                if (robberTile.isEmpty()) {
+                    throw new IllegalArgumentException("No robber found");
+                }
+                RobberMoveDto robberMoveDto = objectMapper.convertValue(playData, RobberMoveDto.class);
+
+                placementService.moveRobber(robberMoveDto, devCard.getOwner());
+
+                return new PlayCardResponseDto(DevCardType.KNIGHT.name(), objectMapper.convertValue(robberMoveDto, Map.class));
+            }
+            case VICTORY_POINT -> {
+                devCard.getOwner().setPlayerScore(devCard.getOwner().getPlayerScore() + 1);
+
+                sessionPlayerService.updateSessionPlayer(devCard.getOwner());
+                return new PlayCardResponseDto(DevCardType.VICTORY_POINT.name(), objectMapper.convertValue(
+                        new PlayerScoreDto(devCard.getOwner().getName(), devCard.getOwner().getPlayerScore()), Map.class));
+            }
+            case ROAD_BUILDING -> {
+                PlaceRoadDto[] placeRoadDtos = objectMapper.convertValue(playData, PlaceRoadDto[].class);
+                if (placeRoadDtos.length != 2) {
+                    throw new IllegalArgumentException("Incorrect number of roads");
+                }
+
+                Long playerId = devCard.getOwner().getId();
+
+                List<Tile> tiles = new ArrayList<>(2);
+                for (PlaceRoadDto dto : placeRoadDtos) {
+                    Tile tile = tileService.findByXAndYAndSession(dto.getTileX(), dto.getTileY(), playerId)
+                            .orElseThrow(() -> new IllegalArgumentException("Tile not found"));
+                    tiles.add(tile);
+                }
+                for (int i = 0; i < 2; i++) {
+                    placementService.placeRoad(playerId, tiles.get(i).getId(), placeRoadDtos[i].getEdgeIndex(), false);
+                }
+
+                return new PlayCardResponseDto(DevCardType.KNIGHT.name(), objectMapper.convertValue(
+                        new PlaceRoadResponseDto[] {
+                        new PlaceRoadResponseDto(placeRoadDtos[0].getTileX(), placeRoadDtos[0].getTileY(), placeRoadDtos[0].getEdgeIndex(), devCard.getOwner().getName()),
+                        new PlaceRoadResponseDto(placeRoadDtos[1].getTileX(), placeRoadDtos[1].getTileY(), placeRoadDtos[1].getEdgeIndex(), devCard.getOwner().getName())
+                }, Map.class));
+            }
+            case YEAR_OF_PLENTY -> {
+                ResourceGroup resourceGroup = objectMapper.convertValue(playData, ResourceGroup.class);
+                if (resourceGroup.getSum() != 2)
+                    throw new IllegalArgumentException("Incorrect number of resources");
+                tradeService.tradeWithBankDirect(devCard.getOwner().getSession().getId(), devCard.getOwner().getUser().getUsername(), new ResourceGroup(), resourceGroup);
+
+                return new PlayCardResponseDto(DevCardType.VICTORY_POINT.name(), objectMapper.convertValue(
+                        new TradeOfferMessage(devCard.getOwner().getName(), "Bank", new ResourceGroup(), resourceGroup), Map.class));
+            }
         }
-        playerResources.subtractResources(resourceGroup);
-        player.setResources(playerResources);
-        sessionPlayerService.updateSessionPlayer(player);
-        return true;
+        throw new IllegalArgumentException("Incorrect card type");
+    }
+
+    public Optional<SessionPlayer> checkForWinner(Long sessionId) {
+        Optional<Session> sessionById = sessionService.getSessionById(sessionId);
+        return sessionById.flatMap(session -> sessionService.getPlayers(sessionId).stream().filter(player
+                -> player.getPlayerScore() >= session.getVictoryPointsCondition()).findFirst());
     }
 }

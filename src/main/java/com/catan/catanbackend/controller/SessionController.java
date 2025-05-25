@@ -1,6 +1,6 @@
 package com.catan.catanbackend.controller;
 
-import com.catan.catanbackend.controller.webSocket.ChatController;
+import com.catan.catanbackend.controller.web_socket.WebSocketController;
 import com.catan.catanbackend.model.Session;
 import com.catan.catanbackend.model.SessionCode;
 import com.catan.catanbackend.model.SessionPlayer;
@@ -24,37 +24,34 @@ public class SessionController {
     final SessionSaveService sessionSaveService;
     final Mapper mapper;
     final TokenService tokenService;
-    final String tokenType = "Bearer";
+    private static final String TOKEN_TYPE = "Bearer";
     final SessionPlayerService sessionPlayerService;
-    final ChatController chatController;
+    final WebSocketController webSocketController;
 
-    public SessionController(Mapper mapper, SessionService sessionService, SessionSaveService sessionSaveService, TokenService tokenService, SessionPlayerService sessionPlayerService, ChatController chatController) {
+    public SessionController(Mapper mapper, SessionService sessionService, SessionSaveService sessionSaveService, TokenService tokenService, SessionPlayerService sessionPlayerService, WebSocketController webSocketController) {
         this.mapper = mapper;
         this.sessionService = sessionService;
         this.sessionSaveService = sessionSaveService;
         this.tokenService = tokenService;
         this.sessionPlayerService = sessionPlayerService;
-        this.chatController = chatController;
+        this.webSocketController = webSocketController;
     }
 
     @PostMapping("/{maxPlayers}")
     public ResponseEntity<SessionCodeDto> createSession(@PathVariable int maxPlayers, @RequestHeader (name="Authorization") String token) {
-        if (!token.startsWith(tokenType)) {
+        if (!token.startsWith(TOKEN_TYPE)) {
             return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
         }
-        Optional<SessionCode> sessionCode = sessionService.startSession(tokenService.getUserIdFromJwtToken(token.split(" ")[1]), maxPlayers);
+        Optional<SessionCode> sessionCode = sessionService.createSession(tokenService.getUserIdFromJwtToken(token.split(" ")[1]), maxPlayers);
 
         return sessionCode
-                .map(code -> {
-                    //chatController.sendJoinSessionUpdate(code.getCode(), sessionService.getPlayers(code.getSession().getId()).stream().map(SessionPlayer::getUser).toList());
-                    return new ResponseEntity<>(mapper.mapSessionToDto(code), HttpStatus.CREATED);
-                })
+                .map(code -> new ResponseEntity<>(mapper.mapSessionToDto(code), HttpStatus.CREATED))
                 .orElseGet(() -> new ResponseEntity<>(HttpStatus.BAD_REQUEST));
     }
 
     @PostMapping("/close")
     public ResponseEntity<Void> closeSession(@RequestHeader (name="Authorization") String token) {
-        if (!token.startsWith(tokenType)) {
+        if (!token.startsWith(TOKEN_TYPE)) {
             return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
         }
         Optional<Session> session = sessionService.getActiveSessionsByHostId(tokenService.getUserIdFromJwtToken(token.split(" ")[1]));
@@ -68,13 +65,12 @@ public class SessionController {
 
     @PostMapping("/join/{code}")
     public ResponseEntity<SessionCodeDto> joinSession(@PathVariable String code, @RequestHeader (name="Authorization") String token) {
-        if (!token.startsWith(tokenType)) {
+        if (!token.startsWith(TOKEN_TYPE)) {
             return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
         }
 
         return sessionService.joinSession(tokenService.getUserIdFromJwtToken(token.split(" ")[1]), code)
                 .map(value -> {
-                    //chatController.sendJoinSessionUpdate(code, sessionService.getPlayers(value.getId()).stream().map(SessionPlayer::getUser).toList());
                     return new ResponseEntity<>(mapper.mapSessionToDto(value), HttpStatus.OK);
                 })
                 .orElseGet(() -> new ResponseEntity<>(HttpStatus.BAD_REQUEST));
@@ -82,7 +78,7 @@ public class SessionController {
 
     @PostMapping("/leave/{code}")
     public ResponseEntity<Void> leaveSession(@PathVariable String code, @RequestHeader (name="Authorization") String token) {
-        if (!token.startsWith(tokenType)) {
+        if (!token.startsWith(TOKEN_TYPE)) {
             return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
         }
 
@@ -94,7 +90,7 @@ public class SessionController {
 
     @GetMapping("/saves")
     public ResponseEntity<List<SessionSaveSimpleDto>> getSessionSavesByHostId(@RequestHeader (name="Authorization") String token) {
-        if (!token.startsWith(tokenType)) {
+        if (!token.startsWith(TOKEN_TYPE)) {
             return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
         }
         Long hostId = tokenService.getUserIdFromJwtToken(token.split(" ")[1]);
@@ -103,7 +99,7 @@ public class SessionController {
 
     @PostMapping("/save")
     public ResponseEntity<SessionSaveSimpleDto> createSessionSave(@RequestParam("name") String name, @RequestHeader (name="Authorization") String token) {
-        if (!token.startsWith(tokenType)) {
+        if (!token.startsWith(TOKEN_TYPE)) {
             return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
         }
         Long userId = tokenService.getUserIdFromJwtToken(token.split(" ")[1]);
@@ -121,7 +117,7 @@ public class SessionController {
 
     @DeleteMapping("/save/{id}")
     public ResponseEntity<Void> deleteSessionSave(@PathVariable Long id, @RequestHeader (name="Authorization") String token) {
-        if (!token.startsWith(tokenType)) {
+        if (!token.startsWith(TOKEN_TYPE)) {
             return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
         }
         Long userId = tokenService.getUserIdFromJwtToken(token.split(" ")[1]);

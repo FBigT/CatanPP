@@ -3,7 +3,6 @@ package com.catan.catanbackend.model.tile;
 import com.catan.catanbackend.model.Session;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
-import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
@@ -28,11 +27,11 @@ public class TileCorner {
     @JoinColumn(name = "session_id", nullable = false)
     private Session session;
 
-    @OneToOne(fetch = FetchType.LAZY)
+    @OneToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "structure_id")
     private Structure structure;
 
-    @OneToMany(mappedBy = "corner", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OneToMany(mappedBy = "corner", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
     private List<TileCornerMap> tileCornerMaps = new ArrayList<>();
 
     @Override

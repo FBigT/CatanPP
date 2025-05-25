@@ -30,6 +30,8 @@ public class UserController {
     private final GuestKeyService guestKeyService;
     private final PlayerProfileService playerProfileService;
 
+    private static final String BEARER = "Bearer";
+
     public UserController(AuthenticationManager authenticationManager, UserService userService, Mapper mapper, TokenService tokenService, GuestKeyService guestKeyService, PlayerProfileService playerProfileService, RefreshTokenService refreshTokenService) {
         this.authenticationManager = authenticationManager;
         this.userService = userService;
@@ -108,7 +110,7 @@ public class UserController {
         return userService.getAllUsers();
     }
 
-    @GetMapping("/{username}")
+    @GetMapping("/username/{username}")
     public ResponseEntity<UserDto> getUserByUsername(@PathVariable String username) {
         Optional<User> user = userService.getUserByUsername(username);
         return user.map(value ->
@@ -137,9 +139,9 @@ public class UserController {
         return new ResponseEntity<>(new GuestRegisterResponse(guest.getId(), guest.getUsername(), key), HttpStatus.CREATED);
     }
 
-    @DeleteMapping("/{id}")
+    @DeleteMapping("/deactivate/{id}")
     public ResponseEntity<UserDto> deactivateUser(@PathVariable Long id, @RequestHeader (name="Authorization") String token){
-        if (!token.startsWith("Bearer")
+        if (!token.startsWith(BEARER)
             || !Objects.equals(tokenService.getUserIdFromJwtToken(token.split(" ")[1]), id)) {
             return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
         }
@@ -150,13 +152,25 @@ public class UserController {
         return new ResponseEntity<>(HttpStatus.NOT_FOUND);
     }
 
+    @DeleteMapping("/forget/{id}")
+    public ResponseEntity<UserDto> deleteUser(@PathVariable Long id, @RequestHeader (name="Authorization") String token){
+        if (!token.startsWith(BEARER)
+                || !Objects.equals(tokenService.getUserIdFromJwtToken(token.split(" ")[1]), id)) {
+            return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
+        }
+
+        userService.deleteUser(id);
+
+        return new ResponseEntity<>(HttpStatus.OK);
+    }
+
     @PutMapping("/{id}")
     public ResponseEntity<UserDto> updateUser(@PathVariable Long id, @RequestBody UserDto userDto, @RequestHeader (name="Authorization") String token) {
         Optional<User> user = userService.findById(id);
         if (user.isEmpty())
             return new ResponseEntity<>(HttpStatus.NOT_FOUND);
 
-        if (!token.startsWith("Bearer")
+        if (!token.startsWith(BEARER)
                 || !Objects.equals(tokenService.getUserIdFromJwtToken(token.split(" ")[1]), id)) {
             return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
         }
@@ -169,7 +183,7 @@ public class UserController {
 
     @PreAuthorize("isAuthenticated()")
     @GetMapping("/profile")
-    public ResponseEntity<PlayerProfile> getCurrentPlayerProfileByUserId(@RequestHeader (name="Authorization") String token) {
+    public ResponseEntity<PlayerProfile> getCurrentPlayerProfile(@RequestHeader (name="Authorization") String token) {
         Long userId = tokenService.getUserIdFromJwtToken(token.split(" ")[1]);
         Optional<User> user = userService.findById(userId);
 
@@ -189,8 +203,8 @@ public class UserController {
                 .orElseGet(() -> new ResponseEntity<>(HttpStatus.NOT_FOUND));
     }
 
-    @GetMapping("/profile/{username}")
-    public ResponseEntity<PlayerProfile> getPlayerProfileByUserId(@PathVariable String username) {
+    @GetMapping("/profile/username/{username}")
+    public ResponseEntity<PlayerProfile> getPlayerProfileByUsername(@PathVariable String username) {
         return playerProfileService.getPlayerProfileByUsername(username)
                 .map(playerProfile -> new ResponseEntity<>(playerProfile, HttpStatus.OK))
                 .orElseGet(() -> new ResponseEntity<>(HttpStatus.NOT_FOUND));
@@ -198,10 +212,10 @@ public class UserController {
 
     @ExceptionHandler(DataIntegrityViolationException.class)
     public ResponseEntity<String> dataIntegrityViolationException(final DataIntegrityViolationException e) {
-        if (e.getMessage().toLowerCase().contains("users_email_key")){
+        if (e.getMessage().toLowerCase().contains("email")){
             return new ResponseEntity<>("\"email\"", HttpStatus.CONFLICT);
         }
-        else if (e.getMessage().toLowerCase().contains("users_username_key")){
+        else if (e.getMessage().toLowerCase().contains("username")){
             return new ResponseEntity<>("\"username\"", HttpStatus.CONFLICT);
         }
         return new ResponseEntity<>("\"general\"", HttpStatus.CONFLICT);

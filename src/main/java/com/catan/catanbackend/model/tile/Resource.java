@@ -13,9 +13,14 @@ import lombok.NoArgsConstructor;
 @Builder
 @Table(name = "resources")
 public class Resource {
+    public Resource(String name) {
+        this.name = name;
+    }
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @Column(nullable = false, unique = true)
     private String name;
 }

@@ -1,5 +1,6 @@
 package com.catan.catanbackend.model;
 
+import com.catan.catanbackend.model.helper.DevCardType;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -17,6 +18,10 @@ public class DevCard {
     @Column(nullable = false)
     private DevCardType type;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "session_id")
+    private Session session;
+
     /** null = still in deck; once bought, set to the SessionPlayer who owns it */
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "owner_id")
@@ -30,7 +35,8 @@ public class DevCard {
     @Column(nullable = false)
     private boolean used = false;
 
-    public DevCard(DevCardType type) {
+    public DevCard(DevCardType type, Session session) {
         this.type = type;
+        this.session = session;
     }
 }

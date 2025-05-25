@@ -3,14 +3,15 @@ package com.catan.catanbackend.model;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
-import lombok.AccessLevel;
-import lombok.Data;
-import lombok.Setter;
+import lombok.*;
 
 import java.time.LocalDateTime;
 
 @Entity
 @Data
+@Builder
+@NoArgsConstructor()
+@AllArgsConstructor
 @Table(name = "users")
 public class User {
     @Id
@@ -36,4 +37,10 @@ public class User {
     @OneToOne(mappedBy = "guest", cascade = CascadeType.ALL)
     @PrimaryKeyJoinColumn
     private GuestKey guestKey;
+    @OneToOne(mappedBy = "user", cascade = CascadeType.ALL)
+    @PrimaryKeyJoinColumn
+    private RefreshToken refreshToken;
+    @OneToOne(mappedBy = "user", cascade = CascadeType.ALL)
+    @PrimaryKeyJoinColumn
+    private PlayerProfile playerProfile;
 }

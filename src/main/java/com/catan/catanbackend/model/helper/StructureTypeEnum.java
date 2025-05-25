@@ -1,4 +1,4 @@
-package com.catan.catanbackend.model;
+package com.catan.catanbackend.model.helper;
 
 public enum StructureTypeEnum {
     SETTLEMENT,

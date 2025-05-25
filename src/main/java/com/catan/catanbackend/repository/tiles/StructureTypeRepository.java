@@ -1,6 +1,6 @@
 package com.catan.catanbackend.repository.tiles;
 
-import com.catan.catanbackend.model.StructureTypeEnum;
+import com.catan.catanbackend.model.helper.StructureTypeEnum;
 import com.catan.catanbackend.model.tile.StructureType;
 import org.springframework.data.jpa.repository.JpaRepository;
 

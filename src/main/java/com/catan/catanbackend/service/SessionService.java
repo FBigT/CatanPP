@@ -10,9 +10,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.context.annotation.Lazy;
 import java.time.OffsetDateTime;
-import java.util.List;
-import java.util.Optional;
-import java.util.Random;
+import java.util.*;
 
 @Service
 @Transactional
@@ -40,20 +38,23 @@ public class SessionService {
         this.userService = userService;
         this.sessionRecordRepository = sessionRecordRepository;
         this.sessionPlayerService = sessionPlayerService;
-        // inject DevCardService into SessionService via constructor
-
-
         this.devCardService = devCardService;
     }
 
-    public Optional<SessionCode> startSession(Long hostId, Integer maxPlayers) {
+    public Session save(Session session) {
+        return sessionRepository.save(session);
+    }
+
+    public Optional<SessionCode> createSession(Long hostId, Integer maxPlayers) {
         Optional<User> host = userService.findById(hostId);
         if (host.isEmpty() || maxPlayers < MIN_PLAYERS) {
             return Optional.empty();
         }
 
         // No longer preventing multiple active sessions per host:
-        Session savedSession = sessionRepository.save(new Session(host.get(), maxPlayers));
+        Session session = new Session(host.get(), maxPlayers);
+        session.setActive(false);
+        Session savedSession = sessionRepository.save(session);
         devCardService.initDeckForSession(savedSession);
 
         String newSessionCode;
@@ -63,6 +64,37 @@ public class SessionService {
 
         sessionPlayerService.saveSessionPlayer(new SessionPlayer(savedSession, host.get()));
         return Optional.of(sessionCodeRepository.save(new SessionCode(savedSession, newSessionCode)));
+    }
+
+    public Boolean startSession(Long sessionId) {
+        Optional<Session> session = sessionRepository.findById(sessionId);
+        if (session.isEmpty() || !session.get().getMapGenerated()) {
+            return false;
+        }
+
+        List<SessionPlayer> players = getPlayers(sessionId);
+        Collections.shuffle(players);
+        session.get().setCurrentPlayer(players.get(0));
+
+        for (int i = 0; i < players.size(); i++) {
+            players.get(i).setTurnOrder(i+1);
+            sessionPlayerService.saveSessionPlayer(players.get(i));
+        }
+        session.get().setActive(true);
+        save(session.get());
+
+        return true;
+    }
+
+    public Optional<SessionPlayer> getNextPlayer(Long sessionId) {
+        Optional<Session> session = getSessionById(sessionId);
+        if (session.isEmpty()) {
+            return Optional.empty();
+        }
+
+        List<SessionPlayer> players = getPlayersInTurnOrder(sessionId);
+        int currentIndex = players.indexOf(session.get().getCurrentPlayer());
+        return Optional.of(players.get((currentIndex + 1) % players.size()));
     }
 
     public Boolean endSession(SessionCode sessionCode, User winner) {
@@ -198,6 +230,10 @@ public class SessionService {
 
     public List<SessionPlayer> getPlayers(Long sessionId){
         return sessionPlayerService.findPlayerBySessionId(sessionId);
+    }
+
+    public List<SessionPlayer> getPlayersInTurnOrder(Long sessionId){
+        return sessionPlayerService.findPlayerBySessionId(sessionId).stream().sorted(Comparator.comparingInt(SessionPlayer::getTurnOrder)).toList();
     }
 
     public List<SessionPlayer> getPlayersBySessionCode(String sessionCode){

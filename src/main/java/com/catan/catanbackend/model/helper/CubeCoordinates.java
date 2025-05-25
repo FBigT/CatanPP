@@ -1,4 +1,4 @@
-package com.catan.catanbackend.model;
+package com.catan.catanbackend.model.helper;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;

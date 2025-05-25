@@ -2,7 +2,6 @@ package com.catan.catanbackend.repository;
 
 import com.catan.catanbackend.model.RefreshToken;
 import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.data.repository.CrudRepository;
 
 import java.util.Optional;
 

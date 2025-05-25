@@ -59,6 +59,22 @@ public class TradeService {
             throw new IllegalArgumentException("Invalid trade ratio.");
         }
 
+
+        applyChange(pFrom, offered,   false);
+        applyChange(pFrom, requested, true);
+        playerRepo.save(pFrom);
+    }
+
+    public void tradeWithBankDirect(Long sessionId,
+                              String fromUser,
+                              ResourceGroup offered,
+                              ResourceGroup requested) {
+        SessionPlayer pFrom = findActivePlayer(sessionId, fromUser);
+
+        if (!hasEnough(pFrom, offered)) {
+            throw new IllegalArgumentException(fromUser + " lacks offered resources.");
+        }
+
         applyChange(pFrom, offered,   false);
         applyChange(pFrom, requested, true);
         playerRepo.save(pFrom);
@@ -131,6 +147,8 @@ public class TradeService {
             case "wood":
                 if (offered.getWood().equals(total)) return defaultRatio;
                 break;
+            default:
+                return 4;
         }
         return 4;
     }

@@ -3,7 +3,6 @@ package com.catan.catanbackend.model.tile;
 import com.catan.catanbackend.model.Session;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
-import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
@@ -33,7 +32,7 @@ public class TileEdge {
     private Session session;
 
     @OneToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "road_id", nullable = false)
+    @JoinColumn(name = "road_id")
     private Road road;
 
     @OneToMany(mappedBy = "edge", cascade = CascadeType.ALL, orphanRemoval = true)

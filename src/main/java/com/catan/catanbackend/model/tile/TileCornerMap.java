@@ -20,11 +20,11 @@ public class TileCornerMap {
     @GeneratedValue
     private Long id;
 
-    @ManyToOne
+    @ManyToOne(cascade = { CascadeType.PERSIST, CascadeType.MERGE })
     @JoinColumn(name = "tile_id", nullable = false)
     private Tile tile;
 
-    @ManyToOne
+    @ManyToOne(cascade = { CascadeType.PERSIST, CascadeType.MERGE })
     @JoinColumn(name = "corner_id", nullable = false)
     private TileCorner corner;
 

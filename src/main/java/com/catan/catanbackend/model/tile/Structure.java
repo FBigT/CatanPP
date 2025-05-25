@@ -1,13 +1,10 @@
 package com.catan.catanbackend.model.tile;
 
-import com.catan.catanbackend.model.Session;
 import com.catan.catanbackend.model.SessionPlayer;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
 import lombok.Data;
-import lombok.Getter;
 import lombok.NoArgsConstructor;
-import lombok.Setter;
 
 import java.util.Optional;
 
@@ -25,15 +22,16 @@ public class Structure {
     @JoinColumn(name = "session_player_id", nullable = false)
     private SessionPlayer owner;
 
-    @OneToOne(mappedBy = "structure", fetch = FetchType.LAZY)
+    @OneToOne(mappedBy = "structure", fetch = FetchType.EAGER)
     private TileCorner corner;
 
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "structure_type_id", nullable = false)
     private StructureType structureType;
 
-    public Structure(SessionPlayer owner, Tile tile, int cornerIndex) {
+    public Structure(SessionPlayer owner, Tile tile, Integer cornerIndex, StructureType structureType) {
         this.owner = owner;
+        this.structureType = structureType;
         Optional<TileCorner> optionalTileCorner = tile.getTileCorner(cornerIndex);
         if (optionalTileCorner.isPresent()) {
             corner = optionalTileCorner.get();
@@ -42,12 +40,5 @@ public class Structure {
             throw new IllegalArgumentException("The corner of the tile is not a valid corner");
     }
 
-    //Moved to PlacementService
-    /*public void upgradeToCity() {
-        if (this.structureType.getName().equals("SETTLEMENT")) {
-            this.structureType = "CITY";
-        } else {
-            throw new IllegalArgumentException("This structure is already a city.");
-        }
-    }*/
+    //Moved upgradeToCity() to PlacementService
 }

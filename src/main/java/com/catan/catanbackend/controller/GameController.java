@@ -1,7 +1,7 @@
 package com.catan.catanbackend.controller;
 
 import com.catan.catanbackend.model.ResourceGroup;
-import com.catan.catanbackend.model.RobberBlocker;
+import com.catan.catanbackend.model.RobberDebtBlocker;
 import com.catan.catanbackend.model.SessionPlayer;
 import com.catan.catanbackend.service.*;
 import org.springframework.http.HttpStatus;
@@ -18,19 +18,16 @@ public class GameController {
 
     private final TokenService tokenService;
     private final GameService gameService;
-    private final SessionService sessionService;
     private final SessionPlayerService sessionPlayerService;
     private final Mapper mapper;
 
     // Use constructor injection for all required services
     public GameController(TokenService tokenService,
                           GameService gameService,
-                          SessionService sessionService,
                           SessionPlayerService sessionPlayerService,
                           Mapper mapper) {
         this.tokenService = tokenService;
         this.gameService = gameService;
-        this.sessionService = sessionService;
         this.sessionPlayerService = sessionPlayerService;
         this.mapper = mapper;
     }
@@ -43,7 +40,7 @@ public class GameController {
         }
         Long userId = tokenService.getUserIdFromJwtToken(token.split(" ")[1]);
 
-        Optional<RobberBlocker> debt = gameService.findDebtByUserId(userId);
+        Optional<RobberDebtBlocker> debt = gameService.findDebtByUserId(userId);
         if (debt.isEmpty()) {
             return new ResponseEntity<>(HttpStatus.NOT_FOUND);
         }

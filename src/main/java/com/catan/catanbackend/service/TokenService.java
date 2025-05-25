@@ -13,6 +13,7 @@ import org.springframework.stereotype.Component;
 
 import javax.crypto.SecretKey;
 import java.util.Date;
+import java.util.UUID;
 
 @Component
 public class TokenService {
@@ -21,7 +22,7 @@ public class TokenService {
     @Value("${jwt.secret}")
     private String jwtSecret;
 
-    private final int jwtExpirationMs = 864000;
+    private static final int JWT_EXPIRATION_MS = 864000;
 
     public String generateJwtToken(Authentication authentication) {
 
@@ -30,8 +31,9 @@ public class TokenService {
         return Jwts.builder()
                 .subject((userPrincipal.getUsername()))
                 .claim("id", userPrincipal.getId())
+                .claim("jti", UUID.randomUUID().toString())
                 .issuedAt(new Date())
-                .expiration(new Date((new Date()).getTime() + jwtExpirationMs))
+                .expiration(new Date((new Date()).getTime() + JWT_EXPIRATION_MS))
                 .signWith(getSigningKey())
                 .compact();
     }
@@ -40,7 +42,7 @@ public class TokenService {
         return Jwts.builder()
                 .subject(userDetails.getUsername())
                 .issuedAt(new Date())
-                .expiration(new Date(System.currentTimeMillis() + jwtExpirationMs))
+                .expiration(new Date(System.currentTimeMillis() + JWT_EXPIRATION_MS))
                 .signWith(getSigningKey())
                 .compact();
     }

@@ -108,6 +108,9 @@ public class SessionPlayer {
     @ColumnDefault("0")
     private Integer wood = 0;
 
+    @Column(name = "turn_order")
+    private Integer turnOrder;
+
     public Integer getNumberOfResources() {
         return brick + crystal + ore + rice + sheep + silver + gold + wood;
     }

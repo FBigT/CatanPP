@@ -1,23 +1,24 @@
 package com.catan.catanbackend.service;
 
 import com.catan.catanbackend.model.*;
-import com.catan.catanbackend.model.dto.RegisterForm;
-import com.catan.catanbackend.model.dto.SessionCodeDto;
-import com.catan.catanbackend.model.dto.SessionSaveSimpleDto;
-import com.catan.catanbackend.model.dto.UserDto;
+import com.catan.catanbackend.model.dto.*;
+import com.catan.catanbackend.model.ResourceGroup;
+import com.catan.catanbackend.model.helper.TileTypeEnum;
+import com.catan.catanbackend.model.tile.Tile;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 
 @Component
 public class Mapper {
-    final UserService userService;
-    final PasswordEncoder passwordEncoder;
+    private final PasswordEncoder passwordEncoder;
+    private final TileTypeService tileTypeService;
 
-    public Mapper(UserService userService) {
-        this.userService = userService;
+    public Mapper(TileTypeService tileTypeService) {
+        this.tileTypeService = tileTypeService;
         this.passwordEncoder = new BCryptPasswordEncoder();
     }
 
@@ -65,5 +66,30 @@ public class Mapper {
                 player.getGold(),
                 player.getCrystal()
         );
+    }
+
+    public Tile mapTileDtoToTile(TileDto tileDto, Session session) {
+        return Tile.builder()
+                .x(tileDto.getX())
+                .y(tileDto.getY())
+                .z(tileDto.getZ())
+                .hasRobber(false)
+                .number(tileDto.getNumber())
+                .tileType(tileTypeService.findByEnumOrCreate(TileTypeEnum.valueOf(tileDto.getTileType())))
+                .session(session)
+                .tileCornerMaps(new ArrayList<>())
+                .tileEdgeMaps(new ArrayList<>())
+                .build();
+    }
+
+    public TileDto mapTileToTileDto(Tile tile) {
+        return TileDto.builder()
+                .tileType(tile.getTileType().getName())
+                .x(tile.getX())
+                .y(tile.getY())
+                .z(tile.getZ())
+                .number(tile.getNumber())
+                .hasRobber(tile.isHasRobber())
+                .build();
     }
 }

@@ -20,4 +20,8 @@ public interface SessionPlayerRepository extends JpaRepository<SessionPlayer, Lo
     List<SessionPlayer> findAllBySessionCodeWithUser(@Param("sessionCode") String sessionCode);
     List<SessionPlayer> findSessionPlayerBySessionId(Long sessionId);
     List<SessionPlayer> findSessionPlayerByUserId(Long userId);
+    default Optional<SessionPlayer> findPlayerBySessionCodeAndUserId(String sessionCode, Long userId) {
+        return findAllBySessionCodeWithUser(sessionCode).stream().filter(x
+                -> x.getUser().getId().equals(userId)).findFirst();
+    }
 }

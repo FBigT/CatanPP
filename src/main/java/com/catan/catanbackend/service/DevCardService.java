@@ -1,9 +1,8 @@
 package com.catan.catanbackend.service;
 
 import com.catan.catanbackend.model.*;
+import com.catan.catanbackend.model.helper.DevCardType;
 import com.catan.catanbackend.repository.DevCardRepository;
-import com.catan.catanbackend.service.SessionPlayerService;
-import com.catan.catanbackend.service.GameService;  // for resource subtraction
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -14,38 +13,42 @@ import java.util.*;
 public class DevCardService {
     private final DevCardRepository devCardRepo;
     private final SessionPlayerService playerService;
-    private final GameService gameService; // already handles resource logic
+    private final ResourceService resourceService;
 
     public DevCardService(DevCardRepository devCardRepo,
                           SessionPlayerService playerService,
-                          GameService gameService) {
+                          ResourceService resourceService) {
         this.devCardRepo = devCardRepo;
         this.playerService = playerService;
-        this.gameService = gameService;
+        this.resourceService = resourceService;
+    }
+
+    public Optional<DevCard> getDevCardById(Long id) {
+        return devCardRepo.findById(id);
     }
 
     /** Initialize a fresh shuffled deck for each new session */
     public void initDeckForSession(Session session) {
         List<DevCard> deck = new ArrayList<>();
         // according to standard counts:
-        for (int i = 0; i < 14; i++) deck.add(new DevCard(DevCardType.KNIGHT));
-        for (int i = 0; i < 5;  i++) deck.add(new DevCard(DevCardType.VICTORY_POINT));
-        for (int i = 0; i < 2;  i++) deck.add(new DevCard(DevCardType.ROAD_BUILDING));
-        for (int i = 0; i < 2;  i++) deck.add(new DevCard(DevCardType.YEAR_OF_PLENTY));
+        for (int i = 0; i < 14; i++) deck.add(new DevCard(DevCardType.KNIGHT, session));
+        for (int i = 0; i < 5;  i++) deck.add(new DevCard(DevCardType.VICTORY_POINT, session));
+        for (int i = 0; i < 2;  i++) deck.add(new DevCard(DevCardType.ROAD_BUILDING, session));
+        for (int i = 0; i < 2;  i++) deck.add(new DevCard(DevCardType.YEAR_OF_PLENTY, session));
         Collections.shuffle(deck);
 
-        deck.forEach(card -> devCardRepo.save(card));
+        devCardRepo.saveAll(deck);
     }
 
     /** Player buys one: checks resources, subtracts, draws top card */
-    public DevCard buyDevCard(Long userId) {
-        SessionPlayer me = playerService.findCurrentSessionPlayerByUserId(userId)
+    public DevCard buyDevCard(Long sessionPlayerId) {
+        SessionPlayer me = playerService.findById(sessionPlayerId)
                 .orElseThrow(() -> new IllegalArgumentException("Not in a session"));
         // cost: 1 ore, 1 grain, 1 sheep
         ResourceGroup cost = new ResourceGroup();
         cost.setOre(1); cost.setRice(1); cost.setSheep(1);
 
-        boolean paid = gameService.subtractResources(me, cost);
+        boolean paid = resourceService.subtractResources(me, cost);
         if (!paid) throw new IllegalArgumentException("Insufficient resources for Dev Card");
 
         // draw top card
@@ -87,6 +90,10 @@ public class DevCardService {
             throw new IllegalArgumentException("Card already used");
 
         card.setUsed(true);
+        return devCardRepo.save(card);
+    }
+
+    public DevCard saveCard(DevCard card) {
         return devCardRepo.save(card);
     }
 }

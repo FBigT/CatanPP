@@ -1,7 +1,6 @@
 // src/main/java/com/catan/catanbackend/controller/SessionPlayerController.java
 package com.catan.catanbackend.controller;
 
-import com.catan.catanbackend.model.ResourceGroup;
 import com.catan.catanbackend.model.SessionPlayer;
 import com.catan.catanbackend.model.dto.SessionPlayerDto;
 import com.catan.catanbackend.service.SessionPlayerService;

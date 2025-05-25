@@ -2,21 +2,30 @@ package com.catan.catanbackend.model.tile;
 
 import com.catan.catanbackend.model.Session;
 import jakarta.persistence.*;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import lombok.*;
 
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
+ import java.util.List;
 import java.util.Optional;
 
 @Entity
 @Table(name = "tiles")
 @Getter
 @Setter
+@Builder
+@AllArgsConstructor
 @NoArgsConstructor
 public class Tile {
+    public Tile(int x, int y, int z, Session session, int number, TileType tileType) {
+        this.x = x;
+        this.y = y;
+        this.z = z;
+        this.session = session;
+        this.number = number;
+        this.tileType = tileType;
+        hasRobber = false;
+    }
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -28,14 +37,16 @@ public class Tile {
     private int number;
     private boolean hasRobber;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "resource_id", nullable = false)
-    private Resource resource;
+    @ManyToOne
+    @JoinColumn(name = "tile_type_id")
+    private TileType tileType;
 
-    @OneToMany(mappedBy = "tile", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OneToMany(mappedBy = "tile", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
+    @Builder.Default
     private List<TileCornerMap> tileCornerMaps = new ArrayList<>();
 
-    @OneToMany(mappedBy = "tile", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OneToMany(mappedBy = "tile", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
+    @Builder.Default
     private List<TileEdgeMap> tileEdgeMaps = new ArrayList<>();
 
     @ManyToOne(fetch = FetchType.LAZY)

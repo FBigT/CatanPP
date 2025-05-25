@@ -19,6 +19,10 @@ public class LogInResponse {
         this.refreshToken = refreshToken;
     }
 
+    public String getFullToken() {
+        return tokenType + " " + token;
+    }
+
     public void setUserId(String userId) {
         this.userId = Long.parseLong(userId);
     }

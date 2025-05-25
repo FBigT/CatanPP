@@ -5,7 +5,6 @@ import com.catan.catanbackend.model.User;
 import com.catan.catanbackend.repository.RefreshTokenRepository;
 import org.springframework.stereotype.Service;
 
-import java.sql.Ref;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;

@@ -1,20 +1,17 @@
 package com.catan.catanbackend.model;
 
-import com.catan.catanbackend.repository.RobberBlockerRepository;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
 import lombok.Data;
-import lombok.Getter;
 import lombok.NoArgsConstructor;
-import lombok.Setter;
 import org.hibernate.annotations.ColumnDefault;
 
 @Data
 @Entity
 @Table(name = "robber_blockers")
 @NoArgsConstructor
-public class RobberBlocker {
-    public RobberBlocker(SessionPlayer sessionPlayer, Integer amount) {
+public class RobberDebtBlocker {
+    public RobberDebtBlocker(SessionPlayer sessionPlayer, Integer amount) {
         this.sessionPlayer = sessionPlayer;
         this.amount = amount;
     }
