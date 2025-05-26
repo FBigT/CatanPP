@@ -13,24 +13,10 @@ namespace Catan.TerrainGeneration
             .GetField("numberToken", BindingFlags.NonPublic | BindingFlags.Instance);
         static readonly FieldInfo _resourceField = typeof(HexCell)
             .GetField("resourceType", BindingFlags.NonPublic | BindingFlags.Instance);
-        static readonly FieldInfo _robberField = typeof(HexCell)
-            .GetField("hasRobber", BindingFlags.NonPublic | BindingFlags.Instance);
 
         public static bool NumberTokenIs(this HexCell cell, int roll)
         {
             return (int)_tokenField.GetValue(cell) == roll;
-        }
-
-        public static int GetNumberToken(this HexCell cell) { 
-            return (int)_tokenField.GetValue(cell);
-        }
-
-        public static bool HasRobber(this HexCell cell) { 
-            return (bool)_robberField.GetValue(cell);
-        }
-
-        public static void SetRobber(this HexCell cell, bool robberPresent) {
-            _robberField.SetValue(cell, robberPresent);
         }
 
         public static ResourceType GetResource(this HexCell cell)

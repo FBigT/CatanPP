@@ -9,7 +9,6 @@
         public static WebSocketBrokerDestinations Chat { get { return new WebSocketBrokerDestinations("/game/chat/"); } }
         public static WebSocketBrokerDestinations Moves { get { return new WebSocketBrokerDestinations("/game/moves/"); } }
         public static WebSocketBrokerDestinations Players { get { return new WebSocketBrokerDestinations("/game/players/"); } }
-        public static WebSocketBrokerDestinations Private { get { return new WebSocketBrokerDestinations("/user/queue/"); } }
         public override string ToString()
         {
             return Value;

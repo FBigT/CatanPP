@@ -185,7 +185,7 @@ namespace Catan.GameMode
             // parameterless FindObjectsOfType<T>() only
             foreach (var cell in Object.FindObjectsOfType<HexCell>())
             {
-                if (!cell.NumberTokenIs(roll) || cell.HasRobber()) continue;
+                if (!cell.NumberTokenIs(roll)) continue;
                 var res = cell.GetResource();
 
                 foreach (var corner in cell.GetCornerConnectors())
