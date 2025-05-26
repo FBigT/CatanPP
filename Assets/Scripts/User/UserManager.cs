@@ -5,6 +5,8 @@ using Assets.Scripts.User;
 using Assets.Scripts.Utils;
 using System;
 using System.Collections.Generic;
+using System.Net;
+using System.Text;
 
 public class UserManager : MonoBehaviour
 {
@@ -131,17 +133,24 @@ public class UserManager : MonoBehaviour
 
     public IEnumerator RefreshTokenRequest(string refreshToken, Action<LoginResponse> onSuccess, Action<string> onFail)
     {
-        UnityWebRequest request = null;
-        yield return RequestService.ConstructSimpleWebRequest(EndpointUtils.Refresh, Methods.POST, false, $"\"{refreshToken}\"", result => request = result);
+        UnityWebRequest request = new(EndpointUtils.Refresh, Methods.POST.ToString())
+        {
+            uploadHandler = new UploadHandlerRaw(Encoding.UTF8.GetBytes($"\"{refreshToken}\"" ?? "")),
+            downloadHandler = new DownloadHandlerBuffer()
+        };
+        request.SetRequestHeader("Content-Type", "application/json");
+        
+        //yield return RequestService.ConstructSimpleWebRequest(EndpointUtils.Refresh, Methods.POST, false, $"\"{refreshToken}\"", result => request = result);
 
         if (request == null)
         {
+            Debug.LogError("Request was null in RefreshTokenRequest");
             onFail?.Invoke("Failed to construct request");
             yield break;
         }
 
         yield return request.SendWebRequest();
-
+        
         if (request.result == UnityWebRequest.Result.Success)
         {
             LoginResponse loginResponse = JsonUtility.FromJson<LoginResponse>(request.downloadHandler.text);
@@ -151,8 +160,6 @@ public class UserManager : MonoBehaviour
         else
         {
             LocalStorageService.Clear("refresh-token");
-            Debug.Log(request.result);
-            Debug.LogError($"Response Body: {request.downloadHandler.text}");
             onFail?.Invoke(request.error);
             yield break;
         }

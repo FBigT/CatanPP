@@ -1,3 +1,5 @@
+// Assets/Scripts/UI/Test/Login.cs
+using System.Collections;
 using Assets.Scripts.User;
 using Assets.Scripts.Utils;
 using TMPro;
@@ -10,7 +12,7 @@ using UnityEngine.UI;
 
 public class Login : MonoBehaviour
 {
-    UserManager userManager;
+    UserManager userManager; // assign via Inspector
     EventSystem _eventSystem;
 
     public TMP_InputField ifUsername;
@@ -21,7 +23,7 @@ public class Login : MonoBehaviour
     public Button btnGuest;
     public TMP_Text errorMessage;
 
-    void Awake()
+    void Start()
     {
         userManager = this.AddComponent<UserManager>();
         firstInput.Select();
@@ -45,6 +47,7 @@ public class Login : MonoBehaviour
         // Try refresh/guest auto?login if tokens are already in storage
         LoginWithRefresh();
         LoginGuest();
+        StartCoroutine(SelectFirstInputDelayed());
     }
 
     private void LoginSuccess(LoginResponse response)
@@ -93,6 +96,23 @@ public class Login : MonoBehaviour
     private void PrintError(string error)
     {
         Debug.LogError(error);
+        SetErrorMessage("Session expired. Please log in again.");
+
+        // Re-enable buttons
+        btnLogin.interactable = true;
+        btnRegister.interactable = true;
+        btnGuest.interactable = true;
+
+        Debug.Log("About to start coroutine to select input");
+
+         // Ensure this is inside the Login MonoBehaviour
+    }
+
+    private IEnumerator SelectFirstInputDelayed()
+    {
+        yield return null; // Wait one frame
+        Debug.Log("Now selecting input");
+        firstInput.Select();
     }
 
     void Update()

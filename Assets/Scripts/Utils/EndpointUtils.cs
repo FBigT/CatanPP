@@ -59,6 +59,7 @@ namespace Assets.Scripts.Utils
 
         public static string UpgradeSettlementToCity(string owner, int tileId, int cornerIndex)
             => $"{BASE}/place/structure/upgrade?owner={owner}&tileId={tileId}&cornerIndex={cornerIndex}";
+        public static string GenerateMap => $"{BASE}/place/map/generate";
 
         // TRADE
         public static string TradeWithBank => $"{BaseUrl}/trade/bank";

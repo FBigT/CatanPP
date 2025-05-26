@@ -1,4 +1,5 @@
-﻿using UnityEngine;
+﻿using Newtonsoft.Json;
+using UnityEngine;
 
 namespace Assets.Scripts.Utils
 {
@@ -14,7 +15,7 @@ namespace Assets.Scripts.Utils
         }
 
         public static string MessageFrame(WebSocketApplicationDestinations path, string sessionCode, object body){
-            return $"SEND\ndestination:{WebSocketApplicationDestinations.Construct(path, sessionCode)}\ncontent-type:application/json\nAuthorization:{LocalStorageService.GetString("token")}\n\n{JsonUtility.ToJson(body)}\n\0";
+            return $"SEND\ndestination:{WebSocketApplicationDestinations.Construct(path, sessionCode)}\ncontent-type:application/json\nAuthorization:{LocalStorageService.GetString("token")}\n\n{JsonConvert.SerializeObject(body)}\n\0";
         }
     }
 }

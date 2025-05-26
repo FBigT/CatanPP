@@ -5,7 +5,11 @@ using UnityEngine;
 using UnityEngine.Networking;
 using Assets.Scripts.Utils;  // for RequestService, EndpointUtils, Methods, LocalStorageService
 using Assets.Scripts.GameMode.Trading.Models; // for SessionCodeDto
-using Assets.Scripts.MainMenu; // for SessionSave
+using Assets.Scripts.MainMenu;
+using System.Linq;
+using Assets.Scripts.Dtos;
+using Catan.TerrainGeneration;
+using Newtonsoft.Json; // for SessionSave
 
 namespace Assets.Scripts.Utils
 {
@@ -131,6 +135,32 @@ namespace Assets.Scripts.Utils
                 result => req = result
             );
             if (req != null) yield return req.SendWebRequest();
+        }
+
+        public void GenerateMap(List<HexCell> hexes, Action<string> onSuccess, Action<string> onFail) {
+            StartCoroutine(GenerateMapRequest(hexes, onSuccess, onFail));
+        }
+
+        private IEnumerator GenerateMapRequest(List<HexCell> hexes, Action<string> onSuccess, Action<string> onFail) {
+            UnityWebRequest req = null;
+            List<TileDto> enumerable = hexes.Select(hex => {
+                return new TileDto(hex.coordinates.X, hex.coordinates.Z, hex.GetResource().ToString(), hex.GetNumberToken());
+            }).ToList();
+
+            yield return RequestService.ConstructSimpleWebRequest(
+                EndpointUtils.GenerateMap,
+                Methods.POST,
+                true,
+                JsonConvert.SerializeObject(new GenerateMapDto(enumerable)),
+                result => req = result
+            );
+            if (req == null) { onFail?.Invoke("Failed to construct request"); yield break; }
+            yield return req.SendWebRequest();
+            if (req.result == UnityWebRequest.Result.Success)
+            {
+                onSuccess?.Invoke(req.downloadHandler.text);
+            }
+            else onFail?.Invoke(req.error);
         }
 
         public void GetAllSessionSaves(Action<List<SessionSave>> onSuccess, Action<string> onFail)

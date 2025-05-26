@@ -115,5 +115,5 @@ namespace Assets.Scripts.Utils
             while (!done) yield return null;
             after?.Invoke(ok);
         }
-    }
+    } 
 }
