@@ -80,7 +80,7 @@ public class BoardGen : MonoBehaviour
 
                 for (int i = 0; i < 6; i++)
                 {
-                    Vector3 vertexPos = GetVertexPosition(pos, i, 1f); // radius = 1f
+                    Vector3 vertexPos = GetVertexPosition(pos, i, hexSize); // radius = 1f
                     SpawnVertexIfNotExists(vertexPos);
                 }
 

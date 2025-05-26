@@ -1,3 +1,4 @@
+using System.Xml.Linq;
 using UnityEngine;
 
 public class VertexPoint : MonoBehaviour
@@ -5,20 +6,19 @@ public class VertexPoint : MonoBehaviour
     public Vector3 Position => transform.position;
 
     public object owner;
+    public GameObject buildingRoot; // A parent GameObject holding all structure models (disabled)
 
-    public GameObject buildingModel;
-
-    public void Build(object player)
+    public void Build(string structureName)
     {
-        if (owner != null) return;
+        if (owner != null) return; // Already built
 
-        owner = player;
+        owner = "debug"; // placeholder
 
-        if (buildingModel != null)
+        foreach (Transform child in buildingRoot.transform)
         {
-            buildingModel.SetActive(true);
-
-            var renderer = buildingModel.GetComponent<Renderer>();
+            child.gameObject.SetActive(child.name == structureName);
         }
+
+        Debug.Log($"Built: {structureName} at {name}");
     }
 }

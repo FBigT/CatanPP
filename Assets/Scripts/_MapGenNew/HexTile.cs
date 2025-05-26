@@ -1,3 +1,4 @@
+using TMPro;
 using UnityEngine;
 
 public class HexTile : MonoBehaviour
@@ -6,7 +7,7 @@ public class HexTile : MonoBehaviour
     public int numberToken;
 
     public MeshRenderer renderer;
-    public TextMesh numberText;
+    public TextMeshPro numberText;
 
     public Material woodMat, brickMat, wheatMat, sheepMat, oreMat, desertMat;
 
