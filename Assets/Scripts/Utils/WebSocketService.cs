@@ -111,6 +111,21 @@ namespace Assets.Scripts.Utils
                 Connected = false;
             }
         }
+        // Add these methods to your existing WebSocketService class
+        public static void SendBuyDevCard()
+        {
+            var gameMove = new Assets.Scripts.Dtos.GameMoveDto(Assets.Scripts.Enums.GameMoveType.BUY_CARD);
+            string json = JsonUtility.ToJson(gameMove);
+            SendMessage(json);
+        }
+
+
+        public static void SendPlayDevCard(PlayCardDto playCardDto)
+        {
+            var gameMove = new GameMoveDto(playCardDto);  // This constructor might need to be added
+            string json = JsonUtility.ToJson(gameMove);
+            SendMessage(json);
+        }
 
         public static void DispatchMessageQueue()
         {

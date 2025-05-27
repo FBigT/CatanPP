@@ -1,21 +1,21 @@
-using System;
-namespace Assets.Scripts.Models {
-    // Must match backend enum names exactly:
-    public enum DevCardType
-    {
-        KNIGHT,
-        VICTORY_POINT,
-        ROAD_BUILDING,
-        YEAR_OF_PLENTY
-    }
+using CatanGame.DevCards.Core;
 
-    [Serializable]
+namespace CatanGame.DTOs
+{
+    [System.Serializable]
     public class DevCardDto
     {
         public long id;
-        public DevCardType type;
+        public string type; // "KNIGHT", "VICTORY_POINT", etc.
         public bool playable;
         public bool used;
+
+        public DevCardData ToDevCardData()
+        {
+            DevCardType cardType;
+            System.Enum.TryParse(type, out cardType);
+
+            return new DevCardData(id, cardType, playable, used);
+        }
     }
 }
-
