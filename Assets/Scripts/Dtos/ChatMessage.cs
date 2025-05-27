@@ -9,6 +9,12 @@ namespace Assets.Scripts.User
         public string timestamp;
         private DateTimeOffset? parsedTimestamp;
 
+
+        public ChatMessageType messageType;  
+        public string toUser;              
+        public string payloadJson;
+
+
         public DateTimeOffset ParsedTimestamp
         {
             get

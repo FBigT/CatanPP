@@ -17,6 +17,7 @@ namespace Assets.Scripts.Enums
         ROBBER_MOVE,
         PLAY_CARD,
         VICTORY,
-        MAP_GEN
+        MAP_GEN,
+        TRADE_OFFER
     }
 }

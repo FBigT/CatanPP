@@ -3,10 +3,11 @@ using System.Linq;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
-using Assets.Scripts.Utils;
+using Assets.Scripts.Utils;                     // LocalStorageService, WebSocketService
 using Assets.Scripts.GameMode.Trading.Models;
 using Assets.Scripts.GameMode.Trading;
-using System;   // ← keep only this TradingManager
+using Assets.Scripts.User;
+using Assets.Scripts.Dtos.GameMoveResponses;                      // ChatMessage, ChatMessageType
 
 namespace Assets.Scripts.GameMode.Trading
 {
@@ -34,37 +35,40 @@ namespace Assets.Scripts.GameMode.Trading
 
         void Start()
         {
+            // 1) Load session & user
             sessionId = LocalStorageService.GetInt("session-id") ?? 0;
             currentUserName = LocalStorageService.GetString("username") ?? "";
 
+            // 2) Populate the dropdown immediately
             playerDropdown.ClearOptions();
             TradingManager.Instance.GetSessionPlayers(
                 sessionId,
                 OnPlayersLoaded,
                 err => Debug.LogError($"[TradeScreen] Load players failed: {err}")
             );
+
+            // 3) Fire‐and‐forget WebSocket connect (won’t block dropdown)
+            var code = LocalStorageService.GetString("session-code");
+            if (!string.IsNullOrEmpty(code))
+                _ = WebSocketService.ConnectToChat(code);
+            else
+                Debug.LogWarning("No session-code for WebSocket");
         }
 
         void OnPlayersLoaded(List<SessionPlayerDto> players)
         {
             var options = new List<string> { "Bank" };
-
-            foreach (var player in players)
+            foreach (var p in players)
             {
-                if (!string.Equals(player.username, currentUserName, StringComparison.OrdinalIgnoreCase))
-                {
-                    options.Add(player.username);
-                }
+                if (!p.username.Equals(currentUserName, System.StringComparison.OrdinalIgnoreCase))
+                    options.Add(p.username);
             }
 
             playerDropdown.ClearOptions();
             playerDropdown.AddOptions(options);
             playerDropdown.value = 0;
             playerDropdown.RefreshShownValue();
-
-            Debug.Log($"[TradeScreen] Players loaded into dropdown: {string.Join(", ", options)}");
         }
-
 
         public void OpenRequestPanel() => SwitchPanel(requestPanel);
         public void OpenOfferPanel() => SwitchPanel(offerPanel);
@@ -80,25 +84,19 @@ namespace Assets.Scripts.GameMode.Trading
 
         public void ApplyRequestSelection()
         {
-            CaptureSelections(requestResourceButtons, selectedRequestedResources, selectedRequestedQuantities);
-
-            Debug.Log("[TradeScreen] Request resources applied: " +
-                      string.Join(", ", selectedRequestedResources.Zip(selectedRequestedQuantities, (r, q) => $"{r} x{q}")));
-
-            OpenMainTradePanel(); 
+            CaptureSelections(requestResourceButtons,
+                              selectedRequestedResources,
+                              selectedRequestedQuantities);
+            OpenMainTradePanel();
         }
-
 
         public void ApplyOfferSelection()
         {
-            CaptureSelections(offerResourceButtons, selectedOfferedResources, selectedOfferedQuantities);
-
-            Debug.Log("[TradeScreen] Offer resources applied: " +
-                      string.Join(", ", selectedOfferedResources.Zip(selectedOfferedQuantities, (r, q) => $"{r} x{q}")));
-
-            OpenMainTradePanel(); 
+            CaptureSelections(offerResourceButtons,
+                              selectedOfferedResources,
+                              selectedOfferedQuantities);
+            OpenMainTradePanel();
         }
-
 
         void CaptureSelections(List<ResourceButtonHandler> buttons,
                                List<string> names,
@@ -106,7 +104,6 @@ namespace Assets.Scripts.GameMode.Trading
         {
             names.Clear();
             qty.Clear();
-
             foreach (var b in buttons)
             {
                 int q = b.GetQuantity();
@@ -116,10 +113,7 @@ namespace Assets.Scripts.GameMode.Trading
                     qty.Add(q);
                 }
             }
-
-            Debug.Log($"[TradeScreen] Captured {names.Count} resources.");
         }
-
 
         public void OnApplyTradeClicked()
         {
@@ -127,37 +121,39 @@ namespace Assets.Scripts.GameMode.Trading
 
             if (toUser == "Bank")
             {
-                // Process bank trade
+                // -- existing bank‐trade code unchanged --
                 ApplyRequestSelection();
                 ApplyOfferSelection();
 
                 var offered = ResourceGroup.FromLists(selectedOfferedResources, selectedOfferedQuantities);
                 var requested = ResourceGroup.FromLists(selectedRequestedResources, selectedRequestedQuantities);
 
-                if (!IsValidBankTrade(offered, requested, out string errorMessage))
+                if (!IsValidBankTrade(offered, requested, out string err))
                 {
-                    Debug.LogError("[TradeScreen] Invalid bank trade: " + errorMessage);
-                    // Optionally show UI error
+                    Debug.LogError("[TradeScreen] Invalid bank trade: " + err);
                     return;
                 }
 
-                var dto = new BankTradeDto
+                var bankDto = new BankTradeDto
                 {
                     sessionId = sessionId,
                     fromUser = currentUserName,
                     offered = offered,
                     requested = requested,
-                    portType = "Default", // You can extend this later
-                    portRatio = 4         // 4:1 is standard unless player has port
+                    portType = "Default",
+                    portRatio = 4
                 };
 
-                TradingManager.Instance.TradeWithBank(dto,
+                TradingManager.Instance.TradeWithBank(bankDto,
                     () => Debug.Log("[TradeScreen] Bank trade successful"),
-                    err => Debug.LogError("[TradeScreen] Bank trade failed: " + err));
+                    e => Debug.LogError("[TradeScreen] Bank trade failed: " + e));
             }
             else
             {
-                // Player-to-player trade
+                // -- player‐to‐player --
+                ApplyRequestSelection();
+                ApplyOfferSelection();
+
                 var dto = new PlayerTradeDto
                 {
                     sessionId = sessionId,
@@ -168,45 +164,60 @@ namespace Assets.Scripts.GameMode.Trading
                 };
 
                 TradingManager.Instance.TradeWithPlayer(dto,
-                    () => Debug.Log("[TradeScreen] Trade successful"),
-                    err => Debug.LogError("[TradeScreen] Trade failed: " + err));
+                    onSuccess: () =>
+                    {
+                        Debug.Log("[TradeScreen] Trade request sent to server.");
+
+                        // a) notify sender locally:
+                        WebSocketService.RaiseChatMessage(new ChatMessage
+                        {
+                            messageType = ChatMessageType.Text,
+                            senderUsername = currentUserName,
+                            text = $"Trade sent to {toUser}",
+                            timestamp = System.DateTimeOffset.Now.ToString("o")
+                        });
+
+                        // b) broadcast the structured offer:
+                        var offerMsg = new TradeOfferMessage
+                        {
+                            fromUser = currentUserName,
+                            toUser = toUser,
+                            offered = dto.offered,
+                            requested = dto.requested
+                        };
+                        _ = WebSocketService.SendTradeOffer(offerMsg);
+                    },
+                    onError: e =>
+                    {
+                        Debug.LogError($"[TradeScreen] Trade failed: {e}");
+                    });
             }
         }
+
         private bool IsValidBankTrade(ResourceGroup offered, ResourceGroup requested, out string error)
         {
             error = "";
+            var offers = offered.GetResourceDictionary().Where(kvp => kvp.Value > 0).ToList();
+            if (offers.Count != 1) { error = "Must offer 4 of one resource."; return false; }
+            if (offers[0].Value != 4) { error = "Must offer exactly 4 units."; return false; }
 
-            // Sum offered: must offer exactly 4 of *one type*
-            var offerPairs = offered.GetResourceDictionary()
-                                    .Where(kvp => kvp.Value > 0)
-                                    .ToList();
-
-            if (offerPairs.Count != 1)
+            var req = requested.GetResourceDictionary().Where(kvp => kvp.Value > 0).ToList();
+            if (req.Count != 1 || req[0].Value != 1)
             {
-                error = "Bank trade must offer exactly one type of resource.";
+                error = "Must request exactly 1 unit.";
                 return false;
             }
-
-            int offerAmount = offerPairs[0].Value;
-            if (offerAmount != 4)
-            {
-                error = "You must offer exactly 4 units of one resource to the bank.";
-                return false;
-            }
-
-            // Sum requested: must request exactly 1 of one type
-            var requestPairs = requested.GetResourceDictionary()
-                                        .Where(kvp => kvp.Value > 0)
-                                        .ToList();
-
-            if (requestPairs.Count != 1 || requestPairs[0].Value != 1)
-            {
-                error = "You must request exactly 1 unit of one resource from the bank.";
-                return false;
-            }
-
             return true;
         }
 
+        // Helper to build "2 wood, 1 sheep" text
+        private string BuildSummary(ResourceGroup g)
+        {
+            return string.Join(", ",
+                g.GetResourceDictionary()
+                 .Where(kvp => kvp.Value > 0)
+                 .Select(kvp => $"{kvp.Value} {kvp.Key}")
+            );
+        }
     }
 }
