@@ -34,12 +34,7 @@ public class User {
     @Column(name = "email")
     private String email;
 
-    @OneToOne(mappedBy = "guest", cascade = CascadeType.ALL)
-    @PrimaryKeyJoinColumn
-    private GuestKey guestKey;
-    @OneToOne(mappedBy = "user", cascade = CascadeType.ALL)
-    @PrimaryKeyJoinColumn
-    private RefreshToken refreshToken;
+    @ToString.Exclude
     @OneToOne(mappedBy = "user", cascade = CascadeType.ALL)
     @PrimaryKeyJoinColumn
     private PlayerProfile playerProfile;

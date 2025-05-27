@@ -28,6 +28,7 @@ public class RefreshToken {
     @Column(name = "expire_date", nullable = false)
     private Instant expireDate;
 
+    @ToString.Exclude @EqualsAndHashCode.Exclude
     @NotNull
     @OneToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "user_id", nullable = false)

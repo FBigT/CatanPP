@@ -4,6 +4,7 @@ import com.catan.catanbackend.model.RefreshToken;
 import com.catan.catanbackend.model.User;
 import com.catan.catanbackend.repository.RefreshTokenRepository;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
 import java.time.LocalDateTime;
@@ -12,6 +13,7 @@ import java.util.Optional;
 import java.util.UUID;
 
 @Service
+@Transactional
 public class RefreshTokenService {
     final RefreshTokenRepository refreshTokenRepository;
 
