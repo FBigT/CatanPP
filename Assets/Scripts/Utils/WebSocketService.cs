@@ -18,6 +18,7 @@ namespace Assets.Scripts.Utils
         public static event Action<ChatMessage> OnChatMessageReceived;
 
         public static event Action<TradeOfferMessage> OnTradeOfferReceived;
+        public static event Action<TradeResponseMessage> OnTradeResponseReceived;
 
 
         private static WebSocket webSocket;
@@ -47,6 +48,7 @@ namespace Assets.Scripts.Utils
             webSocket.OnMessage += (bytes) =>
             {
                 var message = Encoding.UTF8.GetString(bytes);
+
                 Debug.Log($"Message received: {message}");
 
                 if (message.StartsWith("CONNECTED"))
@@ -141,13 +143,24 @@ namespace Assets.Scripts.Utils
 
                                 case GameMoveType.TRADE_OFFER:
                                     {
+                                        Debug.Log("[WebSocketService] Received TRADE_OFFER frame");
                                         string offerJson = JsonConvert.SerializeObject(gameMove.moveData);
                                         var offer = JsonConvert.DeserializeObject<TradeOfferMessage>(offerJson);
+                                        Debug.Log($"[WebSocketService] Deserialized TradeOfferMessage from {offer.fromUser} to {offer.toUser}");
+
                                         OnTradeOfferReceived?.Invoke(offer);
+                                        Debug.Log("[WebSocketService] OnTradeOfferReceived fired");
+
                                         break;
                                     }
 
-
+                                case GameMoveType.TRADE_RESPONSE:
+                                    {
+                                        string respJson = JsonConvert.SerializeObject(gameMove.moveData);
+                                        var resp = JsonConvert.DeserializeObject<TradeResponseMessage>(respJson);
+                                        OnTradeResponseReceived?.Invoke(resp);
+                                        break;
+                                    }
                             };
                         }
                         else if (destination != null && destination.Contains(WebSocketBrokerDestinations.Private.Value)) {
@@ -173,6 +186,8 @@ namespace Assets.Scripts.Utils
 
         private static async Task SendSubscribeFrame()
         {
+            Debug.Log("[WebSocketService] Subscribing to moves channel");
+
             await webSocket.SendText(WebSocketEndpointsUtils.SubscribeFrame(WebSocketBrokerDestinations.Chat, sessionCode));
             await webSocket.SendText(WebSocketEndpointsUtils.SubscribeFrame(WebSocketBrokerDestinations.Players, sessionCode));
             await webSocket.SendText(WebSocketEndpointsUtils.SubscribeFrame(WebSocketBrokerDestinations.Private, sessionCode));
@@ -247,10 +262,25 @@ namespace Assets.Scripts.Utils
                 sessionCode,
                 moveDto
             );
+            Debug.Log($"[WebSocketService] >> STOMP SEND (Moves):\n{frame}");
+
             await webSocket.SendText(frame);
+            Debug.Log("[WebSocketService] >> STOMP SEND complete");
+
         }
 
-    
+
+        public static async Task SendTradeResponse(TradeResponseMessage resp)
+        {
+            if (!Connected) { Debug.LogWarning("Not connected"); return; }
+            var dto = new GameMoveDto(resp);  // you’ll need a ctor GameMoveDto(TradeResponseMessage)
+            string frame = WebSocketEndpointsUtils.MessageFrame(
+                WebSocketApplicationDestinations.Moves,
+                sessionCode,
+                dto
+            );
+            await webSocket.SendText(frame);
+        }
         public static void RaiseChatMessage(ChatMessage msg)
         {
             OnChatMessageReceived?.Invoke(msg);

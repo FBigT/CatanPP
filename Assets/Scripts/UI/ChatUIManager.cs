@@ -20,6 +20,8 @@ namespace Assets.Scripts.UI
 
         private void OnEnable()
         {
+            Debug.Log("[ChatUIManager] OnEnable: subscribing to trade offers");
+
             var root = GetComponent<UIDocument>().rootVisualElement;
             VisualElement chatContainerRoot = root.Q<VisualElement>("ChatContainer");
             TextField chatInputField = root.Q<TextField>("ChatInput");
@@ -27,6 +29,8 @@ namespace Assets.Scripts.UI
             // Subscribe to incoming trade-offers and forward into chat
             WebSocketService.OnTradeOfferReceived += offer =>
             {
+                Debug.Log($"[ChatUIManager] OnTradeOfferReceived handler invoked for offer from {offer.fromUser}");
+
                 // Build a human-readable summary: "2 wood, 1 sheep"
                 string summary = $"{offer.fromUser} offers " +
                                  $"{BuildSummary(offer.offered)} for {BuildSummary(offer.requested)}";
@@ -44,7 +48,26 @@ namespace Assets.Scripts.UI
                 // Inject into normal chat stream
                 WebSocketService.RaiseChatMessage(chatMsg);
             };
+            Debug.Log("[ChatUIManager] OnEnable: subscription complete");
 
+            WebSocketService.OnTradeResponseReceived += resp =>
+            {
+                // only notify the original sender
+                if (resp.toUser != LocalStorageService.GetString("username")) return;
+
+                string text = resp.accepted
+                    ? $"{resp.fromUser} accepted your trade."
+                    : $"{resp.fromUser} declined your trade.";
+
+                var chatMsg = new ChatMessage
+                {
+                    messageType = ChatMessageType.Text,
+                    senderUsername = resp.fromUser,
+                    text = text,
+                    timestamp = System.DateTimeOffset.Now.ToString("o")
+                };
+                WebSocketService.RaiseChatMessage(chatMsg);
+            };
             // Initialize chat controller with both templates
             chatController = new ChatMessageController
             {
@@ -73,9 +96,6 @@ namespace Assets.Scripts.UI
             WebSocketService.DispatchMessageQueue();
         }
 
-        /// <summary>
-        /// Helper to turn ResourceGroup into comma-separated list
-        /// </summary>
         private string BuildSummary(ResourceGroup g)
         {
             return string.Join(", ",

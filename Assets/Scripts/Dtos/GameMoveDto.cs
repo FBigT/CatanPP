@@ -46,6 +46,11 @@ namespace Assets.Scripts.Dtos
             GameMoveType = GameMoveType.PLAY_CARD;
             moveData = playCardDto;
         }
+        public GameMoveDto(TradeResponseMessage resp)
+        {
+            GameMoveType = GameMoveType.TRADE_RESPONSE;
+            moveData = resp;
+        }
 
 
         public GameMoveDto(TradeOfferMessage tradeOffer)

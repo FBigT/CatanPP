@@ -18,6 +18,7 @@ namespace Assets.Scripts.Enums
         PLAY_CARD,
         VICTORY,
         MAP_GEN,
-        TRADE_OFFER
+        TRADE_OFFER,
+        TRADE_RESPONSE
     }
 }

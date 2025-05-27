@@ -6,8 +6,8 @@ using UnityEngine.UI;
 using Assets.Scripts.Utils;                     // LocalStorageService, WebSocketService
 using Assets.Scripts.GameMode.Trading.Models;
 using Assets.Scripts.GameMode.Trading;
-using Assets.Scripts.User;
-using Assets.Scripts.Dtos.GameMoveResponses;                      // ChatMessage, ChatMessageType
+using Assets.Scripts.User;                      // ChatMessage, ChatMessageType
+using Assets.Scripts.Dtos.GameMoveResponses;    // TradeOfferMessage
 
 namespace Assets.Scripts.GameMode.Trading
 {
@@ -47,12 +47,20 @@ namespace Assets.Scripts.GameMode.Trading
                 err => Debug.LogError($"[TradeScreen] Load players failed: {err}")
             );
 
-            // 3) Fire‐and‐forget WebSocket connect (won’t block dropdown)
-            var code = LocalStorageService.GetString("session-code");
-            if (!string.IsNullOrEmpty(code))
-                _ = WebSocketService.ConnectToChat(code);
+            // 3) Fire-and-forget WebSocket connect (won’t block UI)
+            string code = sessionId.ToString();
+            if (string.IsNullOrEmpty(code))
+            {
+                Debug.LogWarning("[TradeScreenManager] No session-code for WebSocket");
+            }
             else
-                Debug.LogWarning("No session-code for WebSocket");
+            {
+                Debug.Log($"[TradeScreenManager] Connecting WebSocket with code={code}");
+                var connectTask = WebSocketService.ConnectToChat(code);
+                connectTask.ContinueWith(_ =>
+                    Debug.Log($"[TradeScreenManager] WebSocket Connected = {WebSocketService.Connected}")
+                );
+            }
         }
 
         void OnPlayersLoaded(List<SessionPlayerDto> players)
@@ -68,6 +76,8 @@ namespace Assets.Scripts.GameMode.Trading
             playerDropdown.AddOptions(options);
             playerDropdown.value = 0;
             playerDropdown.RefreshShownValue();
+
+            Debug.Log($"[TradeScreenManager] Players loaded: {string.Join(", ", options)}");
         }
 
         public void OpenRequestPanel() => SwitchPanel(requestPanel);
@@ -121,7 +131,7 @@ namespace Assets.Scripts.GameMode.Trading
 
             if (toUser == "Bank")
             {
-                // -- existing bank‐trade code unchanged --
+                // Bank‐trade logic (unchanged)
                 ApplyRequestSelection();
                 ApplyOfferSelection();
 
@@ -146,11 +156,12 @@ namespace Assets.Scripts.GameMode.Trading
 
                 TradingManager.Instance.TradeWithBank(bankDto,
                     () => Debug.Log("[TradeScreen] Bank trade successful"),
-                    e => Debug.LogError("[TradeScreen] Bank trade failed: " + e));
+                    e => Debug.LogError("[TradeScreen] Bank trade failed: " + e)
+                );
             }
             else
             {
-                // -- player‐to‐player --
+                // Player‐to‐player trade
                 ApplyRequestSelection();
                 ApplyOfferSelection();
 
@@ -167,17 +178,9 @@ namespace Assets.Scripts.GameMode.Trading
                     onSuccess: () =>
                     {
                         Debug.Log("[TradeScreen] Trade request sent to server.");
+                        Debug.Log($"[TradeScreenManager] WebSocket Connected = {WebSocketService.Connected}");
+                        Debug.Log($"[TradeScreenManager] Sending TradeOfferMessage to {toUser}");
 
-                        // a) notify sender locally:
-                        WebSocketService.RaiseChatMessage(new ChatMessage
-                        {
-                            messageType = ChatMessageType.Text,
-                            senderUsername = currentUserName,
-                            text = $"Trade sent to {toUser}",
-                            timestamp = System.DateTimeOffset.Now.ToString("o")
-                        });
-
-                        // b) broadcast the structured offer:
                         var offerMsg = new TradeOfferMessage
                         {
                             fromUser = currentUserName,
@@ -185,7 +188,11 @@ namespace Assets.Scripts.GameMode.Trading
                             offered = dto.offered,
                             requested = dto.requested
                         };
-                        _ = WebSocketService.SendTradeOffer(offerMsg);
+
+                        _ = WebSocketService.SendTradeOffer(offerMsg)
+                             .ContinueWith(_ =>
+                                 Debug.Log("[TradeScreenManager] SendTradeOffer() completed")
+                             );
                     },
                     onError: e =>
                     {
