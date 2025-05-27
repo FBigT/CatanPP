@@ -10,6 +10,7 @@ namespace Assets.Scripts.Enums
         PLACE_ROAD,
         PLACE_STRUCTURE,
         BUY_CARD,
+        PRIVATE_BUY_CARD,
         UPGRADE_STRUCTURE,
         END_TURN,
         DICE_ROLL,

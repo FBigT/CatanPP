@@ -19,9 +19,8 @@ namespace Assets.Scripts.Utils
             object moveData = gameMoveType switch
             {
                 GameMoveType.PLACE_ROAD => jo["moveData"]?.ToObject<PlaceRoadResponse>(serializer),
-                /*case GameMoveType.BUY_CARD:
-                moveData = jo["moveData"]?.ToObject<>(serializer);
-                break;*/
+                GameMoveType.BUY_CARD => jo["moveData"]?.ToObject<BuyCardResponseDto>(serializer),
+                GameMoveType.PRIVATE_BUY_CARD => jo["moveData"]?.ToObject<PrivateBuyCard>(serializer),
                 GameMoveType.UPGRADE_STRUCTURE => jo["moveData"]?.ToObject<UpgradeStructureResponse>(serializer),
                 GameMoveType.ROBBER_MOVE => jo["moveData"]?.ToObject<RobberMoveResponse>(serializer),
                 GameMoveType.PLACE_STRUCTURE => jo["moveData"]?.ToObject<PlaceStructureResponse>(serializer),

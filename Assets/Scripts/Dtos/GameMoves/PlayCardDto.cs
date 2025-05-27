@@ -14,7 +14,7 @@ namespace Assets.Scripts.Dtos.GameMoves
             DevCardType = devCardType;
         }
 
-        public PlayCardDto(DevCardType devCardType, PlaceRoadDto road1, PlaceRoadDto road2) { 
+        public PlayCardDto(PlaceRoadDto road1, PlaceRoadDto road2) { 
             DevCardType = DevCardType.ROAD_BUILDING;
             moveData = new PlaceRoadDto[2] { road1, road2 };
         }

@@ -80,7 +80,7 @@ namespace Assets.Scripts.Utils
                             OnChatMessageReceived?.Invoke(chatMsg);
                         } else if (destination != null && destination.Contains(WebSocketBrokerDestinations.Moves.Value))
                         {
-                            GameMoveDto gameMove = JsonConvert.DeserializeObject<GameMoveDto>(jsonBody);
+                            GameMoveResponseDto gameMove = JsonConvert.DeserializeObject<GameMoveResponseDto>(jsonBody);
                             GameMoveType gameMoveType = gameMove.GameMoveType;
 
                             switch (gameMoveType)
@@ -120,7 +120,7 @@ namespace Assets.Scripts.Utils
 
                                             break;
                                         case Models.DevCardType.ROAD_BUILDING:
-                                            Place2RoadsDto placeRoadsDto = (Place2RoadsDto)playCardResponseDto.moveData;
+                                            Place2RoadsResponseDto placeRoadsDto = (Place2RoadsResponseDto)playCardResponseDto.moveData;
                                             break;
                                         case Models.DevCardType.YEAR_OF_PLENTY:
                                             TradeOfferMessage yearOfPlentyDto = (TradeOfferMessage)playCardResponseDto.moveData;
@@ -134,8 +134,7 @@ namespace Assets.Scripts.Utils
                                 case GameMoveType.MAP_GEN:
                                     GenerateMapDto generateMapDto = (GenerateMapDto)gameMove.moveData;
                                     break;
-                            }
-                            ;
+                            };
                         }
                         else if (destination != null && destination.Contains(WebSocketBrokerDestinations.Private.Value)) {
                             GameMoveDto gameMove = JsonConvert.DeserializeObject<GameMoveDto>(jsonBody);

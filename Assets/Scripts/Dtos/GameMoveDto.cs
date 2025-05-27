@@ -1,4 +1,5 @@
 ﻿using System;
+using Assets.Scripts.Dtos.GameMoves;
 using Assets.Scripts.Enums;
 using Assets.Scripts.Utils;
 using Newtonsoft.Json;
@@ -45,6 +46,11 @@ namespace Assets.Scripts.Dtos
         public GameMoveDto(PlaceStructureDto placeStructureDto){
             GameMoveType = GameMoveType.PLACE_STRUCTURE;
             moveData = placeStructureDto;
+        }
+
+        public GameMoveDto(PlayCardDto playCardDto) { 
+            GameMoveType = GameMoveType.PLAY_CARD;
+            moveData = playCardDto;
         }
 
         [JsonConverter(typeof(StringEnumConverter))]
