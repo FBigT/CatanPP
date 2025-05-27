@@ -12,9 +12,7 @@
             <engine:Button name="BuyRoadButton" text="Buy Road" class="purchase-button" />
             <engine:Button name="BuySettlementButton" text="Buy Settlement" class="purchase-button" />
             <engine:Button name="BuyCityButton" text="Buy City" class="purchase-button" />
-            <engine:Button name="BuyDevCardButton" text="Buy Dev Card" display-tooltip-when-elided="true" enabled="false" class="purchase-button" />
         </engine:VisualElement>
-        <engine:VisualElement name="DevCardPanel" class="devcard-panel" style="height: 99px;" />
     </engine:VisualElement>
     <engine:VisualElement name="EndTurnContainer" class="end-turn-container" />
     <engine:VisualElement name="ChatBox" class="chat-box">

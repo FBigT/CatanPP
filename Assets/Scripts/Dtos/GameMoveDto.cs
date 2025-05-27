@@ -33,6 +33,14 @@ namespace Assets.Scripts.Dtos
             GameMoveType = GameMoveType.PLACE_ROAD;
             moveData = placeRoadDto;
         }
+        // Add to existing GameMoveDto.cs
+        // Add this to your existing GameMoveDto.cs file, around line 37
+        public GameMoveDto(Assets.Scripts.Dtos.GameMoves.PlayCardDto playCardDto)
+        {
+            GameMoveType = GameMoveType.PLAY_CARD;
+            moveData = playCardDto;
+        }
+
 
         public GameMoveDto(PlaceStructureDto placeStructureDto){
             GameMoveType = GameMoveType.PLACE_STRUCTURE;

@@ -1,8 +1,8 @@
-﻿// Assets/Scripts/Managers/PurchaseManager.cs
-using System;
+﻿using System;
 using UnityEngine;
 using Assets.Scripts.Enums;     // PurchaseType
 using Catan.GameMode;          // Costs.Get(...)
+using Assets.Scripts.DevCards.UI; // DevCardPanel
 
 namespace Catan.Managers
 {
@@ -11,6 +11,11 @@ namespace Catan.Managers
     {
         /* ── singleton ─────────────────────────────────────────── */
         public static PurchaseManager Instance { get; private set; }
+
+        [Header("Dev Card Panel Reference")]
+        public DevCardPanel devCardPanel; // Add this field in inspector
+
+        private bool isPanelOpen = false; // Track panel state
 
         void Awake()
         {
@@ -30,16 +35,15 @@ namespace Catan.Managers
         /* ── API called by UI scripts ───────────────────────────── */
 
         /// <summary>
-        /// Sets which structure you want to build next—but DevCard is handled
-        /// separately in the DevCardPanelController, so we ignore it here.
+        /// Sets which structure you want to build next—but DevCard toggles the panel.
         /// </summary>
         public bool SetPurchase(PurchaseType type, int[] playerStock)
         {
-            // 1) Block DevCard here so it doesn't interfere with your panel logic:
+            // Handle dev cards as panel toggle instead of buying
             if (type == PurchaseType.DevCard)
             {
-                Debug.LogWarning("Dev Card purchases are handled via the DevCard panel.");
-                return false;
+                ToggleDevCardPanel();
+                return true;
             }
 
             // 2) Affordability check for the other types:
@@ -66,6 +70,30 @@ namespace Catan.Managers
 
         /* ---------- legacy alias (for older scripts) ------------ */
         public void ClearPurchase() => Clear();
+
+        /* ── dev card panel toggle ─────────────────────────────── */
+        private void ToggleDevCardPanel()
+        {
+            if (devCardPanel != null)
+            {
+                if (isPanelOpen)
+                {
+                    devCardPanel.HidePanel();
+                    isPanelOpen = false;
+                    Debug.Log("Dev card panel hidden");
+                }
+                else
+                {
+                    devCardPanel.ShowPanel();
+                    isPanelOpen = true;
+                    Debug.Log("Dev card panel shown");
+                }
+            }
+            else
+            {
+                Debug.LogError("DevCardPanel reference not assigned in PurchaseManager! Please assign it in the inspector.");
+            }
+        }
 
         /* ── helpers ────────────────────────────────────────────── */
         public bool CanAfford(PurchaseType type, int[] have)

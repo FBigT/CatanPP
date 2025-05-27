@@ -2038,6 +2038,52 @@ MonoBehaviour:
   tileId: 0
   index: 0
   connectionType: 0
+--- !u!1 &74628095
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 74628097}
+  - component: {fileID: 74628096}
+  m_Layer: 0
+  m_Name: DevCardToggleManager
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &74628096
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 74628095}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 286cf2e4dc48e2b4c854bbef3e51293e, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  toggleButton: {fileID: 210213670}
+  devCardPanel: {fileID: 597205189}
+--- !u!4 &74628097
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 74628095}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 23.008444, y: -10.966179, z: 13.622854}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &78134214
 GameObject:
   m_ObjectHideFlags: 0
@@ -2554,6 +2600,7 @@ MonoBehaviour:
   cellHexMetrics: {fileID: 11400000, guid: 6912b000a78e2224e947e3a73e353455, type: 2}
   resourceType: 2
   numberToken: 9
+  hasRobber: 0
   coordinates:
     x: 4
     z: 1
@@ -3435,6 +3482,7 @@ MonoBehaviour:
   cellHexMetrics: {fileID: 11400000, guid: 6912b000a78e2224e947e3a73e353455, type: 2}
   resourceType: 2
   numberToken: 2
+  hasRobber: 0
   coordinates:
     x: 1
     z: 4
@@ -3547,6 +3595,7 @@ MonoBehaviour:
   cellHexMetrics: {fileID: 11400000, guid: 6912b000a78e2224e947e3a73e353455, type: 2}
   resourceType: 2
   numberToken: 2
+  hasRobber: 0
   coordinates:
     x: 0
     z: 5
@@ -4481,6 +4530,127 @@ MonoBehaviour:
   tileId: 0
   index: 0
   connectionType: 0
+--- !u!1 &210213669
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 210213673}
+  - component: {fileID: 210213672}
+  - component: {fileID: 210213671}
+  - component: {fileID: 210213670}
+  m_Layer: 5
+  m_Name: DevCardToggleButton
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &210213670
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 210213669}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4e29b1a8efbd4b44bb3f3716e73f07ff, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  m_Navigation:
+    m_Mode: 3
+    m_WrapAround: 0
+    m_SelectOnUp: {fileID: 0}
+    m_SelectOnDown: {fileID: 0}
+    m_SelectOnLeft: {fileID: 0}
+    m_SelectOnRight: {fileID: 0}
+  m_Transition: 1
+  m_Colors:
+    m_NormalColor: {r: 1, g: 1, b: 1, a: 1}
+    m_HighlightedColor: {r: 0.9607843, g: 0.9607843, b: 0.9607843, a: 1}
+    m_PressedColor: {r: 0.78431374, g: 0.78431374, b: 0.78431374, a: 1}
+    m_SelectedColor: {r: 0.9607843, g: 0.9607843, b: 0.9607843, a: 1}
+    m_DisabledColor: {r: 0.78431374, g: 0.78431374, b: 0.78431374, a: 0.5019608}
+    m_ColorMultiplier: 1
+    m_FadeDuration: 0.1
+  m_SpriteState:
+    m_HighlightedSprite: {fileID: 0}
+    m_PressedSprite: {fileID: 0}
+    m_SelectedSprite: {fileID: 0}
+    m_DisabledSprite: {fileID: 0}
+  m_AnimationTriggers:
+    m_NormalTrigger: Normal
+    m_HighlightedTrigger: Highlighted
+    m_PressedTrigger: Pressed
+    m_SelectedTrigger: Selected
+    m_DisabledTrigger: Disabled
+  m_Interactable: 1
+  m_TargetGraphic: {fileID: 210213671}
+  m_OnClick:
+    m_PersistentCalls:
+      m_Calls: []
+--- !u!114 &210213671
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 210213669}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fe87c0e1cc204ed48ad3b37840f39efc, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  m_Material: {fileID: 0}
+  m_Color: {r: 1, g: 1, b: 1, a: 1}
+  m_RaycastTarget: 1
+  m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
+  m_Maskable: 1
+  m_OnCullStateChanged:
+    m_PersistentCalls:
+      m_Calls: []
+  m_Sprite: {fileID: 10905, guid: 0000000000000000f000000000000000, type: 0}
+  m_Type: 1
+  m_PreserveAspect: 0
+  m_FillCenter: 1
+  m_FillMethod: 4
+  m_FillAmount: 1
+  m_FillClockwise: 1
+  m_FillOrigin: 0
+  m_UseSpriteMesh: 0
+  m_PixelsPerUnitMultiplier: 1
+--- !u!222 &210213672
+CanvasRenderer:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 210213669}
+  m_CullTransparentMesh: 1
+--- !u!224 &210213673
+RectTransform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 210213669}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children:
+  - {fileID: 1916875129}
+  m_Father: {fileID: 585541649}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+  m_AnchorMin: {x: 1, y: 1}
+  m_AnchorMax: {x: 1, y: 1}
+  m_AnchoredPosition: {x: -400, y: -20}
+  m_SizeDelta: {x: 160, y: 30}
+  m_Pivot: {x: 0.5, y: 0.5}
 --- !u!1 &214305441
 GameObject:
   m_ObjectHideFlags: 0
@@ -5343,6 +5513,7 @@ MonoBehaviour:
   cellHexMetrics: {fileID: 11400000, guid: 6912b000a78e2224e947e3a73e353455, type: 2}
   resourceType: 0
   numberToken: 9
+  hasRobber: 0
   coordinates:
     x: 5
     z: 1
@@ -5821,6 +5992,7 @@ MonoBehaviour:
   cellHexMetrics: {fileID: 11400000, guid: 6912b000a78e2224e947e3a73e353455, type: 2}
   resourceType: 1
   numberToken: 3
+  hasRobber: 0
   coordinates:
     x: 2
     z: 3
@@ -7198,6 +7370,7 @@ MonoBehaviour:
   cellHexMetrics: {fileID: 11400000, guid: 6912b000a78e2224e947e3a73e353455, type: 2}
   resourceType: 0
   numberToken: 10
+  hasRobber: 0
   coordinates:
     x: 4
     z: 2
@@ -7655,6 +7828,7 @@ MonoBehaviour:
   cellHexMetrics: {fileID: 11400000, guid: 6912b000a78e2224e947e3a73e353455, type: 2}
   resourceType: 3
   numberToken: 9
+  hasRobber: 0
   coordinates:
     x: 4
     z: 3
@@ -7882,6 +8056,7 @@ MonoBehaviour:
   cellHexMetrics: {fileID: 11400000, guid: 6912b000a78e2224e947e3a73e353455, type: 2}
   resourceType: 4
   numberToken: 6
+  hasRobber: 0
   coordinates:
     x: 2
     z: 1
@@ -8602,6 +8777,7 @@ MonoBehaviour:
   cellHexMetrics: {fileID: 11400000, guid: 6912b000a78e2224e947e3a73e353455, type: 2}
   resourceType: 3
   numberToken: 8
+  hasRobber: 0
   coordinates:
     x: 1
     z: 1
@@ -8714,6 +8890,7 @@ MonoBehaviour:
   cellHexMetrics: {fileID: 11400000, guid: 6912b000a78e2224e947e3a73e353455, type: 2}
   resourceType: 0
   numberToken: 8
+  hasRobber: 0
   coordinates:
     x: 1
     z: 0
@@ -9989,11 +10166,13 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e361aa8e11e7cd74d9f63a89d97ff5ed, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  uiDocument: {fileID: 469276496}
+  buyRoadButton: {fileID: 0}
+  buySettlementButton: {fileID: 0}
+  buyCityButton: {fileID: 0}
+  devCardsButton: {fileID: 0}
   roadPrefab: {fileID: 2644415273911902033, guid: 5d586a69f027c6443b87d841f31466d5, type: 3}
   settlementPrefab: {fileID: 2416815274884582457, guid: 6c37a2710815307438fd92b4a77fbebc, type: 3}
   cityPrefab: {fileID: 2037119556831705602, guid: 8c39b66210a31924e83443e6e78673d4, type: 3}
-  devCardPrefab: {fileID: 0}
 --- !u!114 &469276494
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -12424,6 +12603,7 @@ MonoBehaviour:
   cellHexMetrics: {fileID: 11400000, guid: 6912b000a78e2224e947e3a73e353455, type: 2}
   resourceType: 0
   numberToken: 3
+  hasRobber: 0
   coordinates:
     x: 4
     z: 0
@@ -12578,6 +12758,7 @@ RectTransform:
   - {fileID: 1178899657}
   - {fileID: 1726423555}
   - {fileID: 1756616181}
+  - {fileID: 210213673}
   - {fileID: 119275970}
   - {fileID: 1204369161}
   - {fileID: 1489411409}
@@ -12739,6 +12920,75 @@ MonoBehaviour:
   tileId: 0
   index: 0
   connectionType: 0
+--- !u!1 &597205188
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 597205191}
+  - component: {fileID: 597205190}
+  - component: {fileID: 597205189}
+  m_Layer: 0
+  m_Name: DevCardUI
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &597205189
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 597205188}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f1d6da4a4dbdf1b47b6f0cf61da40dc4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  uiDocument: {fileID: 597205190}
+  knightIcon: {fileID: 21300000, guid: 1cf4b4ef8d3eae44eb0f7cac40b08da4, type: 3}
+  victoryPointIcon: {fileID: 21300000, guid: f79ed540e251c974c84a729e9fb05b45, type: 3}
+  roadBuildingIcon: {fileID: 21300000, guid: 03879c08ea05eb645910734e6e3c0722, type: 3}
+  yearOfPlentyIcon: {fileID: 21300000, guid: 55c79ed02bddc9442a5df3198f18be3e, type: 3}
+--- !u!114 &597205190
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 597205188}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 19102, guid: 0000000000000000e000000000000000, type: 0}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  m_PanelSettings: {fileID: 11400000, guid: b18ac4c93bb1fa14b84e1d30962f93e9, type: 2}
+  m_ParentUI: {fileID: 0}
+  sourceAsset: {fileID: 9197481963319205126, guid: 7111a1a8512b36244b8c93f742d6f3db, type: 3}
+  m_SortingOrder: 0
+  m_WorldSpaceSizeMode: 1
+  m_WorldSpaceWidth: 1920
+  m_WorldSpaceHeight: 1080
+--- !u!4 &597205191
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 597205188}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 23.008444, y: -10.966179, z: 13.622854}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &602163929
 GameObject:
   m_ObjectHideFlags: 0
@@ -13225,6 +13475,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 5994040929732494b849442aba179981, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  devCardPanel: {fileID: 0}
 --- !u!4 &624581397
 Transform:
   m_ObjectHideFlags: 0
@@ -13810,6 +14061,7 @@ MonoBehaviour:
   cellHexMetrics: {fileID: 11400000, guid: 6912b000a78e2224e947e3a73e353455, type: 2}
   resourceType: 2
   numberToken: 3
+  hasRobber: 0
   coordinates:
     x: 0
     z: 3
@@ -14152,6 +14404,7 @@ MonoBehaviour:
   cellHexMetrics: {fileID: 11400000, guid: 6912b000a78e2224e947e3a73e353455, type: 2}
   resourceType: 1
   numberToken: 9
+  hasRobber: 0
   coordinates:
     x: 3
     z: 0
@@ -15430,6 +15683,7 @@ MonoBehaviour:
   cellHexMetrics: {fileID: 11400000, guid: 6912b000a78e2224e947e3a73e353455, type: 2}
   resourceType: 1
   numberToken: 8
+  hasRobber: 0
   coordinates:
     x: 2
     z: 0
@@ -16603,6 +16857,7 @@ MonoBehaviour:
   cellHexMetrics: {fileID: 11400000, guid: 6912b000a78e2224e947e3a73e353455, type: 2}
   resourceType: 2
   numberToken: 11
+  hasRobber: 0
   coordinates:
     x: 0
     z: 0
@@ -19211,6 +19466,7 @@ MonoBehaviour:
   cellHexMetrics: {fileID: 11400000, guid: 6912b000a78e2224e947e3a73e353455, type: 2}
   resourceType: 0
   numberToken: 4
+  hasRobber: 0
   coordinates:
     x: 2
     z: 5
@@ -19989,6 +20245,65 @@ MonoBehaviour:
   tileId: 0
   index: 0
   connectionType: 1
+--- !u!1 &897889096
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 897889098}
+  - component: {fileID: 897889097}
+  - component: {fileID: 897889099}
+  m_Layer: 0
+  m_Name: DevCardManager
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &897889097
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 897889096}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 15e24b1b5204172479a9b33dedf76fe0, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  playerCards: []
+--- !u!4 &897889098
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 897889096}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 23.008444, y: -10.966179, z: 13.622854}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &897889099
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 897889096}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f431a1c3203ba814dbc2f3a2f8b165ec, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  devCardsButton: {fileID: 0}
 --- !u!1 &900781837
 GameObject:
   m_ObjectHideFlags: 0
@@ -21051,6 +21366,7 @@ MonoBehaviour:
   cellHexMetrics: {fileID: 11400000, guid: 6912b000a78e2224e947e3a73e353455, type: 2}
   resourceType: 3
   numberToken: 4
+  hasRobber: 0
   coordinates:
     x: 2
     z: 2
@@ -22740,6 +23056,7 @@ MonoBehaviour:
   cellHexMetrics: {fileID: 11400000, guid: 6912b000a78e2224e947e3a73e353455, type: 2}
   resourceType: 2
   numberToken: 4
+  hasRobber: 0
   coordinates:
     x: 0
     z: 1
@@ -22796,71 +23113,6 @@ MeshFilter:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1051134172}
   m_Mesh: {fileID: 2534964839176971238, guid: 21c4caf472a0f6641bf92a1d707fe8d2, type: 3}
---- !u!1 &1055398202
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 1055398205}
-  - component: {fileID: 1055398204}
-  - component: {fileID: 1055398203}
-  m_Layer: 0
-  m_Name: DevCardPanel
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 0
---- !u!114 &1055398203
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1055398202}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 0fb3756982d82c242ad75d41c9e99160, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  cardTemplate: {fileID: 9197481963319205126, guid: b3f114d2f2783fc41b2a27859b949eb2, type: 3}
---- !u!114 &1055398204
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1055398202}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 19102, guid: 0000000000000000e000000000000000, type: 0}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  m_PanelSettings: {fileID: 11400000, guid: b18ac4c93bb1fa14b84e1d30962f93e9, type: 2}
-  m_ParentUI: {fileID: 0}
-  sourceAsset: {fileID: 9197481963319205126, guid: 7111a1a8512b36244b8c93f742d6f3db, type: 3}
-  m_SortingOrder: 0
-  m_WorldSpaceSizeMode: 1
-  m_WorldSpaceWidth: 1920
-  m_WorldSpaceHeight: 1080
---- !u!4 &1055398205
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1055398202}
-  serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -8.452368, y: -5.6953707, z: -7.0915685}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 0}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1065544734
 GameObject:
   m_ObjectHideFlags: 0
@@ -23076,6 +23328,7 @@ MonoBehaviour:
   cellHexMetrics: {fileID: 11400000, guid: 6912b000a78e2224e947e3a73e353455, type: 2}
   resourceType: 1
   numberToken: 6
+  hasRobber: 0
   coordinates:
     x: 3
     z: 1
@@ -23324,6 +23577,7 @@ MonoBehaviour:
   cellHexMetrics: {fileID: 11400000, guid: 6912b000a78e2224e947e3a73e353455, type: 2}
   resourceType: 4
   numberToken: 5
+  hasRobber: 0
   coordinates:
     x: -1
     z: 4
@@ -24147,6 +24401,7 @@ MonoBehaviour:
   cellHexMetrics: {fileID: 11400000, guid: 6912b000a78e2224e947e3a73e353455, type: 2}
   resourceType: 0
   numberToken: 8
+  hasRobber: 0
   coordinates:
     x: 3
     z: 2
@@ -25738,6 +25993,7 @@ MonoBehaviour:
   cellHexMetrics: {fileID: 11400000, guid: 6912b000a78e2224e947e3a73e353455, type: 2}
   resourceType: 2
   numberToken: 12
+  hasRobber: 0
   coordinates:
     x: 0
     z: 2
@@ -28270,6 +28526,7 @@ MonoBehaviour:
   cellHexMetrics: {fileID: 11400000, guid: 6912b000a78e2224e947e3a73e353455, type: 2}
   resourceType: 3
   numberToken: 8
+  hasRobber: 0
   coordinates:
     x: -1
     z: 5
@@ -30288,6 +30545,7 @@ MonoBehaviour:
   cellHexMetrics: {fileID: 11400000, guid: 6912b000a78e2224e947e3a73e353455, type: 2}
   resourceType: 1
   numberToken: 5
+  hasRobber: 0
   coordinates:
     x: -2
     z: 4
@@ -31288,6 +31546,7 @@ MonoBehaviour:
   cellHexMetrics: {fileID: 11400000, guid: 6912b000a78e2224e947e3a73e353455, type: 2}
   resourceType: 2
   numberToken: 6
+  hasRobber: 0
   coordinates:
     x: 3
     z: 4
@@ -32857,6 +33116,7 @@ MonoBehaviour:
   cellHexMetrics: {fileID: 11400000, guid: 6912b000a78e2224e947e3a73e353455, type: 2}
   resourceType: 0
   numberToken: 12
+  hasRobber: 0
   coordinates:
     x: 2
     z: 4
@@ -36718,6 +36978,7 @@ MonoBehaviour:
   cellHexMetrics: {fileID: 11400000, guid: 6912b000a78e2224e947e3a73e353455, type: 2}
   resourceType: 3
   numberToken: 3
+  hasRobber: 0
   coordinates:
     x: 0
     z: 4
@@ -38313,6 +38574,7 @@ MonoBehaviour:
   cellHexMetrics: {fileID: 11400000, guid: 6912b000a78e2224e947e3a73e353455, type: 2}
   resourceType: 1
   numberToken: 2
+  hasRobber: 0
   coordinates:
     x: 3
     z: 3
@@ -39014,6 +39276,7 @@ MonoBehaviour:
   cellHexMetrics: {fileID: 11400000, guid: 6912b000a78e2224e947e3a73e353455, type: 2}
   resourceType: 0
   numberToken: 6
+  hasRobber: 0
   coordinates:
     x: 1
     z: 3
@@ -40046,6 +40309,7 @@ MonoBehaviour:
   cellHexMetrics: {fileID: 11400000, guid: 6912b000a78e2224e947e3a73e353455, type: 2}
   resourceType: 0
   numberToken: 3
+  hasRobber: 0
   coordinates:
     x: -2
     z: 5
@@ -41030,6 +41294,7 @@ MonoBehaviour:
   cellHexMetrics: {fileID: 11400000, guid: 6912b000a78e2224e947e3a73e353455, type: 2}
   resourceType: 0
   numberToken: 6
+  hasRobber: 0
   coordinates:
     x: 3
     z: 5
@@ -41472,6 +41737,144 @@ CanvasRenderer:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1916576757}
+  m_CullTransparentMesh: 1
+--- !u!1 &1916875128
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1916875129}
+  - component: {fileID: 1916875131}
+  - component: {fileID: 1916875130}
+  m_Layer: 5
+  m_Name: MP)t (TMP)
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!224 &1916875129
+RectTransform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1916875128}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 210213673}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+  m_AnchorMin: {x: 0, y: 0}
+  m_AnchorMax: {x: 1, y: 1}
+  m_AnchoredPosition: {x: 0, y: 0}
+  m_SizeDelta: {x: 0, y: 0}
+  m_Pivot: {x: 0.5, y: 0.5}
+--- !u!114 &1916875130
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1916875128}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f4688fdb7df04437aeb418b961361dc5, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  m_Material: {fileID: 0}
+  m_Color: {r: 1, g: 1, b: 1, a: 1}
+  m_RaycastTarget: 1
+  m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
+  m_Maskable: 1
+  m_OnCullStateChanged:
+    m_PersistentCalls:
+      m_Calls: []
+  m_text: 'Dev cards
+
+'
+  m_isRightToLeft: 0
+  m_fontAsset: {fileID: 11400000, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
+  m_sharedMaterial: {fileID: 2180264, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
+  m_fontSharedMaterials: []
+  m_fontMaterial: {fileID: 0}
+  m_fontMaterials: []
+  m_fontColor32:
+    serializedVersion: 2
+    rgba: 4281479730
+  m_fontColor: {r: 0.19607843, g: 0.19607843, b: 0.19607843, a: 1}
+  m_enableVertexGradient: 0
+  m_colorMode: 3
+  m_fontColorGradient:
+    topLeft: {r: 1, g: 1, b: 1, a: 1}
+    topRight: {r: 1, g: 1, b: 1, a: 1}
+    bottomLeft: {r: 1, g: 1, b: 1, a: 1}
+    bottomRight: {r: 1, g: 1, b: 1, a: 1}
+  m_fontColorGradientPreset: {fileID: 0}
+  m_spriteAsset: {fileID: 0}
+  m_tintAllSprites: 0
+  m_StyleSheet: {fileID: 0}
+  m_TextStyleHashCode: -1183493901
+  m_overrideHtmlColors: 0
+  m_faceColor:
+    serializedVersion: 2
+    rgba: 4294967295
+  m_fontSize: 24
+  m_fontSizeBase: 24
+  m_fontWeight: 400
+  m_enableAutoSizing: 0
+  m_fontSizeMin: 18
+  m_fontSizeMax: 72
+  m_fontStyle: 0
+  m_HorizontalAlignment: 2
+  m_VerticalAlignment: 512
+  m_textAlignment: 65535
+  m_characterSpacing: 0
+  m_wordSpacing: 0
+  m_lineSpacing: 0
+  m_lineSpacingMax: 0
+  m_paragraphSpacing: 0
+  m_charWidthMaxAdj: 0
+  m_TextWrappingMode: 1
+  m_wordWrappingRatios: 0.4
+  m_overflowMode: 0
+  m_linkedTextComponent: {fileID: 0}
+  parentLinkedComponent: {fileID: 0}
+  m_enableKerning: 0
+  m_ActiveFontFeatures: 6e72656b
+  m_enableExtraPadding: 0
+  checkPaddingRequired: 0
+  m_isRichText: 1
+  m_EmojiFallbackSupport: 1
+  m_parseCtrlCharacters: 1
+  m_isOrthographic: 1
+  m_isCullingEnabled: 0
+  m_horizontalMapping: 0
+  m_verticalMapping: 0
+  m_uvLineOffset: 0
+  m_geometrySortingOrder: 0
+  m_IsTextObjectScaleStatic: 0
+  m_VertexBufferAutoSizeReduction: 0
+  m_useMaxVisibleDescender: 1
+  m_pageToDisplay: 1
+  m_margin: {x: 0, y: 0, z: 0, w: 0}
+  m_isUsingLegacyAnimationComponent: 0
+  m_isVolumetricText: 0
+  m_hasFontAssetChanged: 0
+  m_baseMaterial: {fileID: 0}
+  m_maskOffset: {x: 0, y: 0, z: 0, w: 0}
+--- !u!222 &1916875131
+CanvasRenderer:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1916875128}
   m_CullTransparentMesh: 1
 --- !u!1 &1921676839
 GameObject:
@@ -43295,6 +43698,7 @@ MonoBehaviour:
   cellHexMetrics: {fileID: 11400000, guid: 6912b000a78e2224e947e3a73e353455, type: 2}
   resourceType: 0
   numberToken: 8
+  hasRobber: 0
   coordinates:
     x: 1
     z: 5
@@ -44115,6 +44519,7 @@ MonoBehaviour:
   cellHexMetrics: {fileID: 11400000, guid: 6912b000a78e2224e947e3a73e353455, type: 2}
   resourceType: 2
   numberToken: 11
+  hasRobber: 0
   coordinates:
     x: -1
     z: 2
@@ -44755,6 +45160,7 @@ MonoBehaviour:
   cellHexMetrics: {fileID: 11400000, guid: 6912b000a78e2224e947e3a73e353455, type: 2}
   resourceType: 0
   numberToken: 11
+  hasRobber: 0
   coordinates:
     x: 1
     z: 2
@@ -45139,6 +45545,7 @@ MonoBehaviour:
   cellHexMetrics: {fileID: 11400000, guid: 6912b000a78e2224e947e3a73e353455, type: 2}
   resourceType: 0
   numberToken: 3
+  hasRobber: 0
   coordinates:
     x: -1
     z: 3
@@ -45366,6 +45773,7 @@ MonoBehaviour:
   cellHexMetrics: {fileID: 11400000, guid: 6912b000a78e2224e947e3a73e353455, type: 2}
   resourceType: 2
   numberToken: 4
+  hasRobber: 0
   coordinates:
     x: 5
     z: 0
@@ -46042,6 +46450,8 @@ SceneRoots:
   - {fileID: 182169768}
   - {fileID: 2112428089}
   - {fileID: 1386386488}
-  - {fileID: 1055398205}
   - {fileID: 585541649}
   - {fileID: 1065544736}
+  - {fileID: 897889098}
+  - {fileID: 597205191}
+  - {fileID: 74628097}
