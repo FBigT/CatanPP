@@ -19,6 +19,7 @@ public class PlacementService {
     private final RoadRepository roadRepository;
     private final TileEdgeRepository tileEdgeRepository;
     private final TileCornerRepository tileCornerRepository;
+    private final PlayerProfileService playerProfileService;
 
     // We add references to these services so we can access the player's resources.
     private final SessionPlayerService sessionPlayerService;
@@ -28,7 +29,7 @@ public class PlacementService {
                             StructureTypeRepository structureTypeRepository,
                             RoadRepository roadRepository,
                             TileEdgeRepository tileEdgeRepository,
-                            TileCornerRepository tileCornerRepository,
+                            TileCornerRepository tileCornerRepository, PlayerProfileService playerProfileService,
                             SessionPlayerService sessionPlayerService) {
         this.tileService = tileService;
         this.structureRepository = structureRepository;
@@ -36,14 +37,15 @@ public class PlacementService {
         this.roadRepository = roadRepository;
         this.tileEdgeRepository = tileEdgeRepository;
         this.tileCornerRepository = tileCornerRepository;
+        this.playerProfileService = playerProfileService;
         this.sessionPlayerService = sessionPlayerService;
     }
 
     // ----------------------------------------------------
     // 1) Place a Settlement
     // ----------------------------------------------------
-    public Structure placeStructure(Long owner, Long tileId, Integer cornerIndex, StructureTypeEnum structureType) {
-        Optional<SessionPlayer> spOpt = sessionPlayerService.findCurrentSessionPlayerByUserId(owner);
+    public Structure placeStructure(Long owner, Long tileId, Integer cornerIndex, StructureTypeEnum structureType, Boolean ignoreCost) {
+        Optional<SessionPlayer> spOpt = sessionPlayerService.findById(owner);
         if (spOpt.isEmpty()) {
             throw new IllegalArgumentException("User has no active session player");
         }
@@ -56,17 +58,30 @@ public class PlacementService {
             throw new IllegalArgumentException("Cannot place structure at tile=" + tileId + ", corner=" + cornerIndex);
         }
 
-        // 4. Check Resource Cost for Settlement: (1 Brick, 1 Lumber, 1 Wool, 1 Grain)
-        if (sp.getBrick() < 1 || sp.getWood() < 1 || sp.getSheep() < 1 || sp.getRice() < 1) {
-            throw new IllegalArgumentException("Not enough resources to buy a settlement");
-        }
+        if (!ignoreCost) {
+            // 4. Check Resource Cost for Settlement: (1 Brick, 1 Lumber, 1 Wool, 1 Grain)
+            if (sp.getBrick() < 1 || sp.getWood() < 1 || sp.getSheep() < 1 || sp.getRice() < 1) {
+                throw new IllegalArgumentException("Not enough resources to buy a settlement");
+            }
 
-        // 5. Deduct the cost
-        sp.setBrick(sp.getBrick() - 1);
-        sp.setWood(sp.getWood() - 1);
-        sp.setSheep(sp.getSheep() - 1);
-        sp.setRice(sp.getRice() - 1);
+            // 5. Deduct the cost
+            sp.setBrick(sp.getBrick() - 1);
+            sp.setWood(sp.getWood() - 1);
+            sp.setSheep(sp.getSheep() - 1);
+            sp.setRice(sp.getRice() - 1);
+            sp.setPlayerScore(sp.getPlayerScore() + 1);
+        }
+        sp.setSettlementsPlaced(sp.getSettlementsPlaced() + 1);
         sessionPlayerService.updateSessionPlayer(sp);
+
+        if (sp.getUser() != null) {
+            Optional<PlayerProfile> playerProfileByUserId = playerProfileService.getPlayerProfileByUserId(sp.getUser().getId());
+            if (playerProfileByUserId.isPresent()) {
+                PlayerProfile playerProfile = playerProfileByUserId.get();
+                playerProfile.setStructuresPlaced(playerProfile.getStructuresPlaced() + 1);
+                playerProfileService.savePlayerProfile(playerProfile);
+            }
+        }
 
         Structure structure = new Structure(sp, tile, cornerIndex, structureTypeRepository.findByEnumOrCreate(structureType));
         structure = structureRepository.save(structure);
@@ -109,7 +124,18 @@ public class PlacementService {
             // 5. Deduct resources
             sp.setBrick(sp.getBrick() - 1);
             sp.setWood(sp.getWood() - 1);
-            sessionPlayerService.updateSessionPlayer(sp);
+        }
+
+        sp.setRoadsPlaced(sp.getRoadsPlaced() + 1);
+        sessionPlayerService.updateSessionPlayer(sp);
+
+        if (sp.getUser() != null) {
+            Optional<PlayerProfile> playerProfileByUserId = playerProfileService.getPlayerProfileByUserId(sp.getUser().getId());
+            if (playerProfileByUserId.isPresent()) {
+                PlayerProfile playerProfile = playerProfileByUserId.get();
+                playerProfile.setRoadsPlaced(playerProfile.getRoadsPlaced() + 1);
+                playerProfileService.savePlayerProfile(playerProfile);
+            }
         }
 
         Optional<TileEdge> tileEdgeMap = tile.getTileEdge(edgeIndex);
@@ -160,6 +186,7 @@ public class PlacementService {
         // 6. Deduct city cost
         sp.setRice(sp.getRice() - 2);
         sp.setOre(sp.getOre() - 3);
+        sp.setPlayerScore(sp.getPlayerScore() + 1);
         sessionPlayerService.updateSessionPlayer(sp);
 
         structure.setStructureType(structureTypeRepository.findByEnumOrCreate(StructureTypeEnum.CITY));

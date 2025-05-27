@@ -14,4 +14,5 @@ public interface DevCardRepository extends JpaRepository<DevCard, Long> {
     List<DevCard> findByOwnerIsNullOrderById();   // simple top-of-deck ordering
     long countByOwnerIsNull();
     long countByOwner(SessionPlayer owner);
+    List<DevCard> findBySessionId(Long sessionId);
 }

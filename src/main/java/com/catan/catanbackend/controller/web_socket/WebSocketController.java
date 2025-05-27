@@ -30,6 +30,8 @@ public class WebSocketController {
     private final GameService gameService;
     private final ObjectMapper objectMapper;
 
+    private static final String GAME_MOVE_DESTINATION = "/game/move/";
+
     public WebSocketController(SimpMessagingTemplate messagingTemplate, GameMoveHandler gameMoveHandler, SessionPlayerService sessionPlayerService, GameService gameService, ObjectMapper objectMapper) {
         this.messagingTemplate = messagingTemplate;
         this.gameMoveHandler = gameMoveHandler;
@@ -75,17 +77,24 @@ public class WebSocketController {
             return;
         }
         if (gameMoveType == GameMoveTypeEnum.BUY_CARD){
-            messagingTemplate.convertAndSendToUser(sessionPlayer.getUser().getUsername(), "/queue/" + sessionCode, new GameMoveDto(gameMoveType.name(), objectMapper.convertValue(((List<?>) payload).get(0), Map.class)));
+            messagingTemplate.convertAndSendToUser(sessionPlayer.getUser().getUsername(), "/queue/" + sessionCode, new GameMoveDto(GameMoveTypeEnum.PRIVATE_BUY_CARD.name(), objectMapper.convertValue(((List<?>) payload).get(0), Map.class)));
             payload = ((List<?>) payload).get(1);
         }
 
-        messagingTemplate.convertAndSend("/game/move/" + sessionCode, new GameMoveDto(gameMoveType.name(), objectMapper.convertValue(payload, Map.class)));
+        if (sessionPlayer.getSession().getInSetup() && gameMoveType == GameMoveTypeEnum.PLACE_ROAD) {
+            Object movePayload = ((List<?>) payload).get(0);
+            Object endTurnPayload = ((List<?>) payload).get(1);
+            messagingTemplate.convertAndSend(GAME_MOVE_DESTINATION + sessionCode, new GameMoveDto(gameMoveType.name(), objectMapper.convertValue(movePayload, Map.class)));
+            messagingTemplate.convertAndSend(GAME_MOVE_DESTINATION + sessionCode, new GameMoveDto(GameMoveTypeEnum.END_TURN.name(), objectMapper.convertValue(endTurnPayload, Map.class)));
+        } else {
+            messagingTemplate.convertAndSend(GAME_MOVE_DESTINATION + sessionCode, new GameMoveDto(gameMoveType.name(), objectMapper.convertValue(payload, Map.class)));
+        }
 
         if (winner.isPresent()) {
             VictoryDto victoryPayload = new VictoryDto(sessionPlayerService.findPlayersBySessionCode(sessionCode).stream()
                     .sorted(Comparator.comparingInt(SessionPlayer::getPlayerScore)).map(x
                             -> new PlayerScoreDto(x.getName(), x.getPlayerScore())).toList());
-            messagingTemplate.convertAndSend("/game/move/" + sessionCode, new GameMoveDto(GameMoveTypeEnum.VICTORY.name(), objectMapper.convertValue(victoryPayload, Map.class)));
+            messagingTemplate.convertAndSend(GAME_MOVE_DESTINATION + sessionCode, new GameMoveDto(GameMoveTypeEnum.VICTORY.name(), objectMapper.convertValue(victoryPayload, Map.class)));
         }
     }
 }

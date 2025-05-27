@@ -1,5 +1,8 @@
 package com.catan.catanbackend.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
 import lombok.*;
@@ -9,6 +12,7 @@ import lombok.*;
 @AllArgsConstructor
 @Entity
 @Table(name = "robber_move_blockers")
+@JsonIgnoreProperties({ "hibernateLazyInitializer", "handler" })
 public class RobberMoveBlocker {
     public RobberMoveBlocker(SessionPlayer sessionPlayer, Integer x, Integer y) {
         this.sessionPlayer = sessionPlayer;
@@ -21,10 +25,19 @@ public class RobberMoveBlocker {
     @Column(name = "id", nullable = false)
     private Long id;
 
+    @JsonIgnore
     @NotNull
     @OneToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "session_player_id", nullable = false)
     private SessionPlayer sessionPlayer;
+
+    @JsonProperty("sessionPlayerId")
+    private Long extractSessionPlayerId() {
+        if(sessionPlayer == null){
+            return null;
+        }
+        return sessionPlayer.getId();
+    }
 
     @NotNull
     @Column(name = "starting_robber_x", nullable = false)

@@ -23,8 +23,16 @@ public class DevCardService {
         this.resourceService = resourceService;
     }
 
-    public Optional<DevCard> getDevCardById(Long id) {
+    public void deleteAll() {
+        devCardRepo.deleteAll();
+    }
+
+    public Optional<DevCard> findDevCardById(Long id) {
         return devCardRepo.findById(id);
+    }
+
+    public List<DevCard> getAllDevCardsBySessionId(Long sessionId) {
+        return devCardRepo.findBySessionId(sessionId);
     }
 
     /** Initialize a fresh shuffled deck for each new session */
@@ -64,8 +72,8 @@ public class DevCardService {
     /** After a turn ends, mark all newly bought as playable */
     public void enablePlayable(Long sessionId) {
         // find all cards in session just bought: owner!=null && playable==false
-        List<DevCard> justBought = devCardRepo.findAll().stream()
-                .filter(c -> c.getOwner().getSession().getId().equals(sessionId) && !c.isPlayable())
+        List<DevCard> justBought = devCardRepo.findBySessionId(sessionId).stream()
+                .filter(c -> c.getOwner() != null &&  !c.isPlayable())
                 .toList();
         justBought.forEach(c -> c.setPlayable(true));
         devCardRepo.saveAll(justBought);
@@ -82,7 +90,7 @@ public class DevCardService {
     public DevCard useCard(Long cardId, Long userId) {
         DevCard card = devCardRepo.findById(cardId)
                 .orElseThrow(() -> new IllegalArgumentException("Card not found"));
-        if (!card.getOwner().getUser().getId().equals(userId))
+        if (!card.getOwner().getId().equals(userId))
             throw new IllegalArgumentException("You don’t own that card");
         if (!card.isPlayable())
             throw new IllegalArgumentException("Card not yet playable");

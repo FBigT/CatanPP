@@ -33,7 +33,6 @@ class UserTests {
 
     private static final String DEFAULT_USERNAME = "test";
     private static final String DEFAULT_PASSWORD = "123";
-    private static Long defaultId;
 
     private static final String NEW_USERNAME = "newUsername";
     private static final String NEW_PASSWORD = "newPassword";
@@ -51,7 +50,7 @@ class UserTests {
         User test = mapper.mapRegisterFormToUser(new RegisterForm(DEFAULT_USERNAME, DEFAULT_PASSWORD, "test@test.com"));
 
         userService.deleteAllUsers();
-        defaultId = userService.createUser(test).getId();
+        userService.createUser(test);
     }
 
     LogInResponse registerAndLogin(RegisterForm registerForm) throws Exception {

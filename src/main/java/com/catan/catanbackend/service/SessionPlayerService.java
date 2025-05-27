@@ -23,6 +23,10 @@ public class SessionPlayerService {
         return sessionPlayerRepository.saveAndFlush(sessionPlayer);
     }
 
+    public void deleteAll(){
+        sessionPlayerRepository.deleteAll();
+    }
+
     private void assignInitialResources(SessionPlayer player) {
         player.setBrick(10);
         player.setCrystal(10);

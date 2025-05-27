@@ -3,7 +3,9 @@ package com.catan.catanbackend.service;
 import com.catan.catanbackend.model.*;
 import com.catan.catanbackend.model.dto.PlayerScoreDto;
 import com.catan.catanbackend.model.dto.TradeOfferMessage;
+import com.catan.catanbackend.model.dto.move_dtos.Place2RoadsDto;
 import com.catan.catanbackend.model.dto.move_dtos.PlaceRoadDto;
+import com.catan.catanbackend.model.dto.move_dtos.responses.Place2RoadsResponseDto;
 import com.catan.catanbackend.model.dto.move_dtos.responses.PlaceRoadResponseDto;
 import com.catan.catanbackend.model.dto.move_dtos.RobberMoveDto;
 import com.catan.catanbackend.model.dto.move_dtos.responses.PlayCardResponseDto;
@@ -33,8 +35,9 @@ public class GameService {
     private final ObjectMapper objectMapper;
     private final TradeService tradeService;
     private final ResourceService resourceService;
+    private final PlayerProfileService playerProfileService;
 
-    public GameService(SessionService sessionService, RobberBlockerRepository robberBlockerRepository, SessionPlayerService sessionPlayerService, RobberMoveBlockerRepository robberMoveBlockerRepository, TileService tileService, DevCardService devCardService, PlacementService placementService, ObjectMapper objectMapper, TradeService tradeService, ResourceService resourceService) {
+    public GameService(SessionService sessionService, RobberBlockerRepository robberBlockerRepository, SessionPlayerService sessionPlayerService, RobberMoveBlockerRepository robberMoveBlockerRepository, TileService tileService, DevCardService devCardService, PlacementService placementService, ObjectMapper objectMapper, TradeService tradeService, ResourceService resourceService, PlayerProfileService playerProfileService) {
         this.sessionService = sessionService;
         this.robberBlockerRepository = robberBlockerRepository;
         this.sessionPlayerService = sessionPlayerService;
@@ -45,6 +48,7 @@ public class GameService {
         this.objectMapper = objectMapper;
         this.tradeService = tradeService;
         this.resourceService = resourceService;
+        this.playerProfileService = playerProfileService;
     }
 
     public static String generateRandomName(){
@@ -117,7 +121,8 @@ public class GameService {
                         new PlayerScoreDto(devCard.getOwner().getName(), devCard.getOwner().getPlayerScore()), Map.class));
             }
             case ROAD_BUILDING -> {
-                PlaceRoadDto[] placeRoadDtos = objectMapper.convertValue(playData, PlaceRoadDto[].class);
+                Place2RoadsDto place2RoadsDto = objectMapper.convertValue(playData, Place2RoadsDto.class);
+                PlaceRoadDto[] placeRoadDtos = new PlaceRoadDto[]{place2RoadsDto.getPlaceRoadDto1(), place2RoadsDto.getPlaceRoadDto2()};
                 if (placeRoadDtos.length != 2) {
                     throw new IllegalArgumentException("Incorrect number of roads");
                 }
@@ -134,11 +139,11 @@ public class GameService {
                     placementService.placeRoad(playerId, tiles.get(i).getId(), placeRoadDtos[i].getEdgeIndex(), false);
                 }
 
-                return new PlayCardResponseDto(DevCardType.KNIGHT.name(), objectMapper.convertValue(
-                        new PlaceRoadResponseDto[] {
+                return new PlayCardResponseDto(DevCardType.ROAD_BUILDING.name(), objectMapper.convertValue(
+                        new Place2RoadsResponseDto(
                         new PlaceRoadResponseDto(placeRoadDtos[0].getTileX(), placeRoadDtos[0].getTileY(), placeRoadDtos[0].getEdgeIndex(), devCard.getOwner().getName()),
                         new PlaceRoadResponseDto(placeRoadDtos[1].getTileX(), placeRoadDtos[1].getTileY(), placeRoadDtos[1].getEdgeIndex(), devCard.getOwner().getName())
-                }, Map.class));
+                        ), Map.class));
             }
             case YEAR_OF_PLENTY -> {
                 ResourceGroup resourceGroup = objectMapper.convertValue(playData, ResourceGroup.class);
@@ -146,7 +151,7 @@ public class GameService {
                     throw new IllegalArgumentException("Incorrect number of resources");
                 tradeService.tradeWithBankDirect(devCard.getOwner().getSession().getId(), devCard.getOwner().getUser().getUsername(), new ResourceGroup(), resourceGroup);
 
-                return new PlayCardResponseDto(DevCardType.VICTORY_POINT.name(), objectMapper.convertValue(
+                return new PlayCardResponseDto(DevCardType.YEAR_OF_PLENTY.name(), objectMapper.convertValue(
                         new TradeOfferMessage(devCard.getOwner().getName(), "Bank", new ResourceGroup(), resourceGroup), Map.class));
             }
         }
@@ -155,7 +160,26 @@ public class GameService {
 
     public Optional<SessionPlayer> checkForWinner(Long sessionId) {
         Optional<Session> sessionById = sessionService.getSessionById(sessionId);
-        return sessionById.flatMap(session -> sessionService.getPlayers(sessionId).stream().filter(player
+        List<SessionPlayer> players = sessionService.getPlayers(sessionId);
+
+        Optional<SessionPlayer> player1 = sessionById.flatMap(session -> players.stream().filter(player
                 -> player.getPlayerScore() >= session.getVictoryPointsCondition()).findFirst());
+        if (player1.isPresent()) {
+            for (SessionPlayer player : players.stream().filter(x -> x.getUser() != null).toList()) {
+                Optional<PlayerProfile> playerProfileByUserId = playerProfileService.getPlayerProfileByUserId(player.getUser().getId());
+                if (playerProfileByUserId.isPresent()) {
+                    PlayerProfile playerProfile = playerProfileByUserId.get();
+
+                    playerProfile.setGamesPlayed(playerProfile.getGamesPlayed() + 1);
+                    if (player.equals(player1.get()))
+                        playerProfile.setGamesWon(playerProfile.getGamesWon() + 1);
+                    else
+                        playerProfile.setGamesLost(playerProfile.getGamesLost() + 1);
+                    playerProfileService.savePlayerProfile(playerProfile);
+                }
+            }
+
+        }
+        return player1;
     }
 }

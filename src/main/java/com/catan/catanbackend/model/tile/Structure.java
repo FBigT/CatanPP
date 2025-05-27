@@ -1,6 +1,9 @@
 package com.catan.catanbackend.model.tile;
 
 import com.catan.catanbackend.model.SessionPlayer;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
 import lombok.Data;
@@ -12,18 +15,31 @@ import java.util.Optional;
 @Data
 @Table(name = "structures")
 @NoArgsConstructor
+@JsonIgnoreProperties({ "hibernateLazyInitializer", "handler" })
 public class Structure {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @JsonIgnore
     @NotNull
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @ManyToOne(fetch = FetchType.EAGER, optional = false)
     @JoinColumn(name = "session_player_id", nullable = false)
     private SessionPlayer owner;
 
+    @JsonIgnore
     @OneToOne(mappedBy = "structure", fetch = FetchType.EAGER)
     private TileCorner corner;
+
+    @JsonProperty("ownerId")
+    public Long extractOwnerId(){
+        return owner.getId();
+    }
+
+    @JsonProperty("cornerId")
+    public Long extractCornerId(){
+        return corner.getId();
+    }
 
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "structure_type_id", nullable = false)
@@ -39,6 +55,4 @@ public class Structure {
         else
             throw new IllegalArgumentException("The corner of the tile is not a valid corner");
     }
-
-    //Moved upgradeToCity() to PlacementService
 }

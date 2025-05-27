@@ -16,11 +16,7 @@ public class PlayerProfileService {
         this.playerProfileRepository = playerProfileRepository;
     }
 
-    public PlayerProfile createPlayerProfile(PlayerProfile playerProfile) {
-        return playerProfileRepository.save(playerProfile);
-    }
-
-    public PlayerProfile updatePlayerProfile(PlayerProfile playerProfile) {
+    public PlayerProfile savePlayerProfile(PlayerProfile playerProfile) {
         return playerProfileRepository.save(playerProfile);
     }
 

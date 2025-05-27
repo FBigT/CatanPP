@@ -10,6 +10,6 @@ public enum GameMoveTypeEnum {
     ROBBER_MOVE,
     PLAY_CARD,
     VICTORY,
-
+    PRIVATE_BUY_CARD,
     MAP_GEN
 }

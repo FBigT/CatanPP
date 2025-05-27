@@ -46,7 +46,7 @@ public class PlacementController {
                                             @RequestParam int cornerIndex,
                                             @RequestParam StructureTypeEnum structureType) {
         try {
-            Structure s = placementService.placeStructure(sessionPlayerId, tileId, cornerIndex, structureType);
+            Structure s = placementService.placeStructure(sessionPlayerId, tileId, cornerIndex, structureType, false);
             return ResponseEntity.ok(s);
         } catch (IllegalArgumentException e) {
             // e.g. "Not enough resources" or "Cannot place structure here"

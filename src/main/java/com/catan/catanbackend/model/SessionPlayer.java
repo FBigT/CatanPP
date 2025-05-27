@@ -1,7 +1,9 @@
 package com.catan.catanbackend.model;
 
 import com.catan.catanbackend.service.GameService;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
@@ -39,15 +41,25 @@ public class SessionPlayer {
     @Column(name = "id", nullable = false)
     private Long id;
 
+    @JsonIgnore
     @NotNull
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @ManyToOne(fetch = FetchType.EAGER, optional = false)
     @OnDelete(action = OnDeleteAction.CASCADE)
     @JoinColumn(name = "session_id", nullable = false)
     private Session session;
 
-    @ManyToOne(fetch = FetchType.LAZY)
+    @JsonIgnore
+    @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "user_id")
     private User user;
+
+    @JsonProperty("userId")
+    public Long extractUserId() {
+        if(user == null){
+            return null;
+        }
+        return user.getId();
+    }
 
     @NotNull
     @ColumnDefault("0")
@@ -110,6 +122,12 @@ public class SessionPlayer {
 
     @Column(name = "turn_order")
     private Integer turnOrder;
+
+    @Column(name = "settlements_placed")
+    private Integer settlementsPlaced = 0;
+
+    @Column(name = "roads_placed")
+    private Integer roadsPlaced = 0;
 
     public Integer getNumberOfResources() {
         return brick + crystal + ore + rice + sheep + silver + gold + wood;

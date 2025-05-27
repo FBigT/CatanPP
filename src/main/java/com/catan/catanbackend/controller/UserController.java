@@ -128,7 +128,7 @@ public class UserController {
     @PostMapping("/register")
     public ResponseEntity<UserDto> create(@RequestBody RegisterForm signInForm) {
         User newUser = userService.createUser(mapper.mapRegisterFormToUser(signInForm));
-        playerProfileService.createPlayerProfile(new PlayerProfile(newUser));
+        playerProfileService.savePlayerProfile(new PlayerProfile(newUser));
         return new ResponseEntity<>(mapper.mapUserToDto(newUser), HttpStatus.CREATED);
     }
 

@@ -42,7 +42,7 @@ public class SessionService {
     }
 
     public Session save(Session session) {
-        return sessionRepository.save(session);
+        return sessionRepository.saveAndFlush(session);
     }
 
     public Optional<SessionCode> createSession(Long hostId, Integer maxPlayers) {
@@ -87,14 +87,38 @@ public class SessionService {
     }
 
     public Optional<SessionPlayer> getNextPlayer(Long sessionId) {
-        Optional<Session> session = getSessionById(sessionId);
-        if (session.isEmpty()) {
+        Optional<Session> sessionOptional = getSessionById(sessionId);
+        if (sessionOptional.isEmpty()) {
             return Optional.empty();
         }
 
+        Session session = sessionOptional.get();
         List<SessionPlayer> players = getPlayersInTurnOrder(sessionId);
-        int currentIndex = players.indexOf(session.get().getCurrentPlayer());
-        return Optional.of(players.get((currentIndex + 1) % players.size()));
+        int totalPlayers = players.size();
+        int turnNumber = session.getTurnNumber();
+
+        // Exit setup phase if done
+        if (turnNumber >= totalPlayers * 2 && session.getInSetup()) {
+            session.setInSetup(false);
+            sessionRepository.save(session);
+        }
+
+        if (!session.getInSetup()) {
+            // Normal play order
+            int currentIndex = players.indexOf(session.getCurrentPlayer());
+            int nextIndex = (currentIndex + 1) % totalPlayers;
+            return Optional.of(players.get(nextIndex));
+        }
+
+        // Setup phase logic
+        if (turnNumber < totalPlayers) {
+            // Forward setup: 0 → N-1
+            return Optional.of(players.get(turnNumber));
+        } else {
+            // Reverse setup: N-1 → 0
+            int reverseIndex = 2 * totalPlayers - turnNumber - 1;
+            return Optional.of(players.get(reverseIndex));
+        }
     }
 
     public Boolean endSession(SessionCode sessionCode, User winner) {
@@ -121,6 +145,7 @@ public class SessionService {
     }
 
     public Optional<SessionCode> joinSession(Long userId, String code) {
+        System.out.println(userId);
         Optional<User> user = userService.findById(userId);
         Optional<SessionCode> sessionCode = sessionCodeRepository.findByCode(code);
 
@@ -223,9 +248,9 @@ public class SessionService {
                 .toString()
                 .toUpperCase();
     }
-    public String createSaveJson(Session session) {
-        //create save logic
-        return "";
+
+    public void deleteAllSessions() {
+        sessionRepository.deleteAll();
     }
 
     public List<SessionPlayer> getPlayers(Long sessionId){

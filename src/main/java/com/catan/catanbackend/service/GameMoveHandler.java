@@ -1,6 +1,7 @@
 package com.catan.catanbackend.service;
 
 import com.catan.catanbackend.model.DevCard;
+import com.catan.catanbackend.model.PlayerProfile;
 import com.catan.catanbackend.model.helper.*;
 import com.catan.catanbackend.model.Session;
 import com.catan.catanbackend.model.SessionPlayer;
@@ -8,6 +9,8 @@ import com.catan.catanbackend.model.dto.*;
 import com.catan.catanbackend.model.dto.move_dtos.*;
 import com.catan.catanbackend.model.dto.move_dtos.responses.*;
 import com.catan.catanbackend.model.tile.*;
+import com.catan.catanbackend.repository.tiles.RoadRepository;
+import com.catan.catanbackend.repository.tiles.StructureRepository;
 import com.catan.catanbackend.repository.tiles.TileCornerRepository;
 import com.catan.catanbackend.repository.tiles.TileEdgeRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -30,8 +33,11 @@ public class GameMoveHandler {
     private final ResourceService resourceService;
     private final SessionService sessionService;
     private final Mapper mapper;
+    private final RoadRepository roadRepository;
+    private final StructureRepository structureRepository;
+    private final PlayerProfileService playerProfileService;
 
-    public GameMoveHandler(PlacementService placementService, ObjectMapper objectMapper, TileService tileService, TileCornerRepository tileCornerRepository, TileEdgeRepository tileEdgeRepository, MoveBlockerService moveBlockerService, DiceRollService diceRollService, DevCardService devCardService, GameService gameService, ResourceService resourceService, SessionService sessionService, Mapper mapper) {
+    public GameMoveHandler(PlacementService placementService, ObjectMapper objectMapper, TileService tileService, TileCornerRepository tileCornerRepository, TileEdgeRepository tileEdgeRepository, MoveBlockerService moveBlockerService, DiceRollService diceRollService, DevCardService devCardService, GameService gameService, ResourceService resourceService, SessionService sessionService, Mapper mapper, RoadRepository roadRepository, StructureRepository structureRepository, PlayerProfileService playerProfileService) {
         this.placementService = placementService;
         this.objectMapper = objectMapper;
         this.tileService = tileService;
@@ -44,6 +50,9 @@ public class GameMoveHandler {
         this.resourceService = resourceService;
         this.sessionService = sessionService;
         this.mapper = mapper;
+        this.roadRepository = roadRepository;
+        this.structureRepository = structureRepository;
+        this.playerProfileService = playerProfileService;
     }
 
     private record CornerPair(TileCorner a, TileCorner b) {
@@ -69,11 +78,16 @@ public class GameMoveHandler {
         }
         Session session = sessionById.get();
 
+        checkForSetupOrdering(gameMoveTypeEnum, session, sessionPlayer);
+        if (gameMoveTypeEnum != GameMoveTypeEnum.MAP_GEN) {
+            checkIfItsTheCurrentPlayer(sessionPlayer, session);
+        }
+
         switch (gameMoveTypeEnum) {
             case MAP_GEN -> {
                 if (session.getMapGenerated()) {
                     return new MapGenerationDto(tileService.findBySessionId(sessionId).stream().map(mapper::mapTileToTileDto).toList());
-                } else if(!Objects.equals(session.getHost().getId(), sessionPlayer.getId())) {
+                } else if(!Objects.equals(session.getHost().getId(), sessionPlayer.getUser().getId())) {
                     throw new IllegalArgumentException("You cannot generate a Map");
                 }
 
@@ -84,6 +98,7 @@ public class GameMoveHandler {
                 generateCornersAndEdges(list);
 
                 session.setMapGenerated(true);
+                session.setInSetup(true);
                 sessionService.save(session);
                 if(!sessionService.startSession(sessionId)){
                     throw new IllegalArgumentException("Session with id " + sessionId + " could not be started");
@@ -103,27 +118,34 @@ public class GameMoveHandler {
                 checkIfSessionValid(session);
                 checkIfSessionBlocked(sessionId);
                 PlaceRoadDto placeRoadDto = objectMapper.convertValue(gameMoveDto.getMoveData(), PlaceRoadDto.class);
-                Optional<Tile> tile = tileService.findByXAndYAndSession(placeRoadDto.getTileX(), placeRoadDto.getTileY(), sessionPlayer.getId());
+                Optional<Tile> tile = tileService.findByXAndYAndSession(placeRoadDto.getTileX(), placeRoadDto.getTileY(), sessionId);
 
                 if (tile.isEmpty()) {
                     throw new IllegalArgumentException("Tile not found");
                 }
 
-                placementService.placeRoad(sessionPlayer.getId(), tile.get().getId(), placeRoadDto.getEdgeIndex(), false);
-                return new PlaceRoadResponseDto(placeRoadDto.getTileX(), placeRoadDto.getTileY(), placeRoadDto.getEdgeIndex(), sessionPlayer.getName());
+                placementService.placeRoad(sessionPlayer.getId(), tile.get().getId(), placeRoadDto.getEdgeIndex(), session.getInSetup());
+                PlaceRoadResponseDto placeRoadResponseDto = new PlaceRoadResponseDto(placeRoadDto.getTileX(), placeRoadDto.getTileY(), placeRoadDto.getEdgeIndex(), sessionPlayer.getName());
+
+                if (session.getInSetup()){
+                    return List.of(placeRoadResponseDto, getEndTurnResponseDto(session, true, sessionPlayer));
+                }
+
+                return placeRoadResponseDto;
             }
             case PLACE_STRUCTURE -> {
                 checkIfSessionValid(session);
                 checkIfSessionBlocked(sessionId);
                 PlaceStructureDto placeStructureDto = objectMapper.convertValue(gameMoveDto.getMoveData(), PlaceStructureDto.class);
-                Optional<Tile> tile = tileService.findByXAndYAndSession(placeStructureDto.getTileX(), placeStructureDto.getTileY(), sessionPlayer.getId());
+                Optional<Tile> tile = tileService.findByXAndYAndSession(placeStructureDto.getTileX(), placeStructureDto.getTileY(), sessionId);
 
                 if (tile.isEmpty()) {
                     throw new IllegalArgumentException("Tile not found");
                 }
 
                 StructureTypeEnum structureTypeEnum = StructureTypeEnum.valueOf(placeStructureDto.getStructureType());
-                placementService.placeStructure(sessionPlayer.getId(), tile.get().getId(), placeStructureDto.getCornerIndex(), structureTypeEnum);
+                placementService.placeStructure(sessionPlayer.getId(), tile.get().getId(), placeStructureDto.getCornerIndex(), structureTypeEnum, session.getInSetup());
+
                 return new PlaceStructureResponseDto(
                         placeStructureDto.getTileX(),
                         placeStructureDto.getTileY(),
@@ -135,7 +157,7 @@ public class GameMoveHandler {
                 checkIfSessionValid(session);
                 checkIfSessionBlocked(sessionId);
                 UpgradeStructureDto upgradeStructureDto = objectMapper.convertValue(gameMoveDto.getMoveData(), UpgradeStructureDto.class);
-                Optional<Tile> tile = tileService.findByXAndYAndSession(upgradeStructureDto.getTileX(), upgradeStructureDto.getTileY(), sessionPlayer.getId());
+                Optional<Tile> tile = tileService.findByXAndYAndSession(upgradeStructureDto.getTileX(), upgradeStructureDto.getTileY(), session.getId());
 
                 if (tile.isEmpty()) {
                     throw new IllegalArgumentException("Tile not found");
@@ -145,29 +167,7 @@ public class GameMoveHandler {
                 return new UpgradeStructureResponseDto(upgradeStructureDto.getTileX(), upgradeStructureDto.getTileY(), upgradeStructureDto.getCornerIndex(), sessionPlayer.getName());
             }
             case END_TURN -> {
-                checkIfSessionValid(session);
-                checkIfSessionBlocked(sessionId);
-
-                //Gets the next player
-                Optional<SessionPlayer> nextPlayer = sessionService.getNextPlayer(sessionId);
-                String previousPlayerName = session.getCurrentPlayer().getName();
-
-                session.setCurrentPlayer(nextPlayer.get());
-                sessionService.save(session);
-
-                //Makes cards playable
-                for (SessionPlayer player : sessionService.getPlayers(sessionId)) {
-                    for (DevCard playerCard : devCardService.getPlayerCards(player.getId())) {
-                        if (!playerCard.isUsed() && !playerCard.isPlayable()){
-                            playerCard.setPlayable(true);
-                            devCardService.saveCard(playerCard);
-                        }
-                    }
-                }
-
-                Optional<SessionPlayer> playerAfter = sessionService.getNextPlayer(sessionId);
-
-                return new EndTurnResponseDto(previousPlayerName, session.getCurrentPlayer().getName(), playerAfter.get().getName(), session.getTurnNumber());
+                return getEndTurnResponseDto(session, false, sessionPlayer);
             }
             case ROBBER_MOVE -> {
                 checkIfSessionValid(session);
@@ -208,7 +208,7 @@ public class GameMoveHandler {
                 checkIfSessionBlocked(sessionId);
                 DevCardPlayDto devCardPlayDto = objectMapper.convertValue(gameMoveDto.getMoveData(), DevCardPlayDto.class);
 
-                Optional<DevCard> devCard = devCardService.getDevCardById(devCardPlayDto.getId());
+                Optional<DevCard> devCard = devCardService.findDevCardById(devCardPlayDto.getId());
 
                 if (devCard.isEmpty()) {
                     throw new IllegalArgumentException("DevCard not found");
@@ -221,15 +221,82 @@ public class GameMoveHandler {
         return null;
     }
 
-    public void checkIfSessionBlocked(Long sessionPlayerId) {
+    private EndTurnResponseDto getEndTurnResponseDto(Session session, Boolean manual, SessionPlayer sessionPlayer) {
+        if (!manual) {
+            checkForSetupOrdering(GameMoveTypeEnum.END_TURN, session, sessionPlayer);
+        }
+
+        Long sessionId = session.getId();
+        checkIfSessionValid(session);
+        checkIfSessionBlocked(sessionId);
+
+        //Gets the next player
+        Optional<SessionPlayer> nextPlayer = sessionService.getNextPlayer(sessionId);
+        String previousPlayerName = session.getCurrentPlayer().getName();
+
+        session.setCurrentPlayer(nextPlayer.get());
+        session.setTurnNumber(session.getTurnNumber() + 1);
+        sessionService.save(session);
+
+        //Makes cards playable
+        devCardService.enablePlayable(sessionId);
+        /*for (SessionPlayer player : sessionService.getPlayers(sessionId)) {
+            for (DevCard playerCard : devCardService.getPlayerCards(player.getId())) {
+                if (!playerCard.isUsed() && !playerCard.isPlayable()){
+                    playerCard.setPlayable(true);
+                    devCardService.saveCard(playerCard);
+                }
+            }
+        }*/
+
+        Optional<SessionPlayer> playerAfter = sessionService.getNextPlayer(sessionId);
+
+
+        if (sessionPlayer.getUser() != null) {
+            Optional<PlayerProfile> playerProfileByUserId = playerProfileService.getPlayerProfileByUserId(sessionPlayer.getUser().getId());
+            if (playerProfileByUserId.isPresent()) {
+                PlayerProfile playerProfile = playerProfileByUserId.get();
+                playerProfile.setTurnsTaken(playerProfile.getTurnsTaken() + 1);
+                playerProfileService.savePlayerProfile(playerProfile);
+            }
+        }
+
+        return new EndTurnResponseDto(previousPlayerName, session.getCurrentPlayer().getName(), playerAfter.get().getName(), session.getTurnNumber());
+    }
+
+    private void checkForSetupOrdering(GameMoveTypeEnum gameMoveType, Session session, SessionPlayer sessionPlayer) {
+        if (session.getInSetup()) {
+            switch (gameMoveType) {
+                case PLACE_ROAD -> {
+                    if (Objects.equals(sessionPlayer.getRoadsPlaced(), sessionPlayer.getSettlementsPlaced()))
+                        throw new IllegalArgumentException("You cannot place road before the settlement is placed");
+                    return;
+                }
+                case PLACE_STRUCTURE -> {
+                    if (sessionPlayer.getRoadsPlaced() < sessionPlayer.getSettlementsPlaced())
+                        throw new IllegalArgumentException("Place some roads ya dingus");
+                    return;
+                }
+            }
+            throw new IllegalArgumentException("Game move type not supported during setup");
+        }
+    }
+
+    private void checkIfSessionBlocked(Long sessionPlayerId) {
         if (moveBlockerService.isSessionBlocked(sessionPlayerId)) {
             throw new IllegalArgumentException("Cannot move robber now");
         }
     }
 
-    public void checkIfSessionValid(Session session) {
+    private void checkIfSessionValid(Session session) {
         if (!session.getActive()) {
             throw new IllegalArgumentException("Session is not active");
+        }
+    }
+
+    private void checkIfItsTheCurrentPlayer(SessionPlayer sessionPlayer, Session session) {
+        if (!sessionPlayer.getId().equals(session.getCurrentPlayer().getId())) {
+            throw new IllegalArgumentException("You are not the current player");
         }
     }
 

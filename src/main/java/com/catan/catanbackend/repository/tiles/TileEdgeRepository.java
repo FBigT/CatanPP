@@ -18,4 +18,6 @@ public interface TileEdgeRepository extends JpaRepository<TileEdge, Integer> {
         }
         return tileEdges;
     }
+
+    List<TileEdge> findBySessionId(Long sessionId);
 }
