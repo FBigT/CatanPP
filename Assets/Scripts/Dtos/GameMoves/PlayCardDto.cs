@@ -29,7 +29,15 @@ namespace Assets.Scripts.Dtos.GameMoves
             moveData = resourceGroup;
         }
 
+        public PlayCardDto(DevCardType devCardType, PlaceRoadDto road1, PlaceRoadDto road2) : this(devCardType)
+        {
+            this.road1 = road1;
+            this.road2 = road2;
+        }
+
         public DevCardType DevCardType { get; set; }
         public object moveData;
+        private PlaceRoadDto road1;
+        private PlaceRoadDto road2;
     }
 }

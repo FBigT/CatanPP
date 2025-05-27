@@ -10,11 +10,15 @@ using System.Text;
 using System.Threading.Tasks;
 using UnityEngine;
 
+
 namespace Assets.Scripts.Utils
 {
     public static class WebSocketService
     {
         public static event Action<ChatMessage> OnChatMessageReceived;
+
+        public static event Action<TradeOfferMessage> OnTradeOfferReceived;
+
 
         private static WebSocket webSocket;
         public static bool Connected { get; private set; } = false;
@@ -134,6 +138,16 @@ namespace Assets.Scripts.Utils
                                 case GameMoveType.MAP_GEN:
                                     GenerateMapDto generateMapDto = (GenerateMapDto)gameMove.moveData;
                                     break;
+
+                                case GameMoveType.TRADE_OFFER:
+                                    {
+                                        string offerJson = JsonConvert.SerializeObject(gameMove.moveData);
+                                        var offer = JsonConvert.DeserializeObject<TradeOfferMessage>(offerJson);
+                                        OnTradeOfferReceived?.Invoke(offer);
+                                        break;
+                                    }
+
+
                             };
                         }
                         else if (destination != null && destination.Contains(WebSocketBrokerDestinations.Private.Value)) {
@@ -219,5 +233,28 @@ namespace Assets.Scripts.Utils
             webSocket?.DispatchMessageQueue();
 #endif
         }
+
+        public static async Task SendTradeOffer(TradeOfferMessage offer)
+        {
+            if (!Connected)
+            {
+                Debug.LogWarning("Cannot send trade offer: WebSocket not connected.");
+                return;
+            }
+            var moveDto = new GameMoveDto(offer);
+            string frame = WebSocketEndpointsUtils.MessageFrame(
+                WebSocketApplicationDestinations.Moves,
+                sessionCode,
+                moveDto
+            );
+            await webSocket.SendText(frame);
+        }
+
+    
+        public static void RaiseChatMessage(ChatMessage msg)
+        {
+            OnChatMessageReceived?.Invoke(msg);
+        }
+
     }
 }
