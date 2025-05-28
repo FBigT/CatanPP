@@ -1,4 +1,5 @@
 using TMPro;
+using UnityEditor;
 using UnityEngine;
 
 public class HexTile : MonoBehaviour
@@ -11,10 +12,17 @@ public class HexTile : MonoBehaviour
 
     public Material woodMat, brickMat, wheatMat, sheepMat, oreMat, desertMat;
 
-    public void Initialize(string resource, int number)
+    public int Q;
+    public int R;
+
+    public void Initialize(string resource, int number, int q, int r)
     {
         resourceType = resource;
         numberToken = number;
+
+        Q = q;
+        R = r;
+
         UpdateVisuals();
     }
 

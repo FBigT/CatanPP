@@ -10,6 +10,8 @@ public class DebugMenu : Singleton<DebugMenu>, IPointerDownHandler, IDragHandler
     public GameObject debugPanel;
     public Button moveThiefButton;
     public Button addAllResourcesButton;
+    public Button clearLogButton;
+    public Button addOneResourceButton;
     public TMP_Text statusText;
 
     [Header("Settings")]
@@ -18,14 +20,34 @@ public class DebugMenu : Singleton<DebugMenu>, IPointerDownHandler, IDragHandler
     private RectTransform panelRectTransform;
     private Vector2 pointerOffset;
 
-    private void Awake()
+    protected override void Awake()
     {
         base.Awake();
 
         if (debugPanel != null)
             debugPanel.SetActive(false);
 
-        moveThiefButton.onClick.AddListener(MoveThief);
+        moveThiefButton.onClick.AddListener(() =>
+        {
+            ThifeManager.Instance.EnableThiefPlacement();
+        });
+
+        addAllResourcesButton.onClick.AddListener(() =>
+        {
+            // Your resource logic here
+            AppendLog("+1 to all resources");
+        });
+
+        addOneResourceButton.onClick.AddListener(() =>
+        {
+            // Your one resource logic here
+            AppendLog("+1 to all resources");
+        });
+
+        clearLogButton.onClick.AddListener(() =>
+        {
+            statusText.text = "";
+        });
 
         panelRectTransform = debugPanel.GetComponent<RectTransform>();
     }
@@ -38,16 +60,9 @@ public class DebugMenu : Singleton<DebugMenu>, IPointerDownHandler, IDragHandler
         }
     }
 
-    private void MoveThief()
+    public void AppendLog(string log)
     {
-        if (ThifeManager.Instance != null)
-        {
-            statusText.text = "Thief moved!";
-        }
-        else
-        {
-            statusText.text = "ThifeManager instance not found.";
-        }
+        statusText.text += $"{log}\n";
     }
 
     public void OnPointerDown(PointerEventData eventData)

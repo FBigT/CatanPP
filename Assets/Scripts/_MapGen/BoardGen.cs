@@ -99,7 +99,7 @@ public class BoardGen : MonoBehaviour
                 int number = resource == "desert" ? 0 : shuffledNumbers[numberIndex++];
 
                 HexTile tile = tileObj.GetComponent<HexTile>();
-                tile.Initialize(resource, number);
+                tile.Initialize(resource, number, q, r);
 
                 if (resource == "desert")
                 {
@@ -185,5 +185,10 @@ public class BoardGen : MonoBehaviour
         thiefInstance.transform.SetParent(newTile.transform);
         thiefInstance.transform.localPosition = Vector3.up * 0.1f;
         currentThiefTile = newTile;
+    }
+
+    public HexTile GetCurrentThiefTile()
+    {
+        return currentThiefTile;
     }
 }

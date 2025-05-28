@@ -1,18 +1,12 @@
-/***************
- * LEFT MENU
- ***************/
-
-/* The container anchored near bottom-left */
 .left-menu {
     position: absolute;
     bottom: 10px;
     left: 10px;
     display: flex;
-    flex-direction: column;  /* Stack panels vertically */
-    gap: 10px;               /* Spacing between panels */
+    flex-direction: column;
+    gap: 10px;
 }
 
-/* Panel that holds all the purchase buttons */
 .purchase-panel {
     background-color: rgba(0, 0, 0, 0.6);
     border: 2px solid rgba(255, 255, 255, 0.2);
@@ -20,15 +14,14 @@
     padding: 10px;
     display: flex;
     flex-direction: column;
-    gap: 8px;  /* Space between buttons */
+    gap: 8px;
     min-width: 120px;
 }
 
-/* Common button style for purchase actions */
 .purchase-button {
     font-size: 14px;
     color: white;
-    background-color: rgba(255, 215, 0, 0.2); /* Light gold tint */
+    background-color: rgba(255, 215, 0, 0.2);
     border: 1px solid rgba(255, 215, 0, 0.5);
     border-radius: 4px;
     padding: 6px 10px;
@@ -37,21 +30,60 @@
     transition: background-color 0.2s ease;
 }
 
-/* On hover, intensify the gold color */
 .purchase-button:hover {
     background-color: rgba(255, 215, 0, 0.4);
 }
 
-/* Dev card panel: more or less the same structure, can be scrolled if needed */
+.impot-button {
+}
+
 .devcard-panel {
     background-color: rgba(30, 30, 30, 0.8);
     border: 2px solid rgba(255, 255, 255, 0.2);
     border-radius: 8px;
     padding: 10px;
     min-width: 120px;
-    min-height: 60px; /* Enough space to place dev cards or placeholders */
+    min-height: 60px;
     display: flex;
-    flex-direction: row;   /* If you want cards side-by-side */
+    flex-direction: row;
     gap: 6px;
-    overflow-x: auto;      /* If you might have many dev cards */
+    overflow-x: auto;
+}
+
+.impot-button {
+    background-color: #ffc400;      /* Bright gold/yellow */
+    color: #222;                    /* Dark text for contrast */
+    font-weight: 600;               /* Semi-bold text */
+    font-size: 16px;                /* Readable size */
+    padding: 10px 20px;             /* Comfortable padding */
+    border-radius: 8px;             /* Rounded corners */
+    border: none;                   /* No border */
+    box-shadow: 0 4px 8px rgba(255, 196, 0, 0.5);  /* Subtle glow */
+    cursor: pointer;                /* Pointer on hover */
+    transition: background-color 0.3s ease, box-shadow 0.3s ease, transform 0.15s ease;
+    user-select: none;              /* Prevent text highlight on double click */
+    
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;      /* Push content to bottom vertically */
+    align-items: center;            /* Center horizontally */
+    padding-bottom: 6px;   
+    text-align: center;             /* Center text horizontally */
+}
+
+.impot-button:hover {
+    background-color: #ffda4d;     /* Lighter yellow on hover */
+    box-shadow: 0 6px 14px rgba(255, 218, 77, 0.8); /* Stronger glow */
+    transform: scale(1.05);        /* Slight grow effect */
+}
+
+.impot-button:active {
+    background-color: #e6b800;     /* Darker yellow when pressed */
+    box-shadow: 0 2px 6px rgba(198, 160, 0, 0.7);
+    transform: scale(0.98);        /* Slight shrink effect */
+}
+
+.impot-button > .unity-button__text {
+    font-weight: bold;
+    align-self: flex-end;       /* This pushes text to bottom */
 }
