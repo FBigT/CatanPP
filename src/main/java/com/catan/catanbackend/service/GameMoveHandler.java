@@ -2,6 +2,7 @@ package com.catan.catanbackend.service;
 
 import com.catan.catanbackend.model.DevCard;
 import com.catan.catanbackend.model.PlayerProfile;
+import com.catan.catanbackend.model.dto.move_dtos.responses.TradeResponseDto;
 import com.catan.catanbackend.model.helper.*;
 import com.catan.catanbackend.model.Session;
 import com.catan.catanbackend.model.SessionPlayer;
@@ -15,6 +16,7 @@ import com.catan.catanbackend.repository.tiles.TileCornerRepository;
 import com.catan.catanbackend.repository.tiles.TileEdgeRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.validation.constraints.NotNull;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 
 import java.util.*;
@@ -36,8 +38,11 @@ public class GameMoveHandler {
     private final RoadRepository roadRepository;
     private final StructureRepository structureRepository;
     private final PlayerProfileService playerProfileService;
+    private final TradeService tradeService;
+    private final SimpMessagingTemplate messagingTemplate;
 
-    public GameMoveHandler(PlacementService placementService, ObjectMapper objectMapper, TileService tileService, TileCornerRepository tileCornerRepository, TileEdgeRepository tileEdgeRepository, MoveBlockerService moveBlockerService, DiceRollService diceRollService, DevCardService devCardService, GameService gameService, ResourceService resourceService, SessionService sessionService, Mapper mapper, RoadRepository roadRepository, StructureRepository structureRepository, PlayerProfileService playerProfileService) {
+
+    public GameMoveHandler(PlacementService placementService, ObjectMapper objectMapper, TileService tileService, TileCornerRepository tileCornerRepository, TileEdgeRepository tileEdgeRepository, MoveBlockerService moveBlockerService, DiceRollService diceRollService, DevCardService devCardService, GameService gameService, ResourceService resourceService, SessionService sessionService, Mapper mapper, RoadRepository roadRepository, StructureRepository structureRepository, PlayerProfileService playerProfileService, TradeService tradeService,SimpMessagingTemplate messagingTemplate ) {
         this.placementService = placementService;
         this.objectMapper = objectMapper;
         this.tileService = tileService;
@@ -53,6 +58,8 @@ public class GameMoveHandler {
         this.roadRepository = roadRepository;
         this.structureRepository = structureRepository;
         this.playerProfileService = playerProfileService;
+        this.tradeService      = tradeService;
+        this.messagingTemplate = messagingTemplate;
     }
 
     private record CornerPair(TileCorner a, TileCorner b) {
@@ -217,6 +224,55 @@ public class GameMoveHandler {
                 return gameService.activateDevCard(devCard.get(), devCardPlayDto.getCardPlayData());
             }
             case VICTORY -> throw new IllegalArgumentException("You cannot choose victory");
+            case TRADE_OFFER -> {
+                // 1) parse the incoming offer
+                TradeOfferDto offer = objectMapper.convertValue(
+                        gameMoveDto.getMoveData(),
+                        TradeOfferDto.class
+                );
+
+                // 2) send it privately to the target player’s queue
+                messagingTemplate.convertAndSend(
+                        "/user/" + offer.getToUser() + "/queue/moves",
+                        new GameMoveDto(
+                                GameMoveTypeEnum.TRADE_OFFER.name(),
+                                objectMapper.convertValue(offer, Map.class)
+                        )
+                );
+
+                // no further broadcast
+                return null;
+            }
+
+            case TRADE_RESPONSE -> {
+                // 1) parse the response (accept/deny)
+                TradeResponseDto resp = objectMapper.convertValue(
+                        gameMoveDto.getMoveData(),
+                        TradeResponseDto.class
+                );
+
+                // 2) if accepted, apply the swap on the backend
+                if (resp.isAccepted()) {
+                    tradeService.tradeBetweenPlayers(
+                            sessionId,
+                            resp.getFromUser(),  // the one who clicked “accept”
+                            resp.getToUser(),    // the original offerer
+                            resp.getOffered(),
+                            resp.getRequested()
+                    );
+                }
+
+                // 3) notify the original offerer privately
+                messagingTemplate.convertAndSend(
+                        "/user/" + resp.getToUser() + "/queue/moves",
+                        new GameMoveDto(
+                                GameMoveTypeEnum.TRADE_RESPONSE.name(),
+                                objectMapper.convertValue(resp, Map.class)
+                        )
+                );
+
+                return null;
+            }
         }
         return null;
     }

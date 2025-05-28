@@ -5,6 +5,8 @@ import com.catan.catanbackend.model.User;
 import com.catan.catanbackend.model.UserDetailsImpl;
 import com.catan.catanbackend.model.dto.*;
 import com.catan.catanbackend.model.dto.move_dtos.GameMoveDto;
+import com.catan.catanbackend.model.dto.move_dtos.TradeOfferDto;
+import com.catan.catanbackend.model.dto.move_dtos.responses.TradeResponseDto;
 import com.catan.catanbackend.model.dto.move_dtos.responses.VictoryDto;
 import com.catan.catanbackend.model.helper.GameMoveTypeEnum;
 import com.catan.catanbackend.service.*;
@@ -95,6 +97,27 @@ public class WebSocketController {
                     .sorted(Comparator.comparingInt(SessionPlayer::getPlayerScore)).map(x
                             -> new PlayerScoreDto(x.getName(), x.getPlayerScore())).toList());
             messagingTemplate.convertAndSend(GAME_MOVE_DESTINATION + sessionCode, new GameMoveDto(GameMoveTypeEnum.VICTORY.name(), objectMapper.convertValue(victoryPayload, Map.class)));
+        }
+
+
+        if (gameMoveType == GameMoveTypeEnum.TRADE_OFFER) {
+            TradeOfferDto offer = objectMapper.convertValue(payload, TradeOfferDto.class);
+            messagingTemplate.convertAndSendToUser(
+                    offer.getToUser(),
+                    "/queue/" + sessionCode,
+                    new GameMoveDto(gameMoveType.name(), objectMapper.convertValue(offer, Map.class))
+            );
+            return;
+        }
+
+        if (gameMoveType == GameMoveTypeEnum.TRADE_RESPONSE) {
+            TradeResponseDto resp = objectMapper.convertValue(payload, TradeResponseDto.class);
+            messagingTemplate.convertAndSendToUser(
+                    resp.getToUser(),
+                    "/queue/" + sessionCode,
+                    new GameMoveDto(gameMoveType.name(), objectMapper.convertValue(resp, Map.class))
+            );
+            return;
         }
     }
 }
