@@ -1,6 +1,7 @@
 package com.catan.catanbackend.service;
 
 import com.catan.catanbackend.model.DevCard;
+import com.catan.catanbackend.model.dto.move_dtos.responses.TradeResponseDto;
 import com.catan.catanbackend.model.helper.*;
 import com.catan.catanbackend.model.Session;
 import com.catan.catanbackend.model.SessionPlayer;
@@ -12,9 +13,13 @@ import com.catan.catanbackend.repository.tiles.TileCornerRepository;
 import com.catan.catanbackend.repository.tiles.TileEdgeRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.validation.constraints.NotNull;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 
 import java.util.*;
+
+import static com.catan.catanbackend.model.helper.GameMoveTypeEnum.TRADE_OFFER;
+import static com.catan.catanbackend.model.helper.GameMoveTypeEnum.TRADE_RESPONSE;
 
 @Service
 public class GameMoveHandler {
@@ -30,8 +35,10 @@ public class GameMoveHandler {
     private final ResourceService resourceService;
     private final SessionService sessionService;
     private final Mapper mapper;
+    private final TradeService tradeService;
+    private final SimpMessagingTemplate messaging;
 
-    public GameMoveHandler(PlacementService placementService, ObjectMapper objectMapper, TileService tileService, TileCornerRepository tileCornerRepository, TileEdgeRepository tileEdgeRepository, MoveBlockerService moveBlockerService, DiceRollService diceRollService, DevCardService devCardService, GameService gameService, ResourceService resourceService, SessionService sessionService, Mapper mapper) {
+    public GameMoveHandler(PlacementService placementService, ObjectMapper objectMapper, TileService tileService, TileCornerRepository tileCornerRepository, TileEdgeRepository tileEdgeRepository, MoveBlockerService moveBlockerService, DiceRollService diceRollService, DevCardService devCardService, GameService gameService, ResourceService resourceService, SessionService sessionService, Mapper mapper, TradeService tradeService, SimpMessagingTemplate messaging ) {
         this.placementService = placementService;
         this.objectMapper = objectMapper;
         this.tileService = tileService;
@@ -44,6 +51,8 @@ public class GameMoveHandler {
         this.resourceService = resourceService;
         this.sessionService = sessionService;
         this.mapper = mapper;
+        this.tradeService = tradeService;
+        this.messaging    = messaging;
     }
 
     private record CornerPair(TileCorner a, TileCorner b) {
@@ -217,7 +226,60 @@ public class GameMoveHandler {
                 return gameService.activateDevCard(devCard.get(), devCardPlayDto.getCardPlayData());
             }
             case VICTORY -> throw new IllegalArgumentException("You cannot choose victory");
+
+            case TRADE_OFFER -> {
+                // 1) parse the incoming offer
+                TradeOfferDto offer = objectMapper.convertValue(
+                        gameMoveDto.getMoveData(),
+                        TradeOfferDto.class
+                );
+
+                // 2) send it privately to the target player’s queue
+                messaging.convertAndSend(
+                        "/user/" + offer.getToUser() + "/queue/moves",
+                        new GameMoveDto(
+                                GameMoveTypeEnum.TRADE_OFFER.name(),
+                                objectMapper.convertValue(offer, Map.class)
+                        )
+                );
+
+                // no further broadcast
+                return null;
+            }
+
+            case TRADE_RESPONSE -> {
+                // 1) parse the response (accept/deny)
+                TradeResponseDto resp = objectMapper.convertValue(
+                        gameMoveDto.getMoveData(),
+                        TradeResponseDto.class
+                );
+
+                // 2) if accepted, apply the swap on the backend
+                if (resp.isAccepted()) {
+                    tradeService.tradeBetweenPlayers(
+                            sessionId,
+                            resp.getFromUser(),  // the one who clicked “accept”
+                            resp.getToUser(),    // the original offerer
+                            resp.getOffered(),
+                            resp.getRequested()
+                    );
+                }
+
+                // 3) notify the original offerer privately
+                messaging.convertAndSend(
+                        "/user/" + resp.getToUser() + "/queue/moves",
+                        new GameMoveDto(
+                                GameMoveTypeEnum.TRADE_RESPONSE.name(),
+                                objectMapper.convertValue(resp, Map.class)
+                        )
+                );
+
+                return null;
+            }
+
         }
+
+
         return null;
     }
 
