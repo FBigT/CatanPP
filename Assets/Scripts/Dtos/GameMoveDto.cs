@@ -1,4 +1,5 @@
 ﻿using System;
+using Assets.Scripts.Dtos.GameMoveResponses;
 using Assets.Scripts.Dtos.GameMoves;
 using Assets.Scripts.Enums;
 using Assets.Scripts.Utils;
@@ -38,17 +39,9 @@ namespace Assets.Scripts.Dtos
             GameMoveType = GameMoveType.PLACE_ROAD;
             moveData = placeRoadDto;
         }
-        // Add to existing GameMoveDto.cs
-        // Add this to your existing GameMoveDto.cs file, around line 37
-        //public GameMoveDto(Assets.Scripts.Dtos.GameMoves.PlayCardDto playCardDto)
-        //{
-        //    GameMoveType = GameMoveType.PLAY_CARD;
-        //    moveData = playCardDto;
-        //}
 
 
-        public GameMoveDto(PlaceStructureDto placeStructureDto)
-        {
+        public GameMoveDto(PlaceStructureDto placeStructureDto){
             GameMoveType = GameMoveType.PLACE_STRUCTURE;
             moveData = placeStructureDto;
         }
@@ -58,7 +51,18 @@ namespace Assets.Scripts.Dtos
             GameMoveType = GameMoveType.PLAY_CARD;
             moveData = playCardDto;
         }
+        public GameMoveDto(TradeResponseMessage resp)
+        {
+            GameMoveType = GameMoveType.TRADE_RESPONSE;
+            moveData = resp;
+        }
 
+
+        public GameMoveDto(TradeOfferMessage tradeOffer)
+        {
+            GameMoveType = GameMoveType.TRADE_OFFER;
+            moveData = tradeOffer;
+        }
         [JsonConverter(typeof(StringEnumConverter))]
         public GameMoveType GameMoveType { get; set; }
         public object moveData;

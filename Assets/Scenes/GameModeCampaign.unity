@@ -10272,6 +10272,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   chatEntryTemplateUxml: {fileID: 9197481963319205126, guid: 846792d3b08c38143a1affaa702cb014, type: 3}
+  tradeEntryTemplateUxml: {fileID: 9197481963319205126, guid: b41834a545704124ab3fa0530fb6d1dc, type: 3}
 --- !u!114 &469276500
 MonoBehaviour:
   m_ObjectHideFlags: 0

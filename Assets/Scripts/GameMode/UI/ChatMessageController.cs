@@ -7,6 +7,8 @@ namespace Assets.Scripts.GameMode.UI
 {
     public class ChatMessageController
     {
+        public VisualTreeAsset textEntryTemplate;
+        public VisualTreeAsset tradeEntryTemplate;
         // UXML template for list entries
         VisualTreeAsset m_ListEntryTemplate;
 

@@ -1,0 +1,7 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements">
+  <ui:VisualElement class="chat-entry trade-request">
+    <ui:Label name="ChatContent" class="chat-label" />
+    <ui:Button name="AcceptButton" text="Accept" class="trade-btn" />
+    <ui:Button name="DenyButton"   text="Deny"   class="trade-btn" />
+  </ui:VisualElement>
+</ui:UXML>
