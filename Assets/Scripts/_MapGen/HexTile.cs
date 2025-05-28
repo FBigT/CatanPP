@@ -6,7 +6,7 @@ public class HexTile : MonoBehaviour
     public string resourceType;
     public int numberToken;
 
-    public MeshRenderer renderer;
+    public MeshRenderer hexRenderer;
     public TextMeshPro numberText;
 
     public Material woodMat, brickMat, wheatMat, sheepMat, oreMat, desertMat;
@@ -20,16 +20,16 @@ public class HexTile : MonoBehaviour
 
     void UpdateVisuals()
     {
-        if (renderer == null) return;
+        if (hexRenderer == null) return;
 
         switch (resourceType)
         {
-            case "wood": renderer.material = woodMat; break;
-            case "brick": renderer.material = brickMat; break;
-            case "wheat": renderer.material = wheatMat; break;
-            case "sheep": renderer.material = sheepMat; break;
-            case "ore": renderer.material = oreMat; break;
-            case "desert": renderer.material = desertMat; break;
+            case "wood": hexRenderer.material = woodMat; break;
+            case "brick": hexRenderer.material = brickMat; break;
+            case "wheat": hexRenderer.material = wheatMat; break;
+            case "sheep": hexRenderer.material = sheepMat; break;
+            case "ore": hexRenderer.material = oreMat; break;
+            case "desert": hexRenderer.material = desertMat; break;
         }
 
         if (numberText != null)

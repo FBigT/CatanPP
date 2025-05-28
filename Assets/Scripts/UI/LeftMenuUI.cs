@@ -1,14 +1,13 @@
 using UnityEngine;
 using UnityEngine.UIElements;
 using Assets.Scripts.Enums;
-using Catan.UI;
 
 namespace Catan.UI
 {
     public class LeftMenuUI : MonoBehaviour
     {
         [Header("Prefabs")]
-        public GameObject roadPrefab, settlementPrefab, cityPrefab, devCardPrefab;
+        public GameObject roadPrefab, settlementPrefab, cityPrefab;
 
         [Header("Preview Shader")]
         public Material hologramMaterial;
@@ -16,8 +15,9 @@ namespace Catan.UI
         [Header("Local Resource Inventory")]
         public PlayerInventory localInventory;
 
-        private Button btnRoad, btnSettle, btnCity, btnDevCard;
+        private Button btnRoad, btnSettle, btnCity;
         private GameObject currentPreview;
+        private PurchaseType currentPurchaseType;
         private bool isPlacingStructure = false;
         private Plane groundPlane = new Plane(Vector3.up, Vector3.zero); // y = 0 plane
 
@@ -34,12 +34,10 @@ namespace Catan.UI
             btnRoad = root.Q<Button>("BuyRoadButton");
             btnSettle = root.Q<Button>("BuySettlementButton");
             btnCity = root.Q<Button>("BuyCityButton");
-            btnDevCard = root.Q<Button>("BuyDevCardButton");
 
             if (btnRoad != null) btnRoad.clicked += () => TryPurchase(PurchaseType.Road);
             if (btnSettle != null) btnSettle.clicked += () => TryPurchase(PurchaseType.Settlement);
             if (btnCity != null) btnCity.clicked += () => TryPurchase(PurchaseType.City);
-            if (btnDevCard != null) btnDevCard.clicked += () => TryPurchase(PurchaseType.DevCard);
         }
 
         void TryPurchase(PurchaseType type)
@@ -52,19 +50,19 @@ namespace Catan.UI
                 return;
             }
 
-            localInventory.SpendResources(type);
-
             GameObject prefab = type switch
             {
                 PurchaseType.Road => roadPrefab,
                 PurchaseType.Settlement => settlementPrefab,
                 PurchaseType.City => cityPrefab,
-                PurchaseType.DevCard => devCardPrefab,
                 _ => null
             };
 
             if (prefab != null)
+            {
+                currentPurchaseType = type;
                 SpawnPreview(prefab);
+            }
         }
 
         void SpawnPreview(GameObject prefab)
@@ -83,6 +81,30 @@ namespace Catan.UI
                 rend.material = hologramMaterial;
         }
 
+        void Update()
+        {
+            if (!isPlacingStructure || currentPreview == null) return;
+
+            // Update preview position
+            currentPreview.transform.position = GetMouseProjectedPosition();
+
+            // Cancel
+            if (Input.GetMouseButtonDown(1))
+                CancelPreview();
+
+            // Try place on left click
+            if (Input.GetMouseButtonDown(0))
+            {
+                if (TryPlaceStructure())
+                {
+                    localInventory.SpendResources(currentPurchaseType);
+                    Destroy(currentPreview);
+                    currentPreview = null;
+                    isPlacingStructure = false;
+                }
+            }
+        }
+
         Vector3 GetMouseProjectedPosition()
         {
             Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
@@ -94,20 +116,51 @@ namespace Catan.UI
             return Vector3.zero;
         }
 
-        void Update()
+        bool TryPlaceStructure()
         {
-            if (isPlacingStructure && currentPreview)
-            {
-                currentPreview.transform.position = GetMouseProjectedPosition();
+            Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
+            if (!Physics.Raycast(ray, out RaycastHit hit))
+                return false;
 
-                if (Input.GetMouseButtonDown(1)) // Right-click cancel
-                    CancelPreview();
+            switch (currentPurchaseType)
+            {
+                case PurchaseType.Road:
+                    EdgePoint ep = hit.collider.GetComponent<EdgePoint>();
+                    if (ep == null)
+                    {
+                        Debug.Log("Invalid road target.");
+                        return false;
+                    }
+
+                    if (StructureManager.Instance.TryPlaceRoad(ep, "debug")) // Replace with real player ID
+                    {
+                        return true;
+                    }
+                    return false;
+
+                case PurchaseType.Settlement:
+                case PurchaseType.City:
+                    VertexPoint vp = hit.collider.GetComponent<VertexPoint>();
+                    if (vp == null)
+                    {
+                        Debug.Log("Not a valid placement target.");
+                        return false;
+                    }
+
+                    StructureType targetStructure = currentPurchaseType == PurchaseType.City ? StructureType.CITY : StructureType.SETTLEMENT;
+                    if (StructureManager.Instance.TryPlaceStructure(vp, targetStructure))
+                    {
+                        return true;
+                    }
+                    return true;
             }
+
+            return false;
         }
 
         void CancelPreview()
         {
-            if (currentPreview)
+            if (currentPreview != null)
                 Destroy(currentPreview);
             currentPreview = null;
             isPlacingStructure = false;
@@ -126,7 +179,6 @@ namespace Catan.UI
                 PurchaseType.Road => Brick >= 1 && Lumber >= 1,
                 PurchaseType.Settlement => Brick >= 1 && Lumber >= 1 && Wool >= 1 && Grain >= 1,
                 PurchaseType.City => Grain >= 2 && Ore >= 3,
-                PurchaseType.DevCard => Wool >= 1 && Grain >= 1 && Ore >= 1,
                 _ => false
             };
         }
@@ -143,9 +195,6 @@ namespace Catan.UI
                     break;
                 case PurchaseType.City:
                     Grain -= 2; Ore -= 3;
-                    break;
-                case PurchaseType.DevCard:
-                    Wool--; Grain--; Ore--;
                     break;
             }
         }

@@ -116,7 +116,7 @@ namespace Assets.Scripts.DevCards.Core
             var road1 = new PlaceRoadDto(0, 0, 0);
             var road2 = new PlaceRoadDto(0, 0, 1);
 
-            var playCardDto = new PlayCardDto(DevCardType.ROAD_BUILDING, road1, road2);
+            var playCardDto = new PlayCardDto(DevCardType.ROAD_BUILDING);
             var gameMove = new GameMoveDto(GameMoveType.PLAY_CARD);
             gameMove.moveData = playCardDto;
 

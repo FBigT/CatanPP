@@ -1,17 +1,18 @@
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 
 public class BoardGen : MonoBehaviour
 {
     public GameObject hexTilePrefab;
+    public GameObject edgePointPrefab;
 
     public GameObject thiefPrefab;
     private GameObject thiefInstance;
     private HexTile currentThiefTile;
 
-    public float hexSize = 1f; // Size of each hex tile
+    public float hexSize = 1f;
 
-    // Hex radius = 2 gives standard Catan size
     private const int radius = 2;
 
     public GameObject vertexPrefab;
@@ -19,7 +20,7 @@ public class BoardGen : MonoBehaviour
 
     Vector3 GetVertexPosition(Vector3 center, int cornerIndex, float radius)
     {
-        float angle = Mathf.Deg2Rad * (60 * cornerIndex + 30); // midpoint between two edges
+        float angle = Mathf.Deg2Rad * (60 * cornerIndex + 30);
         float x = center.x + radius * Mathf.Cos(angle);
         float z = center.z + radius * Mathf.Sin(angle);
         return new Vector3(x, 0.1f, z);
@@ -27,7 +28,6 @@ public class BoardGen : MonoBehaviour
 
     void SpawnVertexIfNotExists(Vector3 position)
     {
-        // Round to avoid float imprecision
         position = new Vector3(Mathf.Round(position.x * 10) / 10f, 0.1f, Mathf.Round(position.z * 10) / 10f);
 
         if (vertexMap.ContainsKey(position)) return;
@@ -50,12 +50,13 @@ public class BoardGen : MonoBehaviour
     private static readonly int[] numberTokens = {
         5, 2, 6, 3, 8, 10, 9, 12, 11, 4,
         8, 10, 9, 4, 5, 6, 3, 11
-        // Note: No token on desert
     };
 
     void Start()
     {
         GenerateBoard();
+        List<VertexPoint> allPoints = FindObjectsOfType<VertexPoint>().ToList();
+        GenerateEdgePoints(allPoints);
     }
 
     void GenerateBoard()
@@ -80,7 +81,7 @@ public class BoardGen : MonoBehaviour
 
                 for (int i = 0; i < 6; i++)
                 {
-                    Vector3 vertexPos = GetVertexPosition(pos, i, hexSize); // radius = 1f
+                    Vector3 vertexPos = GetVertexPosition(pos, i, hexSize);
                     SpawnVertexIfNotExists(vertexPos);
                 }
 
@@ -101,7 +102,52 @@ public class BoardGen : MonoBehaviour
             }
         }
 
+        foreach (var vertex in vertexMap.Values)
+        {
+            foreach (var tile in FindObjectsOfType<HexTile>())
+            {
+                if (Vector3.Distance(tile.transform.position, vertex.Position) < hexSize + .1f)
+                {
+                    vertex.nearbyTiles.Add(tile);
+                }
+            }
+        }
+
         Debug.Log("Board generated!");
+    }
+
+    public void GenerateEdgePoints(List<VertexPoint> allVertexPoints)
+    {
+        HashSet<(VertexPoint, VertexPoint)> createdEdges = new();
+
+        for (int i = 0; i < allVertexPoints.Count; i++)
+        {
+            VertexPoint a = allVertexPoints[i];
+
+            for (int j = i + 1; j < allVertexPoints.Count; j++)
+            {
+                VertexPoint b = allVertexPoints[j];
+
+                float dist = Vector3.Distance(a.Position, b.Position);
+
+                float minDist = hexSize * 0.8f;
+                float maxDist = hexSize * 1.3f;
+
+                if (dist >= minDist && dist <= maxDist)
+                {
+                    if (!createdEdges.Contains((a, b)) && !createdEdges.Contains((b, a)))
+                    {
+                        GameObject edgeGO = Instantiate(edgePointPrefab, (a.Position + b.Position) / 2, Quaternion.identity, transform);
+                        EdgePoint ep = edgeGO.GetComponent<EdgePoint>();
+
+                        ep.pointA = a;
+                        ep.pointB = b;
+
+                        createdEdges.Add((a, b));
+                    }
+                }
+            }
+        }
     }
 
     Vector3 HexToWorld(int q, int r)
@@ -126,7 +172,7 @@ public class BoardGen : MonoBehaviour
             return;
 
         thiefInstance.transform.SetParent(newTile.transform);
-        thiefInstance.transform.localPosition = Vector3.up * 0.1f; // keep consistent
+        thiefInstance.transform.localPosition = Vector3.up * 0.1f;
         currentThiefTile = newTile;
     }
 }

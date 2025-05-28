@@ -8,10 +8,19 @@
         <engine:Button text="Role dice" name="btnDiceRole" style="-unity-text-align: middle-center; white-space: nowrap; text-overflow: clip;" />
     </engine:VisualElement>
     <engine:VisualElement name="LeftMenuContainer" class="left-menu">
-        <engine:VisualElement name="PurchasePanel" class="purchase-panel" style="height: 203px;">
-            <engine:Button name="BuyRoadButton" text="Buy Road" class="purchase-button" />
-            <engine:Button name="BuySettlementButton" text="Buy Settlement" class="purchase-button" />
-            <engine:Button name="BuyCityButton" text="Buy City" class="purchase-button" />
+        <engine:VisualElement name="PurchasePanel" class="purchase-panel" style="height: 193px;">
+            <engine:VisualElement name="vmRoad" style="flex-grow: 1; flex-direction: row; align-items: center;">
+                <engine:Button name="BuyRoadButton" text="Buy Road" class="purchase-button" style="width: 120px; height: 35px;" />
+                <engine:VisualElement style="flex-grow: 1; background-image: url(&quot;project://database/Assets/Sprites/stone-path.png?fileID=2800000&amp;guid=adf51177f5a5b0f45a13e5c4238ef964&amp;type=3#stone-path&quot;); width: 50px; height: 50px;" />
+            </engine:VisualElement>
+            <engine:VisualElement name="vmHouse" style="flex-grow: 1; flex-direction: row; align-items: center;">
+                <engine:Button name="BuySettlementButton" text="Buy Settlement" class="purchase-button" style="width: 120px; height: 35px;" />
+                <engine:VisualElement style="flex-grow: 1; background-image: url(&quot;project://database/Assets/Sprites/house.png?fileID=2800000&amp;guid=5a9fafc3f0aa8144aaba85265aab657a&amp;type=3#house&quot;); width: 50px; height: 50px;" />
+            </engine:VisualElement>
+            <engine:VisualElement name="vmCity" style="flex-grow: 1; flex-direction: row; align-items: center;">
+                <engine:Button name="BuyCityButton" text="Buy City" class="purchase-button" style="width: 120px; height: 35px;" />
+                <engine:VisualElement style="flex-grow: 1; background-image: url(&quot;project://database/Assets/Sprites/stone-tower.png?fileID=2800000&amp;guid=49e7ffd4bcb9df348b2d9da7bc4a48de&amp;type=3#stone-tower&quot;); height: 50px; width: 50px;" />
+            </engine:VisualElement>
         </engine:VisualElement>
     </engine:VisualElement>
     <engine:VisualElement name="EndTurnContainer" class="end-turn-container" />

@@ -314,7 +314,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   resourceType: 
   numberToken: 0
-  renderer: {fileID: 3169396186825631018}
+  hexRenderer: {fileID: 3169396186825631018}
   numberText: {fileID: 8845342093696784855}
   woodMat: {fileID: 2100000, guid: 0fa2a0716bf01cd47a53e90b974adcd1, type: 2}
   brickMat: {fileID: 2100000, guid: 8d673075f0be40a42b93b06e2494644a, type: 2}
