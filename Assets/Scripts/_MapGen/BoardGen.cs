@@ -1,3 +1,4 @@
+using Assets.Scripts.Enums;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
@@ -17,6 +18,14 @@ public class BoardGen : MonoBehaviour
 
     public GameObject vertexPrefab;
     private Dictionary<Vector3, VertexPoint> vertexMap = new();
+
+    public GameObject portPrefab;
+    public List<PortType> portTypes = new()
+    {
+        PortType.Generic3To1, PortType.Wood2To1, PortType.Brick2To1,
+        PortType.Generic3To1, PortType.Wheat2To1, PortType.Sheep2To1,
+        PortType.Generic3To1, PortType.Ore2To1, PortType.Generic3To1
+    };
 
     Vector3 GetVertexPosition(Vector3 center, int cornerIndex, float radius)
     {
@@ -57,6 +66,7 @@ public class BoardGen : MonoBehaviour
         GenerateBoard();
         List<VertexPoint> allPoints = FindObjectsOfType<VertexPoint>().ToList();
         GenerateEdgePoints(allPoints);
+        PlacePorts();
     }
 
     void GenerateBoard()
@@ -159,6 +169,95 @@ public class BoardGen : MonoBehaviour
                 }
             }
         }
+    }
+
+    void PlacePorts()
+    {
+        Shuffle(portTypes);
+        var portPairs = FindValidPortPairs();
+
+        // Order port edges based on angle around board center
+        Vector3 center = CalculateBoardCenter();
+        var sorted = portPairs.OrderBy(pair =>
+        {
+            Vector3 mid = (pair.Item1.Position + pair.Item2.Position) / 2f;
+            Vector3 dir = (mid - center).normalized;
+            return Mathf.Atan2(dir.z, dir.x);
+        }).ToList();
+
+        // Evenly spaced selection from the sorted list
+        int count = Mathf.Min(portTypes.Count, sorted.Count);
+        int spacing = sorted.Count / count;
+
+        for (int i = 0; i < count; i++)
+        {
+            int index = i * spacing;
+            var (a, b) = sorted[index];
+            PortType type = portTypes[i];
+
+            // Step 1: Find the hex shared between vertex A and B
+            List<HexTile> sharedHexes = a.nearbyTiles.Intersect(b.nearbyTiles).ToList();
+            if (sharedHexes.Count == 0)
+            {
+                Debug.LogWarning("No shared hex found for port placement between vertices.");
+                continue;
+            }
+
+            Vector3 hexCenter = sharedHexes[0].transform.position;
+
+            // Step 2: Direction from hex to edge midpoint
+            Vector3 midpoint = (a.Position + b.Position) / 2f;
+            Vector3 outwardDirection = (midpoint - hexCenter).normalized;
+
+            // Step 3: Calculate port position off the coast
+            Vector3 portPosition = midpoint + outwardDirection * hexSize;
+
+            // Step 4: Spawn and initialize the port
+            GameObject portObj = Instantiate(portPrefab, portPosition, Quaternion.identity, transform);
+            Port port = portObj.GetComponent<Port>();
+            port.Initialize(type, a, b);
+        }
+    }
+
+    List<(VertexPoint, VertexPoint)> FindValidPortPairs()
+    {
+        var portPairs = new List<(VertexPoint, VertexPoint)>();
+
+        foreach (var vertex in vertexMap.Values)
+        {
+            if (vertex.nearbyTiles.Count > 2) continue; // not a border vertex
+
+            foreach (var edge in vertex.edgePoints)
+            {
+                VertexPoint other = edge.pointA == vertex ? edge.pointB : edge.pointA;
+
+                // Must also be border
+                if (other == null || other == vertex || other.nearbyTiles.Count > 2)
+                    continue;
+
+                var pair = (vertex, other);
+
+                // Avoid duplicates (A-B == B-A)
+                if (!portPairs.Any(p => (p.Item1 == pair.Item2 && p.Item2 == pair.Item1)))
+                    portPairs.Add(pair);
+            }
+        }
+
+        return portPairs;
+    }
+
+    Vector3 CalculateBoardCenter()
+    {
+        Vector3 sum = Vector3.zero;
+        int count = 0;
+
+        foreach (var tile in FindObjectsOfType<HexTile>())
+        {
+            sum += tile.transform.position;
+            count++;
+        }
+
+        return count > 0 ? sum / count : Vector3.zero;
     }
 
     Vector3 HexToWorld(int q, int r)

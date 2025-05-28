@@ -23,6 +23,10 @@ namespace Catan.UI
         public GameObject cursor3DPrefab;           // Prefab to instantiate
         public float cursorYLevel = 0.05f;          // Y plane height for cursor placement
 
+        [Header("SFX")]
+        public SFXPlayer cantPlaceSfx;          // Sound effect player for feedback
+        public SFXPlayer placeSfx;          // Sound effect player for successful placement
+
         private GameObject activeCursor;            // Instantiated cursor object
         private Dictionary<PurchaseType, (Button button, GameObject prefab)> purchaseDict;
 
@@ -127,6 +131,7 @@ namespace Catan.UI
                     EdgePoint ep = hitRoad.collider.GetComponent<EdgePoint>();
                     if (ep == null)
                     {
+                        cantPlaceSfx.Play();
                         Debug.Log("Invalid road target.");
                         return false;
                     }
@@ -134,8 +139,10 @@ namespace Catan.UI
                     if (StructureManager.Instance.TryPlaceRoad(ep, "debug"))
                     {
                         EdgePoint.ShowPlacementHighlights = false;
+                        placeSfx.Play();
                         return true;
                     }
+                    cantPlaceSfx.Play();
                     return false;
 
                 case PurchaseType.Settlement:
@@ -145,6 +152,7 @@ namespace Catan.UI
                     VertexPoint vp = hitBuilding.collider.GetComponent<VertexPoint>();
                     if (vp == null)
                     {
+                        cantPlaceSfx.Play();
                         Debug.Log("Not a valid placement target.");
                         return false;
                     }
@@ -152,11 +160,13 @@ namespace Catan.UI
                     StructureType targetStructure = currentPurchaseType == PurchaseType.City ? StructureType.CITY : StructureType.SETTLEMENT;
                     if (StructureManager.Instance.TryPlaceStructure(vp, targetStructure))
                     {
+                        placeSfx.Play();
                         return true;
                     }
+                    cantPlaceSfx.Play();
                     return false;
             }
-
+            cantPlaceSfx.Play();
             return false;
         }
 
