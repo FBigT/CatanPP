@@ -256,19 +256,26 @@ namespace Assets.Scripts.Utils
                 Debug.LogWarning("Cannot send trade offer: WebSocket not connected.");
                 return;
             }
-            var moveDto = new GameMoveDto(offer);
+
+            // 1) build the exact same DTO your server expects:
+            var dto = new TradeOfferDto
+            {
+                fromUser = offer.fromUser,
+                toUser = offer.toUser,
+                offered = offer.offered,
+                requested = offer.requested
+            };
+
+            // 2) send *that* raw dto
             string frame = WebSocketEndpointsUtils.MessageFrame(
-                WebSocketApplicationDestinations.Moves,
-                sessionCode,
-                moveDto
+              WebSocketApplicationDestinations.Moves,
+              sessionCode,
+              dto
             );
             Debug.Log($"[WebSocketService] >> STOMP SEND (Moves):\n{frame}");
-
             await webSocket.SendText(frame);
             Debug.Log("[WebSocketService] >> STOMP SEND complete");
-
         }
-
 
         public static async Task SendTradeResponse(TradeResponseMessage resp)
         {

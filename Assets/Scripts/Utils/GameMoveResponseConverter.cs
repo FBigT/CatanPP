@@ -28,7 +28,11 @@ namespace Assets.Scripts.Utils
                 GameMoveType.END_TURN => jo["moveData"]?.ToObject<EndTurnResponse>(serializer),
                 //Complex type
                 GameMoveType.PLAY_CARD => jo["moveData"]?.ToObject<PlayCardResponseDto>(serializer),
+                GameMoveType.TRADE_OFFER => jo["moveData"]?.ToObject<TradeOfferMessage>(serializer),
+                GameMoveType.TRADE_RESPONSE => jo["moveData"]?.ToObject<TradeResponseMessage>(serializer),
                 _ => throw new JsonSerializationException($"Unknown GameMoveType: {gameMoveType}"),
+
+
             };
             return new GameMoveResponseDto
             {

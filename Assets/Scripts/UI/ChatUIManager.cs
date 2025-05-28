@@ -74,7 +74,7 @@ namespace Assets.Scripts.UI
                 textEntryTemplate = chatEntryTemplateUxml,
                 tradeEntryTemplate = tradeEntryTemplateUxml
             };
-            chatController.InitializeCharacterList(chatContainerRoot, chatEntryTemplateUxml);
+            chatController.InitializeCharacterList(chatContainerRoot);
 
             // Hook up sending regular chat text
             chatInputField.RegisterCallback<KeyUpEvent>(evt =>
