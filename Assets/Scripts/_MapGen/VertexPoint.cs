@@ -9,6 +9,7 @@ public class VertexPoint : MonoBehaviour
 
     public object owner;
     public List<HexTile> nearbyTiles = new();
+    public List<EdgePoint> edgePoints = new();
 
     private void Update()
     {

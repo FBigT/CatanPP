@@ -15,11 +15,15 @@ namespace Catan.UI
         [Header("Local Resource Inventory")]
         public PlayerInventory localInventory;
 
+        [Header("Layer Masks")]
+        public LayerMask buildingLayerMask = 1;
+        public LayerMask roadLayerMask = 1;
+
         private Button btnRoad, btnSettle, btnCity;
         private GameObject currentPreview;
         private PurchaseType currentPurchaseType;
         private bool isPlacingStructure = false;
-        private Plane groundPlane = new Plane(Vector3.up, Vector3.zero); // y = 0 plane
+        private Plane groundPlane = new Plane(Vector3.up, Vector3.zero);
 
         void OnEnable()
         {
@@ -61,9 +65,13 @@ namespace Catan.UI
             if (prefab != null)
             {
                 currentPurchaseType = type;
+
+                EdgePoint.ShowPlacementHighlights = (type == PurchaseType.Road);
+
                 SpawnPreview(prefab);
             }
         }
+
 
         void SpawnPreview(GameObject prefab)
         {
@@ -85,14 +93,11 @@ namespace Catan.UI
         {
             if (!isPlacingStructure || currentPreview == null) return;
 
-            // Update preview position
             currentPreview.transform.position = GetMouseProjectedPosition();
 
-            // Cancel
             if (Input.GetMouseButtonDown(1))
                 CancelPreview();
 
-            // Try place on left click
             if (Input.GetMouseButtonDown(0))
             {
                 if (TryPlaceStructure())
@@ -119,17 +124,25 @@ namespace Catan.UI
         bool TryPlaceStructure()
         {
             Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
-            if (!Physics.Raycast(ray, out RaycastHit hit))
-                return false;
+
 
             switch (currentPurchaseType)
             {
                 case PurchaseType.Road:
-                    EdgePoint ep = hit.collider.GetComponent<EdgePoint>();
+                    if (!Physics.Raycast(ray, out RaycastHit hitRoad, roadLayerMask))
+                        return false;
+
+                    EdgePoint ep = hitRoad.collider.GetComponent<EdgePoint>();
                     if (ep == null)
                     {
                         Debug.Log("Invalid road target.");
                         return false;
+                    }
+
+                    if (StructureManager.Instance.TryPlaceRoad(ep, "debug"))
+                    {
+                        EdgePoint.ShowPlacementHighlights = false;
+                        return true;
                     }
 
                     if (StructureManager.Instance.TryPlaceRoad(ep, "debug")) // Replace with real player ID
@@ -140,7 +153,10 @@ namespace Catan.UI
 
                 case PurchaseType.Settlement:
                 case PurchaseType.City:
-                    VertexPoint vp = hit.collider.GetComponent<VertexPoint>();
+                    if (!Physics.Raycast(ray, out RaycastHit hitBuilding, buildingLayerMask))
+                        return false;
+
+                    VertexPoint vp = hitBuilding.collider.GetComponent<VertexPoint>();
                     if (vp == null)
                     {
                         Debug.Log("Not a valid placement target.");
@@ -164,7 +180,10 @@ namespace Catan.UI
                 Destroy(currentPreview);
             currentPreview = null;
             isPlacingStructure = false;
+
+            EdgePoint.ShowPlacementHighlights = false;
         }
+
     }
 
     [System.Serializable]

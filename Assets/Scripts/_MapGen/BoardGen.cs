@@ -87,6 +87,14 @@ public class BoardGen : MonoBehaviour
 
                 GameObject tileObj = Instantiate(hexTilePrefab, pos, Quaternion.identity);
 
+                if (tileObj.GetComponent<MeshCollider>() == null)
+                {
+                    MeshCollider meshCollider = tileObj.AddComponent<MeshCollider>();
+                    MeshFilter mf = tileObj.GetComponent<MeshFilter>();
+                    if (mf != null)
+                        meshCollider.sharedMesh = mf.sharedMesh;
+                }
+
                 string resource = shuffledResources[index++];
                 int number = resource == "desert" ? 0 : shuffledNumbers[numberIndex++];
 
@@ -142,6 +150,9 @@ public class BoardGen : MonoBehaviour
 
                         ep.pointA = a;
                         ep.pointB = b;
+
+                        a.edgePoints.Add(ep);
+                        b.edgePoints.Add(ep);
 
                         createdEdges.Add((a, b));
                     }

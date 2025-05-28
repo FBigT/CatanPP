@@ -10,18 +10,62 @@ public class EdgePoint : MonoBehaviour
     public object owner;
     public GameObject roadVisual;
 
-    public List<EdgePoint> connectedEdges = new(); // Used for chaining
+    [Header("Visual Feedback")]
+    public GameObject highlightVisual;
+
+    public List<EdgePoint> connectedEdges = new();
+
+    // Static flag set from UI (when road is being placed)
+    public static bool ShowPlacementHighlights = false;
+
+    void Start()
+    {
+        SetHighlightVisible(false);
+    }
+
+    void Update()
+    {
+        if (highlightVisual == null) return;
+
+        // Update highlight only if road is not yet built and we're placing a road
+        if (owner == null && ShowPlacementHighlights && IsConnectedToPlayer("debug")) // Replace with real player ID
+        {
+            SetHighlightVisible(true);
+        }
+        else
+        {
+            SetHighlightVisible(false);
+        }
+    }
+
+    public void SetHighlightVisible(bool isVisible)
+    {
+        if (highlightVisual != null)
+            highlightVisual.SetActive(isVisible);
+    }
+
+    public bool IsPlaceable()
+    {
+        return owner == null && (pointA.owner != null || pointB.owner != null);
+    }
 
     public bool IsConnectedToPlayer(string player)
     {
-        // Check if any adjacent structure is owned by the player
-        if (pointA?.owner?.ToString() == player || pointB?.owner?.ToString() == player)
-            return true;
-
-        // Check if any adjacent road is owned
-        foreach (var edge in connectedEdges)
+        if ((pointA.owner != null && pointA.owner.Equals(player)) ||
+            (pointB.owner != null && pointB.owner.Equals(player)))
         {
-            if (edge != null && edge.owner?.ToString() == player)
+            return true;
+        }
+
+        foreach (EdgePoint neighbor in pointA.edgePoints)
+        {
+            if (neighbor != this && neighbor.owner != null && neighbor.owner.Equals(player))
+                return true;
+        }
+
+        foreach (EdgePoint neighbor in pointB.edgePoints)
+        {
+            if (neighbor != this && neighbor.owner != null && neighbor.owner.Equals(player))
                 return true;
         }
 
@@ -33,7 +77,7 @@ public class EdgePoint : MonoBehaviour
         if (owner != null) return;
 
         owner = player;
-
+        SetHighlightVisible(false); // Hide visual once built
         RoadGenerator.AlignRoad(this.gameObject, pointA.transform.position, pointB.transform.position, roadMaterial);
     }
 }
