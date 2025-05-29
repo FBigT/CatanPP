@@ -1,11 +1,9 @@
 using UnityEngine;
 using UnityEngine.UIElements;
 using Assets.Scripts.Models;
-
 using Assets.Scripts.DevCards.Core;
 using System.Collections.Generic;
 using System.Linq;
-
 
 namespace Assets.Scripts.DevCards.UI
 {
@@ -34,7 +32,6 @@ namespace Assets.Scripts.DevCards.UI
 
         // State tracking
         public bool IsVisible { get; private set; } = false;
-        private bool manuallyHidden = true; // Track if user manually closed it
 
         private void Awake()
         {
@@ -90,20 +87,15 @@ namespace Assets.Scripts.DevCards.UI
             SetPanelVisibility(false);
         }
 
-
         public void OnPlayerCardsUpdated(List<DevCardDto> cards)
         {
             playerCards = new List<DevCardDto>(cards);
             RefreshCardDisplay();
-
-            // Don't auto-show panel - let toggle control it
-            // Only refresh the content, don't change visibility
         }
 
         private void OnCardBought(string message)
         {
             Debug.Log("Card bought: " + message);
-            // Refresh display but don't change visibility
             RefreshCardDisplay();
         }
 
@@ -114,11 +106,7 @@ namespace Assets.Scripts.DevCards.UI
 
         private void RefreshCardDisplay()
         {
-            // Clear existing display
             ClearCardDisplay();
-
-            // Always refresh content regardless of visibility
-            // Don't change panel visibility here
 
             // Group cards by type and create displays
             var groupedCards = playerCards.GroupBy(c => c.type).ToDictionary(g => g.Key, g => g.ToList());
@@ -243,10 +231,7 @@ namespace Assets.Scripts.DevCards.UI
 
         private void ClearCardDisplay()
         {
-            // Clear scroll view
             cardScrollView?.Clear();
-
-            // Clear card elements list
             cardElements.Clear();
         }
 
@@ -262,15 +247,11 @@ namespace Assets.Scripts.DevCards.UI
         public void ShowPanel()
         {
             SetPanelVisibility(true);
-            manuallyHidden = false;
-            Debug.Log("DevCardPanel: Showing panel");
         }
 
         public void HidePanel()
         {
             SetPanelVisibility(false);
-            manuallyHidden = true;
-            Debug.Log("DevCardPanel: Hiding panel");
         }
 
         private void OnDestroy()

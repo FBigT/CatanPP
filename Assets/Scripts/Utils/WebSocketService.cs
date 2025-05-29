@@ -20,7 +20,10 @@ namespace Assets.Scripts.Utils
         public static event Action<TradeOfferMessage> OnTradeOfferReceived;
         public static event Action<TradeResponseMessage> OnTradeResponseReceived;
 
-
+        // ✅ ADD THESE NEW EVENTS FOR DEV CARDS:
+        public static event Action<BuyCardResponseDto> OnBuyCardResponse;
+        public static event Action<PrivateBuyCard> OnPrivateBuyCard;
+        public static event Action<PlayCardResponseDto> OnPlayCardResponse;
         private static WebSocket webSocket;
         public static bool Connected { get; private set; } = false;
         private static string sessionCode;
@@ -99,6 +102,8 @@ namespace Assets.Scripts.Utils
                                     break;
                                 case GameMoveType.BUY_CARD:
                                     BuyCardResponseDto buyCardResponse = (BuyCardResponseDto)gameMove.moveData;
+                                    // ✅ ADD THIS LINE:
+                                    OnBuyCardResponse?.Invoke(buyCardResponse);
                                     break;
                                 case GameMoveType.UPGRADE_STRUCTURE:
                                     UpgradeStructureResponse upgradeStructure = (UpgradeStructureResponse)gameMove.moveData;
@@ -114,6 +119,8 @@ namespace Assets.Scripts.Utils
                                     break;
                                 case GameMoveType.PLAY_CARD:
                                     PlayCardResponseDto playCardResponseDto = (PlayCardResponseDto)gameMove.moveData;
+                                    // ✅ ADD THIS LINE:
+                                    OnPlayCardResponse?.Invoke(playCardResponseDto);
                                     switch (playCardResponseDto.devCardType)
                                     {
                                         case Models.DevCardType.KNIGHT:
@@ -163,12 +170,19 @@ namespace Assets.Scripts.Utils
                                     }
                             };
                         }
-                        else if (destination != null && destination.Contains(WebSocketBrokerDestinations.Private.Value)) {
+                        else if (destination != null && destination.Contains(WebSocketBrokerDestinations.Private.Value))
+                        {
                             GameMoveDto gameMove = JsonConvert.DeserializeObject<GameMoveDto>(jsonBody);
                             GameMoveType gameMoveType = gameMove.GameMoveType;
 
-                            PrivateBuyCard privateBuyCard = (PrivateBuyCard)gameMove.moveData;
-                        } else if (destination != null && destination.Contains(WebSocketBrokerDestinations.Players.Value)){
+                            if (gameMoveType == GameMoveType.BUY_CARD)
+                            {
+                                PrivateBuyCard privateBuyCard = (PrivateBuyCard)gameMove.moveData;
+                                // ✅ ADD THIS LINE:
+                                OnPrivateBuyCard?.Invoke(privateBuyCard);
+                            }
+                        }
+                        else if (destination != null && destination.Contains(WebSocketBrokerDestinations.Players.Value)){
                             JoinSessionNotification joinSessionNotification = JsonConvert.DeserializeObject<JoinSessionNotification>(jsonBody);
                         }
                     }
