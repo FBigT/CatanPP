@@ -21,6 +21,10 @@ namespace Assets.Scripts.Utils
         private static RequestServiceHost _host;          // created lazily
         private static UserManager _userManager;   // lives on that host
 
+
+        public static Func<string, Methods, bool, string?, UnityWebRequest?> ConstructSimpleWebRequestOverride;
+
+
         private static void EnsureHost()
         {
             if (_host != null) return;
@@ -42,6 +46,15 @@ namespace Assets.Scripts.Utils
             string? jsonBody,
             Action<UnityWebRequest?> onReady)
         {
+
+            if (ConstructSimpleWebRequestOverride != null)
+            {
+                onReady?.Invoke(
+                    ConstructSimpleWebRequestOverride(endpoint, method, requiresAuthorization, jsonBody)
+                );
+                yield break;   // kratki-spoj – preskačemo ostatak
+            }
+
             EnsureHost();
 
             var request = new UnityWebRequest(endpoint, method.ToString())
@@ -77,6 +90,8 @@ namespace Assets.Scripts.Utils
             onReady?.Invoke(request);
         }
 #nullable disable
+
+        public static void ClearTestOverride() => ConstructSimpleWebRequestOverride = null;
 
         /* ------------------------------------------------------------
          *  Internal – make sure our JWT is still good
