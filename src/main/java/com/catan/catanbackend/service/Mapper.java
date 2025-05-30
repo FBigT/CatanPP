@@ -92,4 +92,13 @@ public class Mapper {
                 .hasRobber(tile.isHasRobber())
                 .build();
     }
+
+    public SessionSummaryDto mapSessionToSummaryDto(Session session) {
+        return new SessionSummaryDto(
+                session.getId(),
+                session.getHost().getUsername(),
+                session.getCreatedAt()
+        );
+    }
+
 }

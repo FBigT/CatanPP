@@ -1,6 +1,7 @@
 package com.catan.catanbackend.service;
 
 import com.catan.catanbackend.model.*;
+import com.catan.catanbackend.model.dto.SessionSummaryDto;
 import com.catan.catanbackend.model.tile.*;
 import com.catan.catanbackend.repository.RobberBlockerRepository;
 import com.catan.catanbackend.repository.RobberMoveBlockerRepository;
@@ -103,6 +104,13 @@ public class SessionSaveService {
             throw new RuntimeException(e);
         }
     }
+
+
+    public SessionSummaryDto mapSessionToSummaryDto(Session session) {
+        return new SessionSummaryDto(session.getId(), session.getHost().getUsername(), session.getCreatedAt());
+    }
+
+
 
     public void loadSave(String json) {
         try {
@@ -273,5 +281,7 @@ public class SessionSaveService {
         } catch (JsonProcessingException e) {
             throw new RuntimeException(e);
         }
+
+
     }
 }

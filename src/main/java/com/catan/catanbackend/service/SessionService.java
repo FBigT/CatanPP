@@ -248,6 +248,15 @@ public class SessionService {
                 .toString()
                 .toUpperCase();
     }
+    public List<Session> getAllSessionsByUser(Long userId) {
+        return sessionPlayerService.findPlayersByUserId(userId)
+                .stream()
+                .map(SessionPlayer::getSession)
+                .distinct()
+                .toList();
+    }
+
+
 
     public void deleteAllSessions() {
         sessionRepository.deleteAll();
