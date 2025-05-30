@@ -2287,6 +2287,8 @@ MonoBehaviour:
   playOnStart: 0
   oneShot: 1
   volume: 0.115
+  minPitch: 0.9
+  maxPitch: 1.1
 --- !u!1 &8500856251807448630
 GameObject:
   m_ObjectHideFlags: 0
@@ -2429,10 +2431,12 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 6d9578fd2e0a4864881fb29c11cc9460, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  clip: {fileID: 8300000, guid: 2be7a4d37f4cc9f49b058866e6ac246b, type: 3}
+  clip: {fileID: 8300000, guid: 09b8fd8b2db2f444891aa41973b1e591, type: 3}
   playOnStart: 0
   oneShot: 1
   volume: 1
+  minPitch: 0.9
+  maxPitch: 1.1
 --- !u!1 &8880780509666832099
 GameObject:
   m_ObjectHideFlags: 0

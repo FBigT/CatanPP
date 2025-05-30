@@ -1,8 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -14,6 +10,10 @@ namespace Assets.Scripts.GameMode.Trading
         [Header("Panels")]
         [Tooltip("Drag in your Main Trade Panel (the one you copied over)")]
         [SerializeField] private GameObject mainTradePanel;
+
+        [Header("Behavior")]
+        [Tooltip("If true, clicking the button will toggle the panel on/off. If false, it only opens.")]
+        [SerializeField] private bool togglePanel = true;
 
         void Awake()
         {
@@ -27,11 +27,18 @@ namespace Assets.Scripts.GameMode.Trading
         {
             if (mainTradePanel != null)
             {
-                mainTradePanel.SetActive(true);
+                if (togglePanel)
+                {
+                    mainTradePanel.SetActive(!mainTradePanel.activeSelf);
+                }
+                else
+                {
+                    mainTradePanel.SetActive(true);
+                }
             }
             else
             {
-                Debug.LogWarning($"[TradeLauncherUGUI] mainTradePanel not assigned on {gameObject.name}");
+                Debug.LogWarning($"[TradeLauncherButton] mainTradePanel not assigned on {gameObject.name}");
             }
         }
     }

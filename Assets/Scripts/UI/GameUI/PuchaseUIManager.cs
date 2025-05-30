@@ -1,6 +1,7 @@
 using Assets.Scripts.Enums;
 using Catan.Managers;
 using System.Collections.Generic;
+using UnityEditor;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -9,7 +10,6 @@ namespace Catan.UI
     public class PuchaseUIManager : MonoBehaviour
     {
         [Header("Purchase Entries")]
-        [Tooltip("Assign PurchaseType with corresponding Button and Prefab")]
         public List<PurchaseEntry> purchaseEntries;
 
         [Header("Purchase Manager")]
@@ -19,23 +19,19 @@ namespace Catan.UI
         public LayerMask buildingLayerMask = 1;
         public LayerMask roadLayerMask = 1;
 
-        [Header("Cursor")]
-        public GameObject cursor3DPrefab;           // Prefab to instantiate
-        public float cursorYLevel = 0.05f;          // Y plane height for cursor placement
+        [Header("Cursor Controller")]
+        [SerializeField] private CursorController3D cursorController;
 
-        [Header("SFX")]
-        public SFXPlayer cantPlaceSfx;          // Sound effect player for feedback
-        public SFXPlayer placeSfx;          // Sound effect player for successful placement
+        [Header("UI Highligter")]
+        [SerializeField] private PurchaseUIHighlighter highlighter;
 
-        private GameObject activeCursor;            // Instantiated cursor object
-        private Dictionary<PurchaseType, (Button button, GameObject prefab)> purchaseDict;
-
+        private Dictionary<PurchaseType, (Button button, GameObject prefab, KeyCode keyCode)> purchaseDict;
         private PurchaseType currentPurchaseType;
         private bool isPlacingStructure = false;
 
         void Awake()
         {
-            purchaseDict = new Dictionary<PurchaseType, (Button, GameObject)>();
+            purchaseDict = new Dictionary<PurchaseType, (Button, GameObject, KeyCode)>();
             foreach (var entry in purchaseEntries)
             {
                 if (entry.button == null || entry.prefab == null)
@@ -44,9 +40,13 @@ namespace Catan.UI
                     continue;
                 }
 
-                purchaseDict[entry.type] = (entry.button, entry.prefab);
+                purchaseDict[entry.type] = (entry.button, entry.prefab, entry.key);
                 entry.button.onClick.AddListener(() => TryPurchase(entry.type));
+                
             }
+
+            if (cursorController == null)
+                Debug.LogWarning("CursorController3D not assigned to PurchaseUIManager.");
         }
 
         void TryPurchase(PurchaseType type)
@@ -60,10 +60,8 @@ namespace Catan.UI
             }
 
             if (!purchaseManager.HasEnoughFor(type))
-            {
-                Debug.Log("Not enough resources.");
                 return;
-            }
+            
 
             if (!purchaseDict.TryGetValue(type, out var data))
             {
@@ -74,23 +72,29 @@ namespace Catan.UI
             currentPurchaseType = type;
             isPlacingStructure = true;
 
+            highlighter.Highlight(currentPurchaseType);
+
+            if (cursorController != null)
+                cursorController.SetCursorMode(CursorController3D.CursorMode.Placing);
+
             EdgePoint.ShowPlacementHighlights = (type == PurchaseType.Road);
-
-            if (cursor3DPrefab != null)
-            {
-                if (activeCursor != null)
-                    Destroy(activeCursor); // Cleanup previous instance
-
-                activeCursor = Instantiate(cursor3DPrefab);
-            }
         }
 
         void Update()
         {
-            if (!isPlacingStructure) return;
-
-            if (activeCursor != null)
-                activeCursor.transform.position = GetMousePlanePosition();
+            if (!isPlacingStructure)
+            {
+                foreach (var kvp in purchaseDict)
+                {
+                    KeyCode key = kvp.Value.keyCode;
+                    if (Input.GetKeyDown(key))
+                    {
+                        TryPurchase(kvp.Key);
+                        break;
+                    }
+                }
+                return;
+            }
 
             if (Input.GetMouseButtonDown(1))
                 CancelPlacement();
@@ -102,22 +106,14 @@ namespace Catan.UI
                     purchaseManager.SpendResources(currentPurchaseType);
                     isPlacingStructure = false;
 
-                    if (activeCursor != null)
-                        Destroy(activeCursor);
+                    highlighter.ResetAll();
+
+                    if (cursorController != null)
+                        cursorController.SetCursorMode(CursorController3D.CursorMode.Idle, true);
                 }
             }
         }
 
-        Vector3 GetMousePlanePosition()
-        {
-            Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
-            Plane plane = new Plane(Vector3.up, new Vector3(0, cursorYLevel, 0));
-            if (plane.Raycast(ray, out float enter))
-            {
-                return ray.GetPoint(enter);
-            }
-            return Vector3.zero;
-        }
 
         bool TryPlaceStructure()
         {
@@ -129,21 +125,14 @@ namespace Catan.UI
                     if (!Physics.Raycast(ray, out RaycastHit hitRoad, roadLayerMask)) return false;
 
                     EdgePoint ep = hitRoad.collider.GetComponent<EdgePoint>();
-                    if (ep == null)
+                    if (ep == null || !StructureManager.Instance.TryPlaceRoad(ep, "debug"))
                     {
-                        cantPlaceSfx.Play();
-                        Debug.Log("Invalid road target.");
+                        Debug.Log("Invalid or failed road placement.");
                         return false;
                     }
 
-                    if (StructureManager.Instance.TryPlaceRoad(ep, "debug"))
-                    {
-                        EdgePoint.ShowPlacementHighlights = false;
-                        placeSfx.Play();
-                        return true;
-                    }
-                    cantPlaceSfx.Play();
-                    return false;
+                    EdgePoint.ShowPlacementHighlights = false;
+                    return true;
 
                 case PurchaseType.Settlement:
                 case PurchaseType.City:
@@ -152,31 +141,31 @@ namespace Catan.UI
                     VertexPoint vp = hitBuilding.collider.GetComponent<VertexPoint>();
                     if (vp == null)
                     {
-                        cantPlaceSfx.Play();
                         Debug.Log("Not a valid placement target.");
                         return false;
                     }
 
                     StructureType targetStructure = currentPurchaseType == PurchaseType.City ? StructureType.CITY : StructureType.SETTLEMENT;
-                    if (StructureManager.Instance.TryPlaceStructure(vp, targetStructure))
+                    if (!StructureManager.Instance.TryPlaceStructure(vp, targetStructure))
                     {
-                        placeSfx.Play();
-                        return true;
+                        return false;
                     }
-                    cantPlaceSfx.Play();
-                    return false;
+
+                    return true;
             }
-            cantPlaceSfx.Play();
+
             return false;
         }
 
         void CancelPlacement()
         {
+            highlighter.ResetAll();
+
             isPlacingStructure = false;
             EdgePoint.ShowPlacementHighlights = false;
 
-            if (activeCursor != null)
-                Destroy(activeCursor);
+            if (cursorController != null)
+                cursorController.SetCursorMode(CursorController3D.CursorMode.Idle, false);
         }
     }
 }

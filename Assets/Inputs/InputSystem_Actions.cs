@@ -91,6 +91,15 @@ public partial class @InputSystem_Actions: IInputActionCollection2, IDisposable
                     ""initialStateCheck"": true
                 },
                 {
+                    ""name"": ""MouseLeft"",
+                    ""type"": ""Button"",
+                    ""id"": ""9cd3dbb8-a86d-4d67-be7d-d348702a178d"",
+                    ""expectedControlType"": """",
+                    ""processors"": """",
+                    ""interactions"": """",
+                    ""initialStateCheck"": false
+                },
+                {
                     ""name"": ""MiddleMouse"",
                     ""type"": ""Button"",
                     ""id"": ""89a36c06-bb4c-41d1-ae7a-c562a257bc13"",
@@ -435,6 +444,17 @@ public partial class @InputSystem_Actions: IInputActionCollection2, IDisposable
                     ""processors"": """",
                     ""groups"": "";Keyboard&Mouse;Touch"",
                     ""action"": ""MouseScreenSpacePosition"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": """",
+                    ""id"": ""c79a0a5e-3bda-4375-b111-cc4a623da6f3"",
+                    ""path"": ""<Mouse>/leftButton"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": "";Keyboard&Mouse;Touch"",
+                    ""action"": ""MouseLeft"",
                     ""isComposite"": false,
                     ""isPartOfComposite"": false
                 }
@@ -1029,6 +1049,7 @@ public partial class @InputSystem_Actions: IInputActionCollection2, IDisposable
         m_Player_Sprint = m_Player.FindAction("Sprint", throwIfNotFound: true);
         m_Player_Zoom = m_Player.FindAction("Zoom", throwIfNotFound: true);
         m_Player_OrbitRotate = m_Player.FindAction("OrbitRotate", throwIfNotFound: true);
+        m_Player_MouseLeft = m_Player.FindAction("MouseLeft", throwIfNotFound: true);
         m_Player_MiddleMouse = m_Player.FindAction("MiddleMouse", throwIfNotFound: true);
         m_Player_MouseRight = m_Player.FindAction("MouseRight", throwIfNotFound: true);
         m_Player_MouseScreenSpacePosition = m_Player.FindAction("MouseScreenSpacePosition", throwIfNotFound: true);
@@ -1118,6 +1139,7 @@ public partial class @InputSystem_Actions: IInputActionCollection2, IDisposable
     private readonly InputAction m_Player_Sprint;
     private readonly InputAction m_Player_Zoom;
     private readonly InputAction m_Player_OrbitRotate;
+    private readonly InputAction m_Player_MouseLeft;
     private readonly InputAction m_Player_MiddleMouse;
     private readonly InputAction m_Player_MouseRight;
     private readonly InputAction m_Player_MouseScreenSpacePosition;
@@ -1132,6 +1154,7 @@ public partial class @InputSystem_Actions: IInputActionCollection2, IDisposable
         public InputAction @Sprint => m_Wrapper.m_Player_Sprint;
         public InputAction @Zoom => m_Wrapper.m_Player_Zoom;
         public InputAction @OrbitRotate => m_Wrapper.m_Player_OrbitRotate;
+        public InputAction @MouseLeft => m_Wrapper.m_Player_MouseLeft;
         public InputAction @MiddleMouse => m_Wrapper.m_Player_MiddleMouse;
         public InputAction @MouseRight => m_Wrapper.m_Player_MouseRight;
         public InputAction @MouseScreenSpacePosition => m_Wrapper.m_Player_MouseScreenSpacePosition;
@@ -1165,6 +1188,9 @@ public partial class @InputSystem_Actions: IInputActionCollection2, IDisposable
             @OrbitRotate.started += instance.OnOrbitRotate;
             @OrbitRotate.performed += instance.OnOrbitRotate;
             @OrbitRotate.canceled += instance.OnOrbitRotate;
+            @MouseLeft.started += instance.OnMouseLeft;
+            @MouseLeft.performed += instance.OnMouseLeft;
+            @MouseLeft.canceled += instance.OnMouseLeft;
             @MiddleMouse.started += instance.OnMiddleMouse;
             @MiddleMouse.performed += instance.OnMiddleMouse;
             @MiddleMouse.canceled += instance.OnMiddleMouse;
@@ -1199,6 +1225,9 @@ public partial class @InputSystem_Actions: IInputActionCollection2, IDisposable
             @OrbitRotate.started -= instance.OnOrbitRotate;
             @OrbitRotate.performed -= instance.OnOrbitRotate;
             @OrbitRotate.canceled -= instance.OnOrbitRotate;
+            @MouseLeft.started -= instance.OnMouseLeft;
+            @MouseLeft.performed -= instance.OnMouseLeft;
+            @MouseLeft.canceled -= instance.OnMouseLeft;
             @MiddleMouse.started -= instance.OnMiddleMouse;
             @MiddleMouse.performed -= instance.OnMiddleMouse;
             @MiddleMouse.canceled -= instance.OnMiddleMouse;
@@ -1397,6 +1426,7 @@ public partial class @InputSystem_Actions: IInputActionCollection2, IDisposable
         void OnSprint(InputAction.CallbackContext context);
         void OnZoom(InputAction.CallbackContext context);
         void OnOrbitRotate(InputAction.CallbackContext context);
+        void OnMouseLeft(InputAction.CallbackContext context);
         void OnMiddleMouse(InputAction.CallbackContext context);
         void OnMouseRight(InputAction.CallbackContext context);
         void OnMouseScreenSpacePosition(InputAction.CallbackContext context);

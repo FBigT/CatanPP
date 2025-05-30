@@ -40,4 +40,5 @@ public struct PurchaseEntry
     public PurchaseType type;
     public Button button;
     public GameObject prefab;
+    public KeyCode key;
 }

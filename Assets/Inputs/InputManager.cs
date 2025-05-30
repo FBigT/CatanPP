@@ -1,7 +1,9 @@
+using System;
 using UnityEngine;
 
 public class InputManager : MonoBehaviour
 {
+    #region input data
     public Vector2 MovementInput { get; private set; }
     public Vector2 LookInput { get; private set; }
     public float ZoomInputDelta { get; private set; }
@@ -10,6 +12,20 @@ public class InputManager : MonoBehaviour
     public Vector2 MouseDelta { get; private set; }
     public bool MouseRight { get; private set; }
     public Vector2 MousePosition { get; private set; }
+    #endregion
+
+    #region events
+    public static event Action OnLeftMouseClick;
+    public static event Action OnLeftMouseRelease;
+
+    public static event Action OnRightMouseClick;
+    public static event Action OnRightMouseRelease;
+    #endregion
+
+    #region raw input data
+    public InputSystem_Actions InputActions => inputActions;
+    #endregion
+
 
     private static InputManager instance;
     private InputSystem_Actions inputActions;
@@ -90,6 +106,13 @@ public class InputManager : MonoBehaviour
 
         inputActions.Player.MouseScreenSpacePosition.performed += ctx => MousePosition = ctx.ReadValue<Vector2>();
         inputActions.Player.MouseScreenSpacePosition.canceled += ctx => MousePosition = Vector2.zero;
+
+        //delegates
+        inputActions.Player.MouseLeft.performed += ctx => OnLeftMouseClick?.Invoke();
+        inputActions.Player.MouseLeft.canceled += ctx => OnLeftMouseRelease?.Invoke();
+
+        inputActions.Player.MouseRight.performed += ctx => OnRightMouseClick?.Invoke();
+        inputActions.Player.MouseRight.canceled += ctx => OnRightMouseRelease?.Invoke();
     }
 
     private void Unsubscribe()
@@ -117,5 +140,13 @@ public class InputManager : MonoBehaviour
 
         inputActions.Player.MouseScreenSpacePosition.performed -= ctx => MousePosition = ctx.ReadValue<Vector2>();
         inputActions.Player.MouseScreenSpacePosition.canceled -= ctx => MousePosition = Vector2.zero;
+
+        //delegates
+        inputActions.Player.MouseLeft.performed -= ctx => OnLeftMouseClick?.Invoke();
+        inputActions.Player.MouseLeft.canceled -= ctx => OnLeftMouseRelease?.Invoke();
+
+        inputActions.Player.MouseRight.performed -= ctx => OnRightMouseClick?.Invoke();
+        inputActions.Player.MouseRight.canceled -= ctx => OnRightMouseRelease?.Invoke();
+
     }
 }

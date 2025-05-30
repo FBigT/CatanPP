@@ -69,6 +69,15 @@
                     "initialStateCheck": true
                 },
                 {
+                    "name": "MouseLeft",
+                    "type": "Button",
+                    "id": "9cd3dbb8-a86d-4d67-be7d-d348702a178d",
+                    "expectedControlType": "",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": false
+                },
+                {
                     "name": "MiddleMouse",
                     "type": "Button",
                     "id": "89a36c06-bb4c-41d1-ae7a-c562a257bc13",
@@ -413,6 +422,17 @@
                     "processors": "",
                     "groups": ";Keyboard&Mouse;Touch",
                     "action": "MouseScreenSpacePosition",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "c79a0a5e-3bda-4375-b111-cc4a623da6f3",
+                    "path": "<Mouse>/leftButton",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": ";Keyboard&Mouse;Touch",
+                    "action": "MouseLeft",
                     "isComposite": false,
                     "isPartOfComposite": false
                 }
