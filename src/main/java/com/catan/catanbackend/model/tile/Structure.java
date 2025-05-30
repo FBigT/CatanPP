@@ -7,7 +7,9 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
+import lombok.ToString;
 
 import java.util.Optional;
 
@@ -27,6 +29,7 @@ public class Structure {
     @JoinColumn(name = "session_player_id", nullable = false)
     private SessionPlayer owner;
 
+    @ToString.Exclude @EqualsAndHashCode.Exclude
     @JsonIgnore
     @OneToOne(mappedBy = "structure", fetch = FetchType.EAGER)
     private TileCorner corner;

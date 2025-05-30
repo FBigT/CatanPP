@@ -5,9 +5,7 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.*;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -45,6 +43,7 @@ public class TileCorner {
         return structure.getId();
     }
 
+    @ToString.Exclude @EqualsAndHashCode.Exclude
     @JsonIgnore
     @OneToMany(mappedBy = "corner", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
     private List<TileCornerMap> tileCornerMaps = new ArrayList<>();

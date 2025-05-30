@@ -50,11 +50,13 @@ public class Tile {
         return tileType.getName();
     }
 
+    @ToString.Exclude @EqualsAndHashCode.Exclude
     @JsonIgnore
     @OneToMany(mappedBy = "tile", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
     @Builder.Default
     private List<TileCornerMap> tileCornerMaps = new ArrayList<>();
 
+    @ToString.Exclude @EqualsAndHashCode.Exclude
     @JsonIgnore
     @OneToMany(mappedBy = "tile", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
     @Builder.Default

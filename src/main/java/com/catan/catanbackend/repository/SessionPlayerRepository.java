@@ -24,4 +24,6 @@ public interface SessionPlayerRepository extends JpaRepository<SessionPlayer, Lo
         return findAllBySessionCodeWithUser(sessionCode).stream().filter(x
                 -> x.getUser().getId().equals(userId)).findFirst();
     }
+
+    Optional<SessionPlayer> findBySessionIdAndName(Long sessionId, String name);
 }

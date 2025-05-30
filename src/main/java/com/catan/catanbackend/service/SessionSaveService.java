@@ -2,21 +2,22 @@ package com.catan.catanbackend.service;
 
 import com.catan.catanbackend.model.*;
 import com.catan.catanbackend.model.dto.SessionSummaryDto;
+import com.catan.catanbackend.model.helper.StructureTypeEnum;
+import com.catan.catanbackend.model.helper.TileTypeEnum;
 import com.catan.catanbackend.model.tile.*;
 import com.catan.catanbackend.repository.RobberBlockerRepository;
 import com.catan.catanbackend.repository.RobberMoveBlockerRepository;
 import com.catan.catanbackend.repository.SessionSaveRepository;
-import com.catan.catanbackend.repository.tiles.RoadRepository;
-import com.catan.catanbackend.repository.tiles.StructureRepository;
-import com.catan.catanbackend.repository.tiles.TileCornerRepository;
-import com.catan.catanbackend.repository.tiles.TileEdgeRepository;
+import com.catan.catanbackend.repository.tiles.*;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.persistence.EntityManager;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -24,6 +25,7 @@ import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
 @Service
+@Transactional
 public class SessionSaveService {
     private final ObjectMapper objectMapper;
     private final SessionSaveRepository repository;
@@ -35,12 +37,14 @@ public class SessionSaveService {
     private final StructureRepository structureRepository;
     private final TileCornerRepository tileCornerRepository;
     private final TileEdgeRepository tileEdgeRepository;
+    private final TileTypeService tileTypeService;
     private final RobberMoveBlockerRepository robberMoveBlockerRepository;
     private final RobberBlockerRepository robberBlockerRepository;
     private final EntityManager entityManager;
+    private final StructureTypeService structureTypeService;
 
 
-    public SessionSaveService(ObjectMapper objectMapper, SessionSaveRepository repository, SessionService sessionService, SessionPlayerService sessionPlayerService, DevCardService devCardService, TileService tileService, RoadRepository roadRepository, StructureRepository structureRepository, TileCornerRepository tileCornerRepository, TileEdgeRepository tileEdgeRepository, RobberMoveBlockerRepository robberMoveBlockerRepository, RobberBlockerRepository robberBlockerRepository, EntityManager entityManager) {
+    public SessionSaveService(ObjectMapper objectMapper, SessionSaveRepository repository, SessionService sessionService, SessionPlayerService sessionPlayerService, DevCardService devCardService, TileService tileService, RoadRepository roadRepository, StructureRepository structureRepository, TileCornerRepository tileCornerRepository, TileEdgeRepository tileEdgeRepository, TileTypeService tileTypeService, RobberMoveBlockerRepository robberMoveBlockerRepository, RobberBlockerRepository robberBlockerRepository, EntityManager entityManager, StructureTypeService structureTypeService) {
         this.objectMapper = objectMapper;
         this.repository = repository;
         this.sessionService = sessionService;
@@ -51,9 +55,11 @@ public class SessionSaveService {
         this.structureRepository = structureRepository;
         this.tileCornerRepository = tileCornerRepository;
         this.tileEdgeRepository = tileEdgeRepository;
+        this.tileTypeService = tileTypeService;
         this.robberMoveBlockerRepository = robberMoveBlockerRepository;
         this.robberBlockerRepository = robberBlockerRepository;
         this.entityManager = entityManager;
+        this.structureTypeService = structureTypeService;
     }
 
     public SessionSave save(String saveName, Session session) {
@@ -112,26 +118,34 @@ public class SessionSaveService {
 
 
 
-    public void loadSave(String json) {
+    public Session loadSave(String json) {
         try {
+            boolean ignoreId = false;
+
             //Session
             JsonNode jsonNode = objectMapper.readTree(json);
             Session session = objectMapper.treeToValue(jsonNode.get("session"), Session.class);
 
+            Optional<Session> sessionById = sessionService.getSessionById(session.getId());
+            if (sessionById.isEmpty()) {
+                ignoreId = true;
+                session.setId(null);
+            }
+
             JsonNode currPlayerNode = jsonNode.get("session").get("currentPlayerId");
             Long currPlayerId = (currPlayerNode != null && !currPlayerNode.isNull()) ? currPlayerNode.asLong() : null;
-
+            SessionPlayer currPlayer = null;
             Long hostId = jsonNode.get("session").get("hostId").asLong();
             User hostRef = entityManager.getReference(User.class, hostId);
             session.setHost(hostRef);
 
             //Session player
             List<SessionPlayer> sessionPlayers = objectMapper.convertValue(jsonNode.get("sessionPlayers"), new TypeReference<>() {});
-
             for (int i = 0; i < sessionPlayers.size(); i++) {
                 SessionPlayer sessionPlayer = sessionPlayers.get(i);
+
                 if (Objects.equals(currPlayerId, sessionPlayer.getId()))
-                    session.setCurrentPlayer(sessionPlayer);
+                    currPlayer = sessionPlayer;
 
                 sessionPlayer.setSession(session);
 
@@ -144,6 +158,9 @@ public class SessionSaveService {
             List<DevCard> devCards = objectMapper.convertValue(jsonNode.get("devCards"), new TypeReference<>() {});
             for (int i = 0; i < devCards.size(); i++) {
                 DevCard devCard = devCards.get(i);
+                if (ignoreId){
+                    devCard.setId(null);
+                }
                 devCard.setSession(session);
 
                 JsonNode userIdNode = jsonNode.get("devCards").get(i).get("ownerId");
@@ -158,21 +175,29 @@ public class SessionSaveService {
             List<Tile> tiles = objectMapper.convertValue(jsonNode.get("tiles"), new TypeReference<>() {});
             for (int i = 0; i < tiles.size(); i++) {
                 Tile tile = tiles.get(i);
+                String text = jsonNode.get("tiles").get(i).get("tileType").asText();
+                tile.setTileType(tileTypeService.findByEnumOrCreate(TileTypeEnum.valueOf(text)));
                 tile.setSession(session);
+                tile.setTileEdgeMaps(new ArrayList<>());
+                tile.setTileCornerMaps(new ArrayList<>());
             }
 
             //Tile corners
             List<TileCorner> tileCorners = objectMapper.convertValue(jsonNode.get("tileCorners"), new TypeReference<>() {});
             for (int i = 0; i < tileCorners.size(); i++) {
-                TileCorner tile = tileCorners.get(i);
-                tile.setSession(session);
+                TileCorner tileCorner = tileCorners.get(i);
+
+                tileCorner.setSession(session);
+                tileCorner.setTileCornerMaps(new ArrayList<>());
             }
 
             //Tile edges
             List<TileEdge> tileEdges = objectMapper.convertValue(jsonNode.get("tileEdges"), new TypeReference<>() {});
             for (int i = 0; i < tileEdges.size(); i++) {
                 TileEdge edge = tileEdges.get(i);
+
                 edge.setSession(session);
+                edge.setTileEdgeMaps(new ArrayList<>());
 
                 Long cornerAId = jsonNode.get("tileEdges").get(i).get("cornerAId").asLong();
                 Long cornerBId = jsonNode.get("tileEdges").get(i).get("cornerBId").asLong();
@@ -191,16 +216,22 @@ public class SessionSaveService {
             List<Structure> structures = objectMapper.convertValue(jsonNode.get("structures"), new TypeReference<>() {});
             for (int i = 0; i < structures.size(); i++) {
                 Structure structure = structures.get(i);
-
+                if (ignoreId){
+                    structure.setId(null);
+                }
                 Long ownerId = jsonNode.get("structures").get(i).get("ownerId").asLong();
-                structure.setOwner(entityManager.getReference(SessionPlayer.class, ownerId));
+                Optional<SessionPlayer> owner = sessionPlayers.stream().filter(x -> Objects.equals(x.getId(), ownerId)).findFirst();
+
+                String text = jsonNode.get("structures").get(i).get("structureType").get("name").asText();
+                structure.setStructureType(structureTypeService.findByEnumOrCreate(StructureTypeEnum.valueOf(text)));
 
                 Long cornerId = jsonNode.get("structures").get(i).get("cornerId").asLong();
                 Optional<TileCorner> first = tileCorners.stream().filter(x -> Objects.equals(x.getId(), cornerId)).findFirst();
-                if (first.isPresent()) {
+                if (first.isPresent() && owner.isPresent()) {
                     TileCorner corner = first.get();
                     structure.setCorner(corner);
                     corner.setStructure(structure);
+                    structure.setOwner(owner.get());
                 }
             }
 
@@ -208,16 +239,19 @@ public class SessionSaveService {
             List<Road> roads = objectMapper.convertValue(jsonNode.get("roads"), new TypeReference<>() {});
             for (int i = 0; i < roads.size(); i++) {
                 Road road = roads.get(i);
-
+                if (ignoreId){
+                    road.setId(null);
+                }
                 Long ownerId = jsonNode.get("roads").get(i).get("ownerId").asLong();
-                road.setOwner(entityManager.getReference(SessionPlayer.class, ownerId));
+                Optional<SessionPlayer> owner = sessionPlayers.stream().filter(x -> Objects.equals(x.getId(), ownerId)).findFirst();
 
                 Long edgeId = jsonNode.get("roads").get(i).get("edgeId").asLong();
-                Optional<TileEdge> first = tileEdges.stream().filter(x -> Objects.equals(x.getId(), edgeId)).findFirst();
-                if (first.isPresent()) {
-                    TileEdge edge = first.get();
+                Optional<TileEdge> tileEdge = tileEdges.stream().filter(x -> Objects.equals(x.getId(), edgeId)).findFirst();
+                if (tileEdge.isPresent() && owner.isPresent()) {
+                    TileEdge edge = tileEdge.get();
                     road.setTileEdge(edge);
                     edge.setRoad(road);
+                    road.setOwner(owner.get());
                 }
             }
 
@@ -236,6 +270,8 @@ public class SessionSaveService {
                     TileEdge tileEdge = tileEdgeOptional.get();
                     edgeMap.setTile(tile);
                     edgeMap.setEdge(tileEdge);
+                    tile.getTileEdgeMaps().add(edgeMap);
+                    tileEdge.getTileEdgeMaps().add(edgeMap);
                 }
             }
 
@@ -254,6 +290,8 @@ public class SessionSaveService {
                     TileCorner tileCorner = tileCornerOptional.get();
                     cornerMap.setTile(tile);
                     cornerMap.setCorner(tileCorner);
+                    tile.getTileCornerMaps().add(cornerMap);
+                    tileCorner.getTileCornerMaps().add(cornerMap);
                 }
             }
 
@@ -261,7 +299,9 @@ public class SessionSaveService {
             List<RobberMoveBlocker> robberMoveBlockers = objectMapper.convertValue(jsonNode.get("robberMoveBlockers"), new TypeReference<>() {});
             for (int i = 0; i < robberMoveBlockers.size(); i++) {
                 RobberMoveBlocker robberMoveBlocker = robberMoveBlockers.get(i);
-
+                if (ignoreId){
+                    robberMoveBlocker.setId(null);
+                }
                 Long sessionPlayerId = jsonNode.get("robberMoveBlockers").get(i).get("sessionPlayerId").asLong();
                 sessionPlayers.stream().filter(x -> Objects.equals(x.getId(), sessionPlayerId)).findFirst()
                         .ifPresent(robberMoveBlocker::setSessionPlayer);
@@ -271,13 +311,39 @@ public class SessionSaveService {
             List<RobberDebtBlocker> robberDebtBlockers = objectMapper.convertValue(jsonNode.get("robberDebtBlockers"), new TypeReference<>() {});
             for (int i = 0; i < robberDebtBlockers.size(); i++) {
                 RobberDebtBlocker robberDebtBlocker = robberDebtBlockers.get(i);
-
+                if (ignoreId){
+                    robberDebtBlocker.setId(null);
+                }
                 Long sessionPlayerId = jsonNode.get("robberDebtBlockers").get(i).get("sessionPlayerId").asLong();
                 sessionPlayers.stream().filter(x -> Objects.equals(x.getId(), sessionPlayerId)).findFirst()
                         .ifPresent(robberDebtBlocker::setSessionPlayer);
             }
 
-            System.out.println("");
+            sessionService.save(session);
+
+            if (ignoreId){
+                tiles.forEach(x -> x.setId(null));
+                tileCornerMaps.forEach(x -> x.setId(null));
+                tileEdgeMaps.forEach(x -> x.setId(null));
+                tileCorners.forEach(x -> x.setId(null));
+                tileEdges.forEach(x -> x.setId(null));
+                roads.forEach(x -> x.setId(null));
+                structures.forEach(x -> x.setId(null));
+                sessionPlayers.forEach(x -> x.setId(null));
+            }
+
+            sessionPlayers.forEach(sessionPlayerService::saveSessionPlayer);
+            session.setCurrentPlayer(currPlayer);
+            sessionService.save(session);
+
+            robberMoveBlockerRepository.saveAll(robberMoveBlockers);
+            robberBlockerRepository.saveAll(robberDebtBlockers);
+            devCards.forEach(devCardService::saveCard);
+
+            tileService.saveAll(tiles);
+            structureRepository.saveAll(structures);
+            roadRepository.saveAll(roads);
+            return session;
         } catch (JsonProcessingException e) {
             throw new RuntimeException(e);
         }

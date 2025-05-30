@@ -13,5 +13,6 @@ public enum GameMoveTypeEnum {
     PRIVATE_BUY_CARD,
     MAP_GEN,
     TRADE_OFFER,
-    TRADE_RESPONSE
+    TRADE_RESPONSE,
+    TURN_ORDER
 }

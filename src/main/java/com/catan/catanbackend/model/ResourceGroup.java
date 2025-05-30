@@ -1,22 +1,32 @@
 package com.catan.catanbackend.model;
 
 import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.util.Objects;
 
+@Builder
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
 public class ResourceGroup implements Comparable<ResourceGroup>{
+    @Builder.Default
     Integer brick = 0;
+    @Builder.Default
     Integer crystal = 0;
+    @Builder.Default
     Integer ore = 0;
+    @Builder.Default
     Integer rice = 0;
+    @Builder.Default
     Integer sheep = 0;
+    @Builder.Default
     Integer silver = 0;
+    @Builder.Default
     Integer gold = 0;
+    @Builder.Default
     Integer wood = 0;
 
     public Boolean validate(){

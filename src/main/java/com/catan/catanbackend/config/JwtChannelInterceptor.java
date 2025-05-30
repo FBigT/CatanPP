@@ -58,7 +58,6 @@ public class JwtChannelInterceptor implements ChannelInterceptor {
 
         StompCommand cmd = accessor.getCommand();
 
-        // 1) CONNECT must supply a valid Authorization header
         if (StompCommand.CONNECT.equals(cmd)) {
             String auth = accessor.getFirstNativeHeader(AUTH_HEADER);
             if (auth == null || !auth.startsWith("Bearer ")) {
@@ -82,12 +81,10 @@ public class JwtChannelInterceptor implements ChannelInterceptor {
             return message;
         }
 
-        // 2) SEND: allow if we've already bound a user, or re-validate header if present
         if (StompCommand.SEND.equals(cmd)) {
             if (accessor.getUser() != null) {
                 return message;
             }
-            // fallback: if no user yet, require header
             String auth = accessor.getFirstNativeHeader(AUTH_HEADER);
             if (auth == null || !auth.startsWith("Bearer ")) {
                 throw new MessageDeliveryException("Authorization header missing on SEND");
@@ -99,7 +96,6 @@ public class JwtChannelInterceptor implements ChannelInterceptor {
             return message;
         }
 
-        // 3) SUBSCRIBE/DISCONNECT for your join/leave logic only
         if (StompCommand.SUBSCRIBE.equals(cmd) || StompCommand.DISCONNECT.equals(cmd)) {
             String dest = accessor.getDestination();
             if (dest != null && dest.contains("/game/players/")) {
@@ -119,7 +115,6 @@ public class JwtChannelInterceptor implements ChannelInterceptor {
             return message;
         }
 
-        // 4) All other frames: require that we've already authenticated
         if (accessor.getUser() == null) {
             throw new MessageDeliveryException("Unauthorized: no authenticated user in session");
         }

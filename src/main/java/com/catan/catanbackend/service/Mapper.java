@@ -3,6 +3,7 @@ package com.catan.catanbackend.service;
 import com.catan.catanbackend.model.*;
 import com.catan.catanbackend.model.dto.*;
 import com.catan.catanbackend.model.ResourceGroup;
+import com.catan.catanbackend.model.dto.move_dtos.TradeOfferDto;
 import com.catan.catanbackend.model.helper.TileTypeEnum;
 import com.catan.catanbackend.model.tile.Tile;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
@@ -11,14 +12,17 @@ import org.springframework.stereotype.Component;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.Optional;
 
 @Component
 public class Mapper {
     private final PasswordEncoder passwordEncoder;
     private final TileTypeService tileTypeService;
+    private final SessionPlayerService sessionPlayerService;
 
-    public Mapper(TileTypeService tileTypeService) {
+    public Mapper(TileTypeService tileTypeService, SessionPlayerService sessionPlayerService) {
         this.tileTypeService = tileTypeService;
+        this.sessionPlayerService = sessionPlayerService;
         this.passwordEncoder = new BCryptPasswordEncoder();
     }
 
@@ -101,4 +105,19 @@ public class Mapper {
         );
     }
 
+
+    public Optional<TradeOffer> mapTradeOfferDtoToTradeOffer(TradeOfferDto tradeOfferDto, Long sessionId) {
+        TradeOffer tradeOffer = new TradeOffer();
+        Optional<SessionPlayer> fromPlayer = sessionPlayerService.findSessionPlayerBySessionIdAndUsername(sessionId, tradeOfferDto.getFromUser());
+        Optional<SessionPlayer> toPlayer = sessionPlayerService.findSessionPlayerBySessionIdAndUsername(sessionId, tradeOfferDto.getToUser());
+
+        if (fromPlayer.isEmpty() || toPlayer.isEmpty())
+            return Optional.empty();
+
+        tradeOffer.setFromPlayer(fromPlayer.get());
+        tradeOffer.setToPlayer(toPlayer.get());
+        tradeOffer.setOfferResources(tradeOfferDto.getOffered());
+        tradeOffer.setRequestResources(tradeOfferDto.getRequested());
+        return Optional.of(tradeOffer);
+    }
 }

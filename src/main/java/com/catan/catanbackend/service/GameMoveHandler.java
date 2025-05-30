@@ -1,15 +1,13 @@
 package com.catan.catanbackend.service;
 
-import com.catan.catanbackend.model.DevCard;
-import com.catan.catanbackend.model.PlayerProfile;
+import com.catan.catanbackend.model.*;
 import com.catan.catanbackend.model.dto.move_dtos.responses.TradeResponseDto;
 import com.catan.catanbackend.model.helper.*;
-import com.catan.catanbackend.model.Session;
-import com.catan.catanbackend.model.SessionPlayer;
 import com.catan.catanbackend.model.dto.*;
 import com.catan.catanbackend.model.dto.move_dtos.*;
 import com.catan.catanbackend.model.dto.move_dtos.responses.*;
 import com.catan.catanbackend.model.tile.*;
+import com.catan.catanbackend.repository.TradeOfferRepository;
 import com.catan.catanbackend.repository.tiles.RoadRepository;
 import com.catan.catanbackend.repository.tiles.StructureRepository;
 import com.catan.catanbackend.repository.tiles.TileCornerRepository;
@@ -40,9 +38,10 @@ public class GameMoveHandler {
     private final PlayerProfileService playerProfileService;
     private final TradeService tradeService;
     private final SimpMessagingTemplate messagingTemplate;
+    private final TradeOfferRepository tradeOfferRepository;
 
 
-    public GameMoveHandler(PlacementService placementService, ObjectMapper objectMapper, TileService tileService, TileCornerRepository tileCornerRepository, TileEdgeRepository tileEdgeRepository, MoveBlockerService moveBlockerService, DiceRollService diceRollService, DevCardService devCardService, GameService gameService, ResourceService resourceService, SessionService sessionService, Mapper mapper, RoadRepository roadRepository, StructureRepository structureRepository, PlayerProfileService playerProfileService, TradeService tradeService,SimpMessagingTemplate messagingTemplate ) {
+    public GameMoveHandler(PlacementService placementService, ObjectMapper objectMapper, TileService tileService, TileCornerRepository tileCornerRepository, TileEdgeRepository tileEdgeRepository, MoveBlockerService moveBlockerService, DiceRollService diceRollService, DevCardService devCardService, GameService gameService, ResourceService resourceService, SessionService sessionService, Mapper mapper, RoadRepository roadRepository, StructureRepository structureRepository, PlayerProfileService playerProfileService, TradeService tradeService, SimpMessagingTemplate messagingTemplate, TradeOfferRepository tradeOfferRepository) {
         this.placementService = placementService;
         this.objectMapper = objectMapper;
         this.tileService = tileService;
@@ -60,6 +59,7 @@ public class GameMoveHandler {
         this.playerProfileService = playerProfileService;
         this.tradeService      = tradeService;
         this.messagingTemplate = messagingTemplate;
+        this.tradeOfferRepository = tradeOfferRepository;
     }
 
     private record CornerPair(TileCorner a, TileCorner b) {
@@ -86,11 +86,12 @@ public class GameMoveHandler {
         Session session = sessionById.get();
 
         checkForSetupOrdering(gameMoveTypeEnum, session, sessionPlayer);
-        if (gameMoveTypeEnum != GameMoveTypeEnum.MAP_GEN) {
+        if (gameMoveTypeEnum != GameMoveTypeEnum.MAP_GEN && gameMoveTypeEnum != GameMoveTypeEnum.TRADE_RESPONSE && gameMoveTypeEnum != GameMoveTypeEnum.TURN_ORDER) {
             checkIfItsTheCurrentPlayer(sessionPlayer, session);
         }
 
         switch (gameMoveTypeEnum) {
+            case PRIVATE_BUY_CARD -> throw new IllegalArgumentException("Not like this");
             case MAP_GEN -> {
                 if (session.getMapGenerated()) {
                     return new MapGenerationDto(tileService.findBySessionId(sessionId).stream().map(mapper::mapTileToTileDto).toList());
@@ -231,17 +232,14 @@ public class GameMoveHandler {
                         TradeOfferDto.class
                 );
 
-                // 2) send it privately to the target player’s queue
-                messagingTemplate.convertAndSend(
-                        "/user/" + offer.getToUser() + "/queue/moves",
-                        new GameMoveDto(
-                                GameMoveTypeEnum.TRADE_OFFER.name(),
-                                objectMapper.convertValue(offer, Map.class)
-                        )
-                );
+                Optional<TradeOffer> tradeOffer = mapper.mapTradeOfferDtoToTradeOffer(offer, sessionId);
+                if (tradeOffer.isEmpty()) {
+                    throw new IllegalArgumentException("TradeOffer not found");
+                }
 
-                // no further broadcast
-                return null;
+                tradeOfferRepository.save(tradeOffer.get());
+
+                return offer;
             }
 
             case TRADE_RESPONSE -> {
@@ -251,27 +249,25 @@ public class GameMoveHandler {
                         TradeResponseDto.class
                 );
 
-                // 2) if accepted, apply the swap on the backend
+                Optional<TradeOffer> tradeOffer = tradeOfferRepository.findByToPlayerNameAndFromPlayerName(resp.getFromUser(), resp.getToUser());
+                if (tradeOffer.isEmpty()) {
+                    throw new IllegalArgumentException("Trade offer not found");
+                }
+
                 if (resp.isAccepted()) {
                     tradeService.tradeBetweenPlayers(
                             sessionId,
                             resp.getFromUser(),  // the one who clicked “accept”
                             resp.getToUser(),    // the original offerer
-                            resp.getOffered(),
-                            resp.getRequested()
+                            tradeOffer.get().getRequestResources(),
+                            tradeOffer.get().getOfferResources()
                     );
                 }
 
-                // 3) notify the original offerer privately
-                messagingTemplate.convertAndSend(
-                        "/user/" + resp.getToUser() + "/queue/moves",
-                        new GameMoveDto(
-                                GameMoveTypeEnum.TRADE_RESPONSE.name(),
-                                objectMapper.convertValue(resp, Map.class)
-                        )
-                );
-
-                return null;
+                return resp;
+            }
+            case TURN_ORDER -> {
+                return new TurnOrderResponseDto(sessionService.getPlayersInTurnOrder(sessionId).stream().map(SessionPlayer::getName).toList());
             }
         }
         return null;
@@ -296,17 +292,8 @@ public class GameMoveHandler {
 
         //Makes cards playable
         devCardService.enablePlayable(sessionId);
-        /*for (SessionPlayer player : sessionService.getPlayers(sessionId)) {
-            for (DevCard playerCard : devCardService.getPlayerCards(player.getId())) {
-                if (!playerCard.isUsed() && !playerCard.isPlayable()){
-                    playerCard.setPlayable(true);
-                    devCardService.saveCard(playerCard);
-                }
-            }
-        }*/
 
         Optional<SessionPlayer> playerAfter = sessionService.getNextPlayer(sessionId);
-
 
         if (sessionPlayer.getUser() != null) {
             Optional<PlayerProfile> playerProfileByUserId = playerProfileService.getPlayerProfileByUserId(sessionPlayer.getUser().getId());

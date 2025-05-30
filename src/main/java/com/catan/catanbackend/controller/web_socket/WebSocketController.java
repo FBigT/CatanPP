@@ -33,6 +33,7 @@ public class WebSocketController {
     private final ObjectMapper objectMapper;
 
     private static final String GAME_MOVE_DESTINATION = "/game/move/";
+    private static final String USER_QUEUE_PATH = "/queue/";
 
     public WebSocketController(SimpMessagingTemplate messagingTemplate, GameMoveHandler gameMoveHandler, SessionPlayerService sessionPlayerService, GameService gameService, ObjectMapper objectMapper) {
         this.messagingTemplate = messagingTemplate;
@@ -78,8 +79,30 @@ public class WebSocketController {
         } catch (Exception ignored) {
             return;
         }
+        if (gameMoveType == GameMoveTypeEnum.TRADE_OFFER) {
+            TradeOfferDto offer = objectMapper.convertValue(payload, TradeOfferDto.class);
+            messagingTemplate.convertAndSendToUser(
+                    offer.getToUser(),
+                    USER_QUEUE_PATH + sessionCode,
+                    new GameMoveDto(GameMoveTypeEnum.TRADE_OFFER.name(),
+                            objectMapper.convertValue(offer, Map.class))
+            );
+            return;
+        }
+
+        if (gameMoveType == GameMoveTypeEnum.TRADE_RESPONSE) {
+            TradeResponseDto resp = objectMapper.convertValue(payload, TradeResponseDto.class);
+            messagingTemplate.convertAndSendToUser(
+                    resp.getToUser(),
+                    USER_QUEUE_PATH + sessionCode,
+                    new GameMoveDto(GameMoveTypeEnum.TRADE_RESPONSE.name(),
+                            objectMapper.convertValue(resp, Map.class))
+            );
+            return;
+        }
+
         if (gameMoveType == GameMoveTypeEnum.BUY_CARD){
-            messagingTemplate.convertAndSendToUser(sessionPlayer.getUser().getUsername(), "/queue/" + sessionCode, new GameMoveDto(GameMoveTypeEnum.PRIVATE_BUY_CARD.name(), objectMapper.convertValue(((List<?>) payload).get(0), Map.class)));
+            messagingTemplate.convertAndSendToUser(sessionPlayer.getUser().getUsername(), USER_QUEUE_PATH + sessionCode, new GameMoveDto(GameMoveTypeEnum.PRIVATE_BUY_CARD.name(), objectMapper.convertValue(((List<?>) payload).get(0), Map.class)));
             payload = ((List<?>) payload).get(1);
         }
 
@@ -97,27 +120,6 @@ public class WebSocketController {
                     .sorted(Comparator.comparingInt(SessionPlayer::getPlayerScore)).map(x
                             -> new PlayerScoreDto(x.getName(), x.getPlayerScore())).toList());
             messagingTemplate.convertAndSend(GAME_MOVE_DESTINATION + sessionCode, new GameMoveDto(GameMoveTypeEnum.VICTORY.name(), objectMapper.convertValue(victoryPayload, Map.class)));
-        }
-
-
-        if (gameMoveType == GameMoveTypeEnum.TRADE_OFFER) {
-            TradeOfferDto offer = objectMapper.convertValue(payload, TradeOfferDto.class);
-            messagingTemplate.convertAndSendToUser(
-                    offer.getToUser(),
-                    "/queue/" + sessionCode,
-                    new GameMoveDto(gameMoveType.name(), objectMapper.convertValue(offer, Map.class))
-            );
-            return;
-        }
-
-        if (gameMoveType == GameMoveTypeEnum.TRADE_RESPONSE) {
-            TradeResponseDto resp = objectMapper.convertValue(payload, TradeResponseDto.class);
-            messagingTemplate.convertAndSendToUser(
-                    resp.getToUser(),
-                    "/queue/" + sessionCode,
-                    new GameMoveDto(gameMoveType.name(), objectMapper.convertValue(resp, Map.class))
-            );
-            return;
         }
     }
 }

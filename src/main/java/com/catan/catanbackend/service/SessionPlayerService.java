@@ -77,12 +77,8 @@ public class SessionPlayerService {
         return sessionPlayers.stream().filter(SessionPlayer::getActive).findFirst();
     }
 
-    public Optional<Session> findSessionByPlayerId(Long userId) {
-        Optional<SessionPlayer> first = findCurrentSessionPlayerByUserId(userId);
-        if (first.isPresent()) {
-            return first.map(SessionPlayer::getSession);
-        }
-        return Optional.empty();
+    public Optional<SessionPlayer> findSessionPlayerBySessionIdAndUsername(Long sessionId, String username) {
+        return sessionPlayerRepository.findBySessionIdAndName(sessionId, username);
     }
 
     public List<SessionPlayer> findPlayersBySessionCode(String sessionCode) {
