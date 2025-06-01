@@ -17,7 +17,7 @@ namespace Assets.Scripts.Dtos
         {
             if (gameMoveType == GameMoveType.VICTORY)
                 throw new ArgumentException("You do not decide this");
-            if (gameMoveType != GameMoveType.DICE_ROLL && gameMoveType != GameMoveType.END_TURN && gameMoveType != GameMoveType.BUY_CARD)
+            if (gameMoveType != GameMoveType.DICE_ROLL && gameMoveType != GameMoveType.END_TURN && gameMoveType != GameMoveType.BUY_CARD && gameMoveType != GameMoveType.TURN_ORDER)
                 throw new ArgumentException("Passed game move type requires additional data");
             GameMoveType = gameMoveType;
         }

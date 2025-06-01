@@ -19,6 +19,7 @@ namespace Assets.Scripts.Enums
         VICTORY,
         MAP_GEN,
         TRADE_OFFER,
-        TRADE_RESPONSE
+        TRADE_RESPONSE,
+        TURN_ORDER
     }
 }

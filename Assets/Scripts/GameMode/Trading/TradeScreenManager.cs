@@ -46,21 +46,6 @@ namespace Assets.Scripts.GameMode.Trading
                 OnPlayersLoaded,
                 err => Debug.LogError($"[TradeScreen] Load players failed: {err}")
             );
-
-            // 3) Fire-and-forget WebSocket connect (won’t block UI)
-            string code = sessionId.ToString();
-            if (string.IsNullOrEmpty(code))
-            {
-                Debug.LogWarning("[TradeScreenManager] No session-code for WebSocket");
-            }
-            else
-            {
-                Debug.Log($"[TradeScreenManager] Connecting WebSocket with code={code}");
-                var connectTask = WebSocketService.ConnectToChat(code);
-                connectTask.ContinueWith(_ =>
-                    Debug.Log($"[TradeScreenManager] WebSocket Connected = {WebSocketService.Connected}")
-                );
-            }
         }
 
         void OnPlayersLoaded(List<SessionPlayerDto> players)

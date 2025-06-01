@@ -26,6 +26,7 @@ namespace Assets.Scripts.Utils
                 GameMoveType.PLACE_STRUCTURE => jo["moveData"]?.ToObject<PlaceStructureResponse>(serializer),
                 GameMoveType.DICE_ROLL => jo["moveData"]?.ToObject<DiceResultDto>(serializer),
                 GameMoveType.END_TURN => jo["moveData"]?.ToObject<EndTurnResponse>(serializer),
+                GameMoveType.TURN_ORDER => jo["moveData"]?.ToObject<TurnOrderResponse>(serializer),
                 //Complex type
                 GameMoveType.PLAY_CARD => jo["moveData"]?.ToObject<PlayCardResponseDto>(serializer),
                 GameMoveType.TRADE_OFFER => jo["moveData"]?.ToObject<TradeOfferMessage>(serializer),

@@ -85,6 +85,7 @@ namespace Assets.Scripts.Utils
                         // from Poofy
                         if (destination != null && destination.Contains(WebSocketBrokerDestinations.Chat.Value))
                         {
+                            Debug.Log(jsonBody);
                             ChatMessage chatMsg = JsonUtility.FromJson<ChatMessage>(jsonBody);
                             OnChatMessageReceived?.Invoke(chatMsg);
                         } else if (destination != null && destination.Contains(WebSocketBrokerDestinations.Moves.Value))
@@ -143,6 +144,9 @@ namespace Assets.Scripts.Utils
                                     break;
                                 case GameMoveType.VICTORY:
                                     VictoryDto victoryDto = (VictoryDto)gameMove.moveData;
+                                    break;
+                                case GameMoveType.TURN_ORDER:
+                                    TurnOrderResponse turnOrder = (TurnOrderResponse)gameMove.moveData;
                                     break;
                                 case GameMoveType.MAP_GEN:
                                     GenerateMapDto generateMapDto = (GenerateMapDto)gameMove.moveData;
