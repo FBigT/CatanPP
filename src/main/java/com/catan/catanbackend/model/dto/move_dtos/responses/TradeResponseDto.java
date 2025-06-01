@@ -14,9 +14,13 @@ public class TradeResponseDto {
         this.accepted = accepted;
         fromUser = tradeOfferDto.getToUser();
         toUser = tradeOfferDto.getFromUser();
+        requested = tradeOfferDto.getRequested();
+        offered = tradeOfferDto.getOffered();
     }
 
     private String fromUser;      // who responded
     private String toUser;        // original offerer
-    private boolean accepted;     // true=accepted, false=denied
+    private boolean accepted;
+    private ResourceGroup offered;
+    private ResourceGroup requested;
 }

@@ -253,6 +253,10 @@ public class GameMoveHandler {
                 if (tradeOffer.isEmpty()) {
                     throw new IllegalArgumentException("Trade offer not found");
                 }
+                if (tradeOffer.get().getRequestResources().compareTo(resp.getRequested()) != 0 ||
+                        tradeOffer.get().getOfferResources().compareTo(resp.getOffered()) != 0) {
+                    throw new IllegalArgumentException("Trade offer has different resources");
+                }
 
                 if (resp.isAccepted()) {
                     tradeService.tradeBetweenPlayers(
@@ -263,6 +267,9 @@ public class GameMoveHandler {
                             tradeOffer.get().getOfferResources()
                     );
                 }
+
+                tradeOfferRepository.delete(tradeOffer.get());
+                tradeOfferRepository.flush();
 
                 return resp;
             }
