@@ -14,6 +14,7 @@ namespace Assets.Scripts.Dtos.GameMoveResponses
         public string fromUser;   // Bob
         public string toUser;     // Alice
         public bool accepted;
+        public long sessionId;
         public ResourceGroup offered;    // copy of original offer
         public ResourceGroup requested;
     }

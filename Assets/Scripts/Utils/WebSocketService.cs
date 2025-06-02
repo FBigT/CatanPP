@@ -304,6 +304,8 @@ namespace Assets.Scripts.Utils
                 sessionCode,
                 dto
             );
+            Debug.Log($"[WebSocketService] >> Sending TRADE_RESPONSE to {resp.toUser}, accepted: {resp.accepted}");
+
             await webSocket.SendText(frame);
         }
         public static void RaiseChatMessage(ChatMessage msg)

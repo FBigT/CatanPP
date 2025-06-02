@@ -6,6 +6,7 @@ using UnityEngine.UIElements;
 using Assets.Scripts.GameMode.Trading;
 using System.Linq;
 using UnityEngine;
+using System.Threading.Tasks;
 
 namespace Assets.Scripts.GameMode.UI
 {
@@ -42,6 +43,20 @@ namespace Assets.Scripts.GameMode.UI
             string me = LocalStorageService.GetString("username");
             bool isTarget = msg.toUser == me;
             _acceptBtn.visible = _denyBtn.visible = isTarget;
+
+            // === AUTO RESPONSES (UNCOMMENT ONE LINE ONLY) ===
+
+            // Auto-accept the trade offer
+            // if (isTarget) _ = DelayAutoResponse(true);
+
+            // Auto-deny the trade offer
+            if (isTarget) _ = DelayAutoResponse(false);
+        }
+
+        private async Task DelayAutoResponse(bool accepted)
+        {
+            await Task.Delay(100); // wait 100ms before sending response
+            SendResponse(accepted);
         }
 
         async void SendResponse(bool accepted)
@@ -52,20 +67,27 @@ namespace Assets.Scripts.GameMode.UI
                 toUser = _offer.fromUser,
                 accepted = accepted,
                 offered = _offer.offered,
-                requested = _offer.requested
+                requested = _offer.requested,
+                sessionId = LocalStorageService.GetInt("session-id") ?? 0
             };
 
-            // ** DROP this line ** 
-            // TradingManager.Instance.RespondToTrade(_offer, true, ...);
-
-            // 1) Send the response over WebSocket
             await WebSocketService.SendTradeResponse(resp);
 
-            // 2) Disable buttons so you can’t click twice
+            Debug.Log($"[TradeRequestEntry] Auto-response: {(accepted ? "ACCEPTED" : "DENIED")} trade offer from {_offer.fromUser}.");
+
             _acceptBtn.SetEnabled(false);
             _denyBtn.SetEnabled(false);
-        }
 
+            var msg = new ChatMessage
+            {
+                senderUsername = resp.fromUser,
+                toUser = resp.toUser,
+                text = $"{resp.fromUser} {(accepted ? "accepted" : "declined")} the trade offer.",
+                timestamp = System.DateTime.UtcNow.ToString("o"),
+                messageType = ChatMessageType.Text
+            };
+            await WebSocketService.SendMessage(JsonUtility.ToJson(msg));
+        }
 
         private string BuildSummary(ResourceGroup g)
         {

@@ -10,9 +10,9 @@ using Assets.Scripts.GameMode.Trading.Models;
 namespace Assets.Scripts.GameMode.Trading
 {
     /// <summary>
-    /// Manages REST calls for session players and trades, keeps auth fresh,
-    /// exposes <c>OnPlayersLoaded</c> so other systems (StructurePlacer, etc.)
-    /// can cache their <c>sessionPlayerId</c>.
+    /// Manages REST calls for session players i tradove, drži auth token svježim,
+    /// izlaže <c>OnPlayersLoaded</c> kako bi drugi sustavi (npr. StructurePlacer)
+    /// mogli keširati svoj <c>sessionPlayerId</c>.
     /// </summary>
     public class TradingManager : MonoBehaviour
     {
@@ -20,6 +20,7 @@ namespace Assets.Scripts.GameMode.Trading
         public static TradingManager Instance { get; private set; }
         /* ---------- NEW: let other scripts know when players arrive ---------- */
         public static event Action<List<SessionPlayerDto>> OnPlayersLoaded = delegate { };
+
         private void Awake()
         {
             if (Instance != null && Instance != this)
@@ -30,8 +31,6 @@ namespace Assets.Scripts.GameMode.Trading
             Instance = this;
             DontDestroyOnLoad(gameObject);
         }
-
-        
 
         /* ────────────────────────── public API ───────────────────────── */
         public void GetSessionPlayers(long sessionId,
@@ -59,7 +58,7 @@ namespace Assets.Scripts.GameMode.Trading
                                         onSuccess, onError));
         }
 
-        /* ───────────────────────‑ internals ‑────────────────────────── */
+        /* ───────────────────────- internals -────────────────────────── */
 
         #region Auth refresh
         IEnumerator EnsureValidToken()
@@ -110,7 +109,7 @@ namespace Assets.Scripts.GameMode.Trading
         }
         #endregion
 
-        #region GET players
+        #region GET players
         IEnumerator GetPlayersRoutine(long sessionId,
                                       Action<List<SessionPlayerDto>> onSuccess,
                                       Action<string> onError)
@@ -153,7 +152,7 @@ namespace Assets.Scripts.GameMode.Trading
                 var list = new List<SessionPlayerDto>(arr);
 
                 onSuccess?.Invoke(list);
-                /* >>> notify subscribers (StructurePlacer, etc.) <<< */
+                /* >>> notify subscribers (StructurePlacer, itd.) <<< */
                 OnPlayersLoaded?.Invoke(list);
             }
             catch (Exception ex)
@@ -164,7 +163,7 @@ namespace Assets.Scripts.GameMode.Trading
         }
         #endregion
 
-        #region POST trades
+        #region POST trades
         IEnumerator TradeRoutine(string url,
                                  string jsonBody,
                                  Action onSuccess,
@@ -198,7 +197,8 @@ namespace Assets.Scripts.GameMode.Trading
             }
             else
             {
-                Debug.Log("[TradeRoutine] Trade successful.");
+                // 👉 Ovdje samo drugačiji log
+                Debug.Log("[TradeRoutine] Trade request completed (HTTP " + req.responseCode + ").");
                 onSuccess?.Invoke();
             }
         }

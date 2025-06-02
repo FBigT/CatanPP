@@ -1,6 +1,9 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
+using Assets.Scripts.Dtos.GameMoveResponses;
 using Assets.Scripts.User;
 using Assets.Scripts.Utils;
+using UnityEngine;
 using UnityEngine.UIElements;
 
 namespace Assets.Scripts.GameMode.UI
@@ -63,6 +66,8 @@ namespace Assets.Scripts.GameMode.UI
             m_ChatBox.itemsSource = m_AllMessages;
 
             WebSocketService.OnChatMessageReceived += OnChatMessageReceived;
+            WebSocketService.OnTradeResponseReceived += OnTradeResponseReceived;
+
         }
 
         public void OnChatMessageReceived(ChatMessage chatMessage) { 
@@ -70,5 +75,29 @@ namespace Assets.Scripts.GameMode.UI
             m_ChatBox.Rebuild();
             m_ChatBox.ScrollToItem(m_AllMessages.Count - 1);
         }
+        private void OnTradeResponseReceived(TradeResponseMessage response)
+        {
+            string me = LocalStorageService.GetString("username");
+
+            if (response.toUser == me)
+            {
+                string status = response.accepted ? "ACCEPTED ✅" : "DENIED ❌";
+                Debug.Log($"[Trade] Your trade was {status} by {response.fromUser}");
+
+                var msg = new ChatMessage
+                {
+                    senderUsername = response.fromUser,
+                    toUser = response.toUser,
+                    messageType = ChatMessageType.Text,
+                    text = $"Trade with {response.fromUser} was {status.ToLower()}",
+                    payloadJson = JsonUtility.ToJson(response),
+                    timestamp = DateTimeOffset.UtcNow.ToString("o")  // optional but useful
+                };
+
+
+                OnChatMessageReceived(msg); // Add message to chat log
+            }
+        }
+
     }
 }

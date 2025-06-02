@@ -1,13 +1,16 @@
-﻿using System.Collections.Generic;
+﻿// Assets/Scripts/GameMode/Trading/TradeScreenManager.cs
+
+using System;
+using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
-using Assets.Scripts.Utils;                     // LocalStorageService, WebSocketService
+using Assets.Scripts.Utils;                   // ← for WebSocketService
 using Assets.Scripts.GameMode.Trading.Models;
 using Assets.Scripts.GameMode.Trading;
-using Assets.Scripts.User;                      // ChatMessage, ChatMessageType
-using Assets.Scripts.Dtos.GameMoveResponses;    // TradeOfferMessage
+using Assets.Scripts.User;                    // ← for ChatMessage, ChatMessageType
+using Assets.Scripts.Dtos.GameMoveResponses;  // ← for TradeOfferMessage
 
 namespace Assets.Scripts.GameMode.Trading
 {
@@ -33,27 +36,46 @@ namespace Assets.Scripts.GameMode.Trading
         long sessionId;
         string currentUserName;
 
-        void Start()
+        // ─────── Subscribe to WebSocket chat in OnEnable/OnDisable ───────
+        private void OnEnable()
+        {
+            WebSocketService.OnChatMessageReceived += HandleChatMessage;
+        }
+
+        private void OnDisable()
+        {
+            WebSocketService.OnChatMessageReceived -= HandleChatMessage;
+        }
+
+        async void Start()
         {
             // 1) Load session & user
             sessionId = LocalStorageService.GetInt("session-id") ?? 0;
             currentUserName = LocalStorageService.GetString("username") ?? "";
 
-            // 2) Populate the dropdown immediately
+            // 2) Populate player dropdown immediately
             playerDropdown.ClearOptions();
             TradingManager.Instance.GetSessionPlayers(
                 sessionId,
                 OnPlayersLoaded,
                 err => Debug.LogError($"[TradeScreen] Load players failed: {err}")
             );
+
+            // 3) Connect to WebSocket (if not already)
+            string sessionCode = LocalStorageService.GetString("session-code");
+            if (!WebSocketService.Connected)
+            {
+                Debug.Log("[TradeScreenManager] Connecting to WebSocket...");
+                await WebSocketService.ConnectToChat(sessionCode);
+            }
         }
 
-        void OnPlayersLoaded(List<SessionPlayerDto> players)
+        private void OnPlayersLoaded(List<SessionPlayerDto> players)
         {
             var options = new List<string> { "Bank" };
             foreach (var p in players)
             {
-                if (!p.username.Equals(currentUserName, System.StringComparison.OrdinalIgnoreCase))
+                if (!p.username.Equals(currentUserName, StringComparison.OrdinalIgnoreCase))
                     options.Add(p.username);
             }
 
@@ -116,7 +138,7 @@ namespace Assets.Scripts.GameMode.Trading
 
             if (toUser == "Bank")
             {
-                // Bank‐trade logic (unchanged)
+                // ───── Bank trade (unchanged) ─────
                 ApplyRequestSelection();
                 ApplyOfferSelection();
 
@@ -139,14 +161,15 @@ namespace Assets.Scripts.GameMode.Trading
                     portRatio = 4
                 };
 
-                TradingManager.Instance.TradeWithBank(bankDto,
+                TradingManager.Instance.TradeWithBank(
+                    bankDto,
                     () => Debug.Log("[TradeScreen] Bank trade successful"),
                     e => Debug.LogError("[TradeScreen] Bank trade failed: " + e)
                 );
             }
             else
             {
-                // Player‐to‐player trade
+                // ───── Player‐to‐player trade ─────
                 ApplyRequestSelection();
                 ApplyOfferSelection();
 
@@ -159,7 +182,8 @@ namespace Assets.Scripts.GameMode.Trading
                     requested = ResourceGroup.FromLists(selectedRequestedResources, selectedRequestedQuantities)
                 };
 
-                TradingManager.Instance.TradeWithPlayer(dto,
+                TradingManager.Instance.TradeWithPlayer(
+                    dto,
                     onSuccess: () =>
                     {
                         Debug.Log("[TradeScreen] Trade request sent to server.");
@@ -174,15 +198,15 @@ namespace Assets.Scripts.GameMode.Trading
                             requested = dto.requested
                         };
 
+                        // (fire‐and‐forget) send the STOMP frame:
                         _ = WebSocketService.SendTradeOffer(offerMsg)
-                             .ContinueWith(_ =>
-                                 Debug.Log("[TradeScreenManager] SendTradeOffer() completed")
-                             );
+                             .ContinueWith(_ => Debug.Log("[TradeScreenManager] SendTradeOffer() completed"));
                     },
                     onError: e =>
                     {
                         Debug.LogError($"[TradeScreen] Trade failed: {e}");
-                    });
+                    }
+                );
             }
         }
 
@@ -202,14 +226,18 @@ namespace Assets.Scripts.GameMode.Trading
             return true;
         }
 
-        // Helper to build "2 wood, 1 sheep" text
-        private string BuildSummary(ResourceGroup g)
+        // ───── Incoming chat dispatcher ─────
+        private void HandleChatMessage(ChatMessage chat)
         {
-            return string.Join(", ",
-                g.GetResourceDictionary()
-                 .Where(kvp => kvp.Value > 0)
-                 .Select(kvp => $"{kvp.Value} {kvp.Key}")
-            );
+            // We only care about "…accepted the trade offer." or "…declined the trade offer."
+            if (chat.text.EndsWith("accepted the trade offer."))
+            {
+                Debug.Log($"[TradeScreenManager] Trade ACCEPTED by {chat.senderUsername}");
+            }
+            else if (chat.text.EndsWith("declined the trade offer."))
+            {
+                Debug.Log($"[TradeScreenManager] Trade DENIED by {chat.senderUsername}");
+            }
         }
     }
 }
