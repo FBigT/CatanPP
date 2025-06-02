@@ -11,7 +11,7 @@ namespace Assets.Scripts.Utils
         public static string DisconnectFrame { get; } = $"DISCONNECT\n\n\u0000";
 
         public static string SubscribeFrame(WebSocketBrokerDestinations path, string sessionCode) {
-            return $"SUBSCRIBE\nid:sub-0\ndestination:{WebSocketBrokerDestinations.Construct(path, sessionCode)}\nAuthorization:{LocalStorageService.GetString("token")}\n\n\0";
+            return $"SUBSCRIBE\nid:{path.Value.ToLower()}\ndestination:{WebSocketBrokerDestinations.Construct(path, sessionCode)}\nAuthorization:{LocalStorageService.GetString("token")}\n\n\0";
         }
 
         public static string MessageFrame(WebSocketApplicationDestinations path, string sessionCode, object body){

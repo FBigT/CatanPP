@@ -19,52 +19,53 @@ namespace Assets.Scripts.Dtos
                 throw new ArgumentException("You do not decide this");
             if (gameMoveType != GameMoveType.DICE_ROLL && gameMoveType != GameMoveType.END_TURN && gameMoveType != GameMoveType.BUY_CARD && gameMoveType != GameMoveType.TURN_ORDER)
                 throw new ArgumentException("Passed game move type requires additional data");
-            GameMoveType = gameMoveType;
+            this.gameMoveType = gameMoveType;
         }
 
         public GameMoveDto(RobberMoveDto robberMoveDto)
         {
-            GameMoveType = GameMoveType.ROBBER_MOVE;
+            gameMoveType = GameMoveType.ROBBER_MOVE;
             moveData = robberMoveDto;
         }
 
         public GameMoveDto(UpgradeStructureDto upgradeStructureDto)
         {
-            GameMoveType = GameMoveType.UPGRADE_STRUCTURE;
+            gameMoveType = GameMoveType.UPGRADE_STRUCTURE;
             moveData = upgradeStructureDto;
         }
 
         public GameMoveDto(PlaceRoadDto placeRoadDto)
         {
-            GameMoveType = GameMoveType.PLACE_ROAD;
+            gameMoveType = GameMoveType.PLACE_ROAD;
             moveData = placeRoadDto;
         }
 
 
         public GameMoveDto(PlaceStructureDto placeStructureDto){
-            GameMoveType = GameMoveType.PLACE_STRUCTURE;
+            gameMoveType = GameMoveType.PLACE_STRUCTURE;
             moveData = placeStructureDto;
         }
 
         public GameMoveDto(PlayCardDto playCardDto)
         {
-            GameMoveType = GameMoveType.PLAY_CARD;
+            gameMoveType = GameMoveType.PLAY_CARD;
             moveData = playCardDto;
         }
         public GameMoveDto(TradeResponseMessage resp)
         {
-            GameMoveType = GameMoveType.TRADE_RESPONSE;
+            gameMoveType = GameMoveType.TRADE_RESPONSE;
             moveData = resp;
         }
 
 
         public GameMoveDto(TradeOfferMessage tradeOffer)
         {
-            GameMoveType = GameMoveType.TRADE_OFFER;
+            gameMoveType = GameMoveType.TRADE_OFFER;
             moveData = tradeOffer;
         }
+
         [JsonConverter(typeof(StringEnumConverter))]
-        public GameMoveType GameMoveType { get; set; }
+        public GameMoveType gameMoveType;
         public object moveData;
     }
 }

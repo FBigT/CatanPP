@@ -15,7 +15,7 @@ namespace Assets.Scripts.Utils
         {
             JObject jo = JObject.Load(reader);
 
-            var gameMoveType = jo["GameMoveType"]?.ToObject<GameMoveType>();
+            var gameMoveType = jo["gameMoveType"]?.ToObject<GameMoveType>();
             object moveData = gameMoveType switch
             {
                 GameMoveType.PLACE_ROAD => jo["moveData"]?.ToObject<PlaceRoadResponse>(serializer),

@@ -30,6 +30,7 @@ namespace Assets.Scripts.Utils
 
         public static async Task ConnectToChat(string code)
         {
+
             sessionCode = code;
 
             webSocket = new WebSocket(WebSocketEndpointsUtils.BaseWebSocketUrl);
@@ -191,7 +192,7 @@ namespace Assets.Scripts.Utils
                         else if (destination != null && destination.Contains(WebSocketBrokerDestinations.Private.Value))
                         {
                             GameMoveDto gameMove = JsonConvert.DeserializeObject<GameMoveDto>(jsonBody);
-                            GameMoveType gameMoveType = gameMove.GameMoveType;
+                            GameMoveType gameMoveType = gameMove.gameMoveType;
 
                             if (gameMoveType == GameMoveType.BUY_CARD)
                             {
@@ -231,8 +232,13 @@ namespace Assets.Scripts.Utils
             await webSocket.SendText(
                 WebSocketEndpointsUtils.SubscribeFrame(WebSocketBrokerDestinations.Private, sessionCode)
             );
+            
+            // 4) Subscribe to Moves channel (using your helper)
+            await webSocket.SendText(
+                WebSocketEndpointsUtils.SubscribeFrame(WebSocketBrokerDestinations.Moves, sessionCode)
+            );
 
-            // 4) Manually subscribe to /topic/moves/{sessionCode}
+            /*// 4) Manually subscribe to /topic/moves/{sessionCode}
             string movesDestination = $"/topic/moves/{sessionCode}";
             Debug.Log($"[WebSocketService] Subscribing raw to: {movesDestination}");
 
@@ -242,7 +248,7 @@ namespace Assets.Scripts.Utils
                                     "id:sub-moves\n\n" +
                                     "\0";
 
-            await webSocket.SendText(subscribeFrame);
+            await webSocket.SendText(subscribeFrame);*/
         }
 
         public static async Task SendMessage(string message)
@@ -309,19 +315,22 @@ namespace Assets.Scripts.Utils
             }
 
             // 1) build the exact same DTO your server expects:
-            var dto = new TradeOfferDto
+
+            TradeOfferMessage dto = new TradeOfferMessage
             {
                 fromUser = offer.fromUser,
                 toUser = offer.toUser,
                 offered = offer.offered,
                 requested = offer.requested
             };
+            GameMoveDto gameMoveDto = new GameMoveDto(dto);
+
 
             // 2) send *that* raw dto
             string frame = WebSocketEndpointsUtils.MessageFrame(
               WebSocketApplicationDestinations.Moves,
               sessionCode,
-              dto
+              gameMoveDto
             );
             Debug.Log($"[WebSocketService] >> STOMP SEND (Moves):\n{frame}");
             await webSocket.SendText(frame);

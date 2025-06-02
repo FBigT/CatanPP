@@ -7,7 +7,7 @@
         public string Value { get; private set; }
 
         public static WebSocketApplicationDestinations Chat { get { return new WebSocketApplicationDestinations("/send/chat/"); } }
-        public static WebSocketApplicationDestinations Moves { get { return new WebSocketApplicationDestinations("/send/moves/"); } }
+        public static WebSocketApplicationDestinations Moves { get { return new WebSocketApplicationDestinations("/send/move/"); } }
         public static WebSocketApplicationDestinations Players { get { return new WebSocketApplicationDestinations("/send/players/"); } }
         public override string ToString()
         {
