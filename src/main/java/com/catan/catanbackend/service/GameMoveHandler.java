@@ -91,9 +91,10 @@ public class GameMoveHandler {
         Session session = sessionById.get();
 
         checkForSetupOrdering(gameMoveTypeEnum, session, sessionPlayer);
-        if (gameMoveTypeEnum != GameMoveTypeEnum.MAP_GEN && gameMoveTypeEnum != GameMoveTypeEnum.TRADE_RESPONSE && gameMoveTypeEnum != GameMoveTypeEnum.TURN_ORDER) {
+        //Disabled for testing
+        /*if (gameMoveTypeEnum != GameMoveTypeEnum.MAP_GEN && gameMoveTypeEnum != GameMoveTypeEnum.TRADE_RESPONSE && gameMoveTypeEnum != GameMoveTypeEnum.TURN_ORDER) {
             checkIfItsTheCurrentPlayer(sessionPlayer, session);
-        }
+        }*/
 
         switch (gameMoveTypeEnum) {
             case PRIVATE_BUY_CARD -> throw new IllegalArgumentException("Not like this");

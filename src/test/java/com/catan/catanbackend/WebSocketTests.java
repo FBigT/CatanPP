@@ -728,9 +728,8 @@ class WebSocketTests {
         assertThat(secretReceive2).isNotNull();
         TradeOfferDto receivedOffer = objectMapper.convertValue(secretReceive2.getMoveData(), TradeOfferDto.class);
 
-        Long sessionId = 123L;
         map = objectMapper.convertValue(
-                new TradeResponseDto(receivedOffer, true, sessionId),
+                new TradeResponseDto(receivedOffer, true, session.getId()),
                 new TypeReference<>() {}
         );
 

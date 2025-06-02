@@ -53,6 +53,10 @@ public class WebSocketController {
         messagingTemplate.convertAndSend("/game/players/" + sessionCode, new JoinSessionNotification(users));
     }
 
+    public static void sendGameMoveSubscribeNotif(SimpMessagingTemplate messagingTemplate, String sessionCode, String message) {
+        messagingTemplate.convertAndSend("/game/players/" + sessionCode, message);
+    }
+
     @MessageMapping("/move/{sessionCode}")
     public void gameMove(@DestinationVariable String sessionCode, @Payload GameMoveDto gameMoveDto, Principal principal) {
         Object payload;
@@ -79,7 +83,7 @@ public class WebSocketController {
         } catch (Exception ignored) {
             return;
         }
-        if (gameMoveType == GameMoveTypeEnum.TRADE_OFFER) {
+        /*if (gameMoveType == GameMoveTypeEnum.TRADE_OFFER) {
             TradeOfferDto offer = objectMapper.convertValue(payload, TradeOfferDto.class);
             messagingTemplate.convertAndSendToUser(
                     offer.getToUser(),
@@ -99,7 +103,7 @@ public class WebSocketController {
                             objectMapper.convertValue(resp, Map.class))
             );
             return;
-        }
+        }*/
 
         if (gameMoveType == GameMoveTypeEnum.BUY_CARD){
             messagingTemplate.convertAndSendToUser(sessionPlayer.getUser().getUsername(), USER_QUEUE_PATH + sessionCode, new GameMoveDto(GameMoveTypeEnum.PRIVATE_BUY_CARD.name(), objectMapper.convertValue(((List<?>) payload).get(0), Map.class)));

@@ -98,11 +98,12 @@ public class JwtChannelInterceptor implements ChannelInterceptor {
 
         if (StompCommand.SUBSCRIBE.equals(cmd) || StompCommand.DISCONNECT.equals(cmd)) {
             String dest = accessor.getDestination();
+            String code = dest.substring(dest.lastIndexOf('/') + 1);
             if (dest != null && dest.contains("/game/players/")) {
                 Long userId = tokenService.getUserIdFromJwtToken(
                         accessor.getFirstNativeHeader(AUTH_HEADER).substring(7)
                 );
-                String code = dest.substring(dest.lastIndexOf('/') + 1);
+
                 if (StompCommand.SUBSCRIBE.equals(cmd)) {
                     sessionService.joinSession(userId, code);
                     subscribers.put(accessor.getSessionId(), userId);
