@@ -50,6 +50,8 @@ namespace Assets.Scripts.Utils
 
             webSocket.OnMessage += (bytes) =>
             {
+                Debug.Log("[WS] Raw incoming message:\n" + Encoding.UTF8.GetString(bytes));
+
                 var message = Encoding.UTF8.GetString(bytes);
 
                 Debug.Log($"Message received: {message}");
@@ -61,7 +63,7 @@ namespace Assets.Scripts.Utils
                 }
                 else if (message.StartsWith("MESSAGE"))
                 {
-                    Debug.Log(message);
+                    Debug.Log("[WS] Message is a STOMP MESSAGE");
                     int index = message.IndexOf("\n\n");
                     if (index != -1)
                     {
@@ -76,6 +78,8 @@ namespace Assets.Scripts.Utils
                             if (line.StartsWith("destination:"))
                             {
                                 destination = line["destination:".Length..];
+                                Debug.Log("[WS] Parsed destination: " + destination);
+
                                 break;
                             }
                         }
@@ -170,7 +174,6 @@ namespace Assets.Scripts.Utils
 
                                         break;
                                     }
-
                                 case GameMoveType.TRADE_RESPONSE:
                                     {
                                         string respJson = JsonConvert.SerializeObject(gameMove.moveData);
@@ -179,8 +182,9 @@ namespace Assets.Scripts.Utils
                                         Debug.Log($"[WebSocketService] Received TRADE_RESPONSE from {resp.fromUser} to {resp.toUser}, accepted: {resp.accepted}");
 
                                         OnTradeResponseReceived?.Invoke(resp);
-                                        break;
+                                        break; // ✅ fix CS8070 here
                                     }
+
 
                             };
                         }

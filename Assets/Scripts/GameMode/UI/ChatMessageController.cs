@@ -79,12 +79,15 @@ namespace Assets.Scripts.GameMode.UI
         }
         private void OnTradeResponseReceived(TradeResponseMessage response)
         {
+            Debug.Log("[ChatController] OnTradeResponseReceived called");
+
             string me = LocalStorageService.GetString("username");
+            Debug.Log($"[ChatController] Local user: {me}, TradeResponse to: {response.toUser}");
 
             if (response.toUser == me)
             {
                 string status = response.accepted ? "ACCEPTED ✅" : "DENIED ❌";
-                Debug.Log($"[Trade] Your trade was {status} by {response.fromUser}");
+                Debug.Log($"[ChatController] Response is for this user. Status: {status}");
 
                 var msg = new ChatMessage
                 {
@@ -93,13 +96,20 @@ namespace Assets.Scripts.GameMode.UI
                     messageType = ChatMessageType.Text,
                     text = $"Trade with {response.fromUser} was {status.ToLower()}",
                     payloadJson = JsonUtility.ToJson(response),
-                    timestamp = DateTimeOffset.UtcNow.ToString("o")  // optional but useful
+                    timestamp = DateTimeOffset.UtcNow.ToString("o")
                 };
 
+                Debug.Log($"[ChatController] Created ChatMessage: {msg.text}");
 
                 OnChatMessageReceived(msg); // Add message to chat log
+                Debug.Log("[ChatController] Injected trade response into chat stream");
+            }
+            else
+            {
+                Debug.Log("[ChatController] Ignored: Trade response is not for this user");
             }
         }
+
 
     }
 }
