@@ -155,8 +155,14 @@ namespace Assets.Scripts.Utils
                                 case GameMoveType.TRADE_OFFER:
                                     {
                                         Debug.Log("[WebSocketService] Received TRADE_OFFER frame");
-                                        string offerJson = JsonConvert.SerializeObject(gameMove.moveData);
-                                        var offer = JsonConvert.DeserializeObject<TradeOfferMessage>(offerJson);
+                                        // jsonBody already contains the entire GameMoveResponseDto as JSON.
+                                        // We know moveData is a TradeOfferMessage, so deserialize that field directly:
+                                        var gm = JsonConvert.DeserializeObject<GameMoveResponseDto>(jsonBody);
+                                        var offer = JsonConvert.DeserializeObject<TradeOfferMessage>(
+                                            JsonConvert.SerializeObject(gm.moveData)
+                                        );
+
+
                                         Debug.Log($"[WebSocketService] Deserialized TradeOfferMessage from {offer.fromUser} to {offer.toUser}");
 
                                         OnTradeOfferReceived?.Invoke(offer);
@@ -169,9 +175,13 @@ namespace Assets.Scripts.Utils
                                     {
                                         string respJson = JsonConvert.SerializeObject(gameMove.moveData);
                                         var resp = JsonConvert.DeserializeObject<TradeResponseMessage>(respJson);
+
+                                        Debug.Log($"[WebSocketService] Received TRADE_RESPONSE from {resp.fromUser} to {resp.toUser}, accepted: {resp.accepted}");
+
                                         OnTradeResponseReceived?.Invoke(resp);
                                         break;
                                     }
+
                             };
                         }
                         else if (destination != null && destination.Contains(WebSocketBrokerDestinations.Private.Value))
@@ -201,15 +211,34 @@ namespace Assets.Scripts.Utils
             Debug.Log(WebSocketEndpointsUtils.ConnectFrame);
             await webSocket.SendText(WebSocketEndpointsUtils.ConnectFrame);
         }
-
         private static async Task SendSubscribeFrame()
         {
-            Debug.Log("[WebSocketService] Subscribing to moves channel");
+            // 1) Subscribe to Chat channel (using your helper)
+            await webSocket.SendText(
+                WebSocketEndpointsUtils.SubscribeFrame(WebSocketBrokerDestinations.Chat, sessionCode)
+            );
 
-            await webSocket.SendText(WebSocketEndpointsUtils.SubscribeFrame(WebSocketBrokerDestinations.Chat, sessionCode));
-            await webSocket.SendText(WebSocketEndpointsUtils.SubscribeFrame(WebSocketBrokerDestinations.Players, sessionCode));
-            await webSocket.SendText(WebSocketEndpointsUtils.SubscribeFrame(WebSocketBrokerDestinations.Private, sessionCode));
-            await webSocket.SendText(WebSocketEndpointsUtils.SubscribeFrame(WebSocketBrokerDestinations.Moves, sessionCode));
+            // 2) Subscribe to Players channel (using your helper)
+            await webSocket.SendText(
+                WebSocketEndpointsUtils.SubscribeFrame(WebSocketBrokerDestinations.Players, sessionCode)
+            );
+
+            // 3) Subscribe to Private channel (using your helper)
+            await webSocket.SendText(
+                WebSocketEndpointsUtils.SubscribeFrame(WebSocketBrokerDestinations.Private, sessionCode)
+            );
+
+            // 4) Manually subscribe to /topic/moves/{sessionCode}
+            string movesDestination = $"/topic/moves/{sessionCode}";
+            Debug.Log($"[WebSocketService] Subscribing raw to: {movesDestination}");
+
+            // Build a correct STOMP SUBSCRIBE frame (no payload!)
+            string subscribeFrame = "SUBSCRIBE\n" +
+                                    $"destination:{movesDestination}\n" +
+                                    "id:sub-moves\n\n" +
+                                    "\0";
+
+            await webSocket.SendText(subscribeFrame);
         }
 
         public static async Task SendMessage(string message)

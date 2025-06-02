@@ -16,7 +16,8 @@ namespace Assets.Scripts.GameMode.UI
 
         public void SetMessageData(ChatMessage chatMessage)
         {
-            m_NameLabel.text = chatMessage.ToString();
+            m_NameLabel.text = $"[{chatMessage.senderUsername}] {chatMessage.text}";
         }
+
     }
 }

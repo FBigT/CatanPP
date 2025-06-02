@@ -67,7 +67,13 @@ namespace Assets.Scripts.UI
                     timestamp = System.DateTimeOffset.Now.ToString("o")
                 };
                 WebSocketService.RaiseChatMessage(chatMsg);
+
             };
+            WebSocketService.OnChatMessageReceived += chatMsg =>
+            {
+                chatController.OnChatMessageReceived(chatMsg);
+            };
+
             // Initialize chat controller with both templates
             chatController = new ChatMessageController
             {
@@ -89,6 +95,7 @@ namespace Assets.Scripts.UI
                     }
                 }
             });
+
         }
 
         private void Update()

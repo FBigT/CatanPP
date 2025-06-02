@@ -1,7 +1,8 @@
-<ui:UXML xmlns:ui="UnityEngine.UIElements">
-  <ui:VisualElement class="chat-entry trade-request">
-    <ui:Label name="ChatContent" class="chat-label" />
-    <ui:Button name="AcceptButton" text="Accept" class="trade-btn" />
-    <ui:Button name="DenyButton"   text="Deny"   class="trade-btn" />
-  </ui:VisualElement>
-</ui:UXML>
+<Engine:UIDocument xmlns="UnityEngine.UIElements"
+                   xmlns:Engine="UnityEngine.UIElements">
+  <VisualElement name="Root" style="flex-direction: row; align-items: center; padding: 4;">
+    <Label   name="ChatContent" style="flex: 1;" />
+    <Button  name="AcceptButton" text="Accept" style="margin-left: 8;" />
+    <Button  name="DenyButton"   text="Deny"   style="margin-left: 4;" />
+  </VisualElement>
+</Engine:UIDocument>

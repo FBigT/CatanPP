@@ -70,7 +70,9 @@ namespace Assets.Scripts.GameMode.UI
 
         }
 
-        public void OnChatMessageReceived(ChatMessage chatMessage) { 
+        public void OnChatMessageReceived(ChatMessage chatMessage) {
+            Debug.Log($"[ChatController] Received chat message: {chatMessage.text}");
+
             m_AllMessages.Add(chatMessage);
             m_ChatBox.Rebuild();
             m_ChatBox.ScrollToItem(m_AllMessages.Count - 1);

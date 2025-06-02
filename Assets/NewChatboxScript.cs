@@ -1,4 +1,6 @@
 using System.Collections.Generic;
+using Assets.Scripts.Dtos.GameMoveResponses;
+using Assets.Scripts.UI;
 using Assets.Scripts.User;
 using Assets.Scripts.Utils;
 using TMPro;
@@ -8,6 +10,7 @@ public class NewChatboxScript : MonoBehaviour
 {
     public GameObject chatPanel, textPrefab;
     public TMP_InputField chatInput;
+    public GameObject tradePrefab;
 
     [SerializeField]
     List<Message> messageList = new List<Message>();
@@ -36,23 +39,43 @@ public class NewChatboxScript : MonoBehaviour
 
     private void OnMessage(ChatMessage chatMessage)
     {
-        Message newMessage = new()
+        // 1) If this is a trade request, show the trade UI instead of plain text
+        if (chatMessage.messageType == ChatMessageType.TradeRequest)
         {
-            text = chatMessage.ToString()
-        };
+            // Deserialize the payload into a TradeOfferMessage
+            var offer = JsonUtility.FromJson<TradeOfferMessage>(chatMessage.payloadJson);
 
-        GameObject newText = Instantiate(textPrefab, chatPanel.transform);
+            // Instantiate the tradePrefab under chatPanel
+            GameObject go = Instantiate(tradePrefab, chatPanel.transform);
 
-        newMessage.textObject = newText.GetComponent<TMP_Text>();
+            // Initialize its TradeRequestUI component so it shows the offer text and wires up Accept/Deny buttons
+            var ui = go.GetComponent<TradeRequestUI>();
+            ui.Initialize(offer);
 
-        newMessage.textObject.text = newMessage.text;
+            // (Optional) keep a reference if you want to remove it later
+            messageList.Add(new Message { gameObject = go });
+        }
+        else
+        {
+            // 2) Otherwise, treat it as a normal chat line
+            Message newMessage = new()
+            {
+                text = chatMessage.ToString()
+            };
 
-        messageList.Add(newMessage);
+            GameObject newText = Instantiate(textPrefab, chatPanel.transform);
+            newMessage.textObject = newText.GetComponent<TMP_Text>();
+            newMessage.textObject.text = newMessage.text;
+            messageList.Add(newMessage);
+        }
     }
+
 }
 
 public class Message
 {
     public string text;
     public TMP_Text textObject;
+    public GameObject gameObject;  
+
 }
