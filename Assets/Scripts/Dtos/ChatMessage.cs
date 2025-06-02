@@ -27,7 +27,7 @@ namespace Assets.Scripts.User
 
         public override string ToString() {
             UnityEngine.Debug.Log(timestamp.ToString());
-            return $"[{ParsedTimestamp:HH:mm}] {senderUsername} : {text}";
+            return $"[{ParsedTimestamp:HH:mm}] {senderUsername}: {text}";
         }
     }
 }
