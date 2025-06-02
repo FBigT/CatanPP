@@ -728,7 +728,12 @@ class WebSocketTests {
         assertThat(secretReceive2).isNotNull();
         TradeOfferDto receivedOffer = objectMapper.convertValue(secretReceive2.getMoveData(), TradeOfferDto.class);
 
-        map = objectMapper.convertValue(new TradeResponseDto(receivedOffer, true), new TypeReference<>() {});
+        Long sessionId = 123L;
+        map = objectMapper.convertValue(
+                new TradeResponseDto(receivedOffer, true, sessionId),
+                new TypeReference<>() {}
+        );
+
         stompSession2.send(getStompHeaders(sendGameTopic, logInResponse2), new GameMoveDto(GameMoveTypeEnum.TRADE_RESPONSE.name(), map));
 
         Thread.sleep(500);

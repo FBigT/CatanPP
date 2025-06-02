@@ -19,15 +19,9 @@ public class TradeController {
 
     @PostMapping("/player")
     public ResponseEntity<Void> tradePlayer(@RequestBody PlayerTradeDto dto) {
-        tradeService.tradeBetweenPlayers(
-                dto.getSessionId(),
-                dto.getFromUser(),
-                dto.getToUser(),
-                dto.getOffered(),
-                dto.getRequested()
-        );
         return ResponseEntity.ok().build();
     }
+
 
     @PostMapping("/bank")
     public ResponseEntity<Void> tradeBank(@RequestBody BankTradeDto dto) {

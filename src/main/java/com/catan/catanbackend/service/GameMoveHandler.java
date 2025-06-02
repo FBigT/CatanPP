@@ -7,6 +7,7 @@ import com.catan.catanbackend.model.dto.*;
 import com.catan.catanbackend.model.dto.move_dtos.*;
 import com.catan.catanbackend.model.dto.move_dtos.responses.*;
 import com.catan.catanbackend.model.tile.*;
+import com.catan.catanbackend.repository.SessionCodeRepository;
 import com.catan.catanbackend.repository.TradeOfferRepository;
 import com.catan.catanbackend.repository.tiles.RoadRepository;
 import com.catan.catanbackend.repository.tiles.StructureRepository;
@@ -17,6 +18,7 @@ import jakarta.validation.constraints.NotNull;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 
+import java.time.OffsetDateTime;
 import java.util.*;
 
 @Service
@@ -39,9 +41,10 @@ public class GameMoveHandler {
     private final TradeService tradeService;
     private final SimpMessagingTemplate messagingTemplate;
     private final TradeOfferRepository tradeOfferRepository;
+    private final SessionCodeRepository sessionCodeRepository;
 
 
-    public GameMoveHandler(PlacementService placementService, ObjectMapper objectMapper, TileService tileService, TileCornerRepository tileCornerRepository, TileEdgeRepository tileEdgeRepository, MoveBlockerService moveBlockerService, DiceRollService diceRollService, DevCardService devCardService, GameService gameService, ResourceService resourceService, SessionService sessionService, Mapper mapper, RoadRepository roadRepository, StructureRepository structureRepository, PlayerProfileService playerProfileService, TradeService tradeService, SimpMessagingTemplate messagingTemplate, TradeOfferRepository tradeOfferRepository) {
+    public GameMoveHandler(PlacementService placementService, ObjectMapper objectMapper, TileService tileService, TileCornerRepository tileCornerRepository, TileEdgeRepository tileEdgeRepository, MoveBlockerService moveBlockerService, DiceRollService diceRollService, DevCardService devCardService, GameService gameService, ResourceService resourceService, SessionService sessionService, Mapper mapper, RoadRepository roadRepository, StructureRepository structureRepository, PlayerProfileService playerProfileService, TradeService tradeService, SimpMessagingTemplate messagingTemplate, TradeOfferRepository tradeOfferRepository, SessionCodeRepository sessionCodeRepository) {
         this.placementService = placementService;
         this.objectMapper = objectMapper;
         this.tileService = tileService;
@@ -60,6 +63,8 @@ public class GameMoveHandler {
         this.tradeService      = tradeService;
         this.messagingTemplate = messagingTemplate;
         this.tradeOfferRepository = tradeOfferRepository;
+        this.sessionCodeRepository = sessionCodeRepository;
+
     }
 
     private record CornerPair(TileCorner a, TileCorner b) {
@@ -238,7 +243,6 @@ public class GameMoveHandler {
                 }
 
                 tradeOfferRepository.save(tradeOffer.get());
-
                 return offer;
             }
 
@@ -249,7 +253,8 @@ public class GameMoveHandler {
                         TradeResponseDto.class
                 );
 
-                Optional<TradeOffer> tradeOffer = tradeOfferRepository.findByToPlayerNameAndFromPlayerName(resp.getFromUser(), resp.getToUser());
+                Optional<TradeOffer> tradeOffer = tradeOfferRepository
+                        .findByToPlayerNameAndFromPlayerName(resp.getFromUser(), resp.getToUser());
                 if (tradeOffer.isEmpty()) {
                     throw new IllegalArgumentException("Trade offer not found");
                 }
@@ -261,10 +266,26 @@ public class GameMoveHandler {
                 if (resp.isAccepted()) {
                     tradeService.tradeBetweenPlayers(
                             sessionId,
-                            resp.getFromUser(),  // the one who clicked “accept”
-                            resp.getToUser(),    // the original offerer
+                            resp.getFromUser(),
+                            resp.getToUser(),
                             tradeOffer.get().getRequestResources(),
                             tradeOffer.get().getOfferResources()
+                    );
+                } else {
+                    ChatMessage deniedMsg = new ChatMessage();
+                    deniedMsg.setSenderUsername(resp.getToUser());
+                    deniedMsg.setText("Trade offer from " + resp.getFromUser() + " was denied.");
+                    deniedMsg.setTimestamp(OffsetDateTime.now());
+
+                    // Look up the six-character session code instead of using sessionId.toString():
+                    String sessionCode = sessionCodeRepository
+                            .findBySessionId(sessionId)
+                            .orElseThrow(() -> new IllegalArgumentException("Session code not found"))
+                            .getCode();
+
+                    messagingTemplate.convertAndSend(
+                            "/game/chat/" + sessionCode,
+                            deniedMsg
                     );
                 }
 
@@ -273,6 +294,7 @@ public class GameMoveHandler {
 
                 return resp;
             }
+
             case TURN_ORDER -> {
                 return new TurnOrderResponseDto(sessionService.getPlayersInTurnOrder(sessionId).stream().map(SessionPlayer::getName).toList());
             }

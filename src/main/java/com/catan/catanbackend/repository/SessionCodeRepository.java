@@ -9,4 +9,6 @@ import java.util.Optional;
 
 public interface SessionCodeRepository extends JpaRepository<SessionCode, Long> {
     Optional<SessionCode> findByCode(@Param("sessionCode") String code);
+    Optional<SessionCode> findBySessionId(Long sessionId);
+
 }

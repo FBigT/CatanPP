@@ -10,8 +10,10 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public class TradeResponseDto {
-    public TradeResponseDto(TradeOfferDto tradeOfferDto, Boolean accepted) {
+
+    public TradeResponseDto(TradeOfferDto tradeOfferDto, Boolean accepted, Long sessionId) {
         this.accepted = accepted;
+        this.sessionId = sessionId;
         fromUser = tradeOfferDto.getToUser();
         toUser = tradeOfferDto.getFromUser();
         requested = tradeOfferDto.getRequested();
@@ -21,6 +23,7 @@ public class TradeResponseDto {
     private String fromUser;      // who responded
     private String toUser;        // original offerer
     private boolean accepted;
+    private Long sessionId;       // ✅ add this field
     private ResourceGroup offered;
     private ResourceGroup requested;
 }
