@@ -36,7 +36,7 @@ public class TradeWebSocketController {
         GameMoveDto response = new GameMoveDto("TRADE_RESPONSE", convertToMap(message));
 
         messagingTemplate.convertAndSend(
-                "/topic/moves/" + sessionCode,
+                "/game/move/" + sessionCode,
                 response
         );
     }

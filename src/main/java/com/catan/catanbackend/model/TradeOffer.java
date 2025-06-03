@@ -23,7 +23,8 @@ public class TradeOffer {
     @JsonIgnore
     @NotNull
     @OneToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "from_player_id", nullable = false)
+    //Remove unique later
+    @JoinColumn(name = "from_player_id", nullable = false, unique = false)
     private SessionPlayer fromPlayer;
 
     @NotNull
@@ -67,10 +68,11 @@ public class TradeOffer {
     private Integer offerWood = 0;
 
     // Target
+    //Same
     @JsonIgnore
     @NotNull
     @OneToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "to_player_id", nullable = false)
+    @JoinColumn(name = "to_player_id", nullable = false, unique = false)
     private SessionPlayer toPlayer;
 
     @NotNull
