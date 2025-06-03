@@ -1,115 +1,99 @@
 ﻿// Assets/Scripts/UI/Test/ChatUIManager.cs
-using System.Linq;
-using Assets.Scripts.GameMode.UI;
-using Assets.Scripts.GameMode.Trading.Models;
 using Assets.Scripts.User;
 using Assets.Scripts.Utils;
+using Assets.Scripts.GameMode.Trading.Models;
 using UnityEngine;
 using UnityEngine.UIElements;
+using Assets.Scripts.Dtos.GameMoveResponses;
 
 namespace Assets.Scripts.UI
 {
     [RequireComponent(typeof(UIDocument))]
     public class ChatUIManager : MonoBehaviour
     {
-        [Header("Chat Entry Templates")]
-        public VisualTreeAsset chatEntryTemplateUxml;   // existing template
-        public VisualTreeAsset tradeEntryTemplateUxml;  // new: trade-offer template
+        [Header("Trade-Popups")]
+        public GameObject tradeRequestUIPrefab;  // “TradeRequestPanel.prefab”
+        public GameObject tradeSentUIPrefab;     // “TradeSentPanel.prefab”
+        public Transform uiCanvasRoot;         // Your UI Canvas Transform
 
-        private ChatMessageController chatController;
+        private TextField _chatInputField;
+
+        private void Awake()
+        {
+            // Cache the chat input field (if you still want normal chat)
+            var root = GetComponent<UIDocument>().rootVisualElement;
+            _chatInputField = root.Q<TextField>("ChatInput");
+        }
 
         private void OnEnable()
         {
-            Debug.Log("[ChatUIManager] OnEnable: subscribing to trade offers");
+            WebSocketService.OnTradeOfferReceived += HandleTradeOffer;
 
-            var root = GetComponent<UIDocument>().rootVisualElement;
-            VisualElement chatContainerRoot = root.Q<VisualElement>("ChatContainer");
-            TextField chatInputField = root.Q<TextField>("ChatInput");
-
-            // Subscribe to incoming trade-offers and forward into chat
-            WebSocketService.OnTradeOfferReceived += offer =>
+            if (_chatInputField != null)
             {
-                Debug.Log($"[ChatUIManager] OnTradeOfferReceived handler invoked for offer from {offer.fromUser}");
+                _chatInputField.RegisterCallback<KeyUpEvent>(OnChatInputKeyUp);
+            }
+        }
 
-                // Build a human-readable summary: "2 wood, 1 sheep"
-                string summary = $"{offer.fromUser} offers " +
-                                 $"{BuildSummary(offer.offered)} for {BuildSummary(offer.requested)}";
+        private void OnDisable()
+        {
+            WebSocketService.OnTradeOfferReceived -= HandleTradeOffer;
 
-                var chatMsg = new ChatMessage
+            if (_chatInputField != null)
+            {
+                _chatInputField.UnregisterCallback<KeyUpEvent>(OnChatInputKeyUp);
+            }
+        }
+
+        private void HandleTradeOffer(TradeOfferMessage offer)
+        {
+            Debug.Log($"[ChatUIManager] TradeOfferReceived: {offer.fromUser} → {offer.toUser}");
+            string me = LocalStorageService.GetString("username");
+
+            if (offer.toUser == me)
+            {
+                // Recipient sees the “accept/deny” popup
+                if (tradeRequestUIPrefab == null || uiCanvasRoot == null)
                 {
-                    messageType = ChatMessageType.TradeRequest,
-                    senderUsername = offer.fromUser,
-                    text = summary,
-                    timestamp = System.DateTimeOffset.Now.ToString("o"),
-                    toUser = offer.toUser,
-                    payloadJson = JsonUtility.ToJson(offer)
-                };
-
-                // Inject into normal chat stream
-                WebSocketService.RaiseChatMessage(chatMsg);
-            };
-            Debug.Log("[ChatUIManager] OnEnable: subscription complete");
-
-            WebSocketService.OnTradeResponseReceived += resp =>
-            {
-                // only notify the original sender
-                if (resp.toUser != LocalStorageService.GetString("username")) return;
-
-                string text = resp.accepted
-                    ? $"{resp.fromUser} accepted your trade."
-                    : $"{resp.fromUser} declined your trade.";
-
-                var chatMsg = new ChatMessage
-                {
-                    messageType = ChatMessageType.Text,
-                    senderUsername = resp.fromUser,
-                    text = text,
-                    timestamp = System.DateTimeOffset.Now.ToString("o")
-                };
-                WebSocketService.RaiseChatMessage(chatMsg);
-
-            };
-            WebSocketService.OnChatMessageReceived += chatMsg =>
-            {
-                chatController.OnChatMessageReceived(chatMsg);
-            };
-
-            // Initialize chat controller with both templates
-            chatController = new ChatMessageController
-            {
-                textEntryTemplate = chatEntryTemplateUxml,
-                tradeEntryTemplate = tradeEntryTemplateUxml
-            };
-            chatController.InitializeCharacterList(chatContainerRoot);
-
-            // Hook up sending regular chat text
-            chatInputField.RegisterCallback<KeyUpEvent>(evt =>
-            {
-                if (evt.keyCode == KeyCode.Return || evt.keyCode == KeyCode.KeypadEnter)
-                {
-                    string message = chatInputField.value.Trim();
-                    if (!string.IsNullOrEmpty(message))
-                    {
-                        WebSocketService.SendMessage(message);
-                        chatInputField.value = string.Empty;
-                    }
+                    Debug.LogError("[ChatUIManager] Missing tradeRequestUIPrefab or uiCanvasRoot!");
+                    return;
                 }
-            });
 
+                var popupInstance = Instantiate(tradeRequestUIPrefab, uiCanvasRoot);
+                var ui = popupInstance.GetComponent<TradeRequestUI>();
+                if (ui != null) ui.Initialize(offer);
+            }
+            else if (offer.fromUser == me)
+            {
+                // Sender sees the “Trade Sent” confirmation popup
+                if (tradeSentUIPrefab == null || uiCanvasRoot == null)
+                {
+                    Debug.LogError("[ChatUIManager] Missing tradeSentUIPrefab or uiCanvasRoot!");
+                    return;
+                }
+
+                var sentPopup = Instantiate(tradeSentUIPrefab, uiCanvasRoot);
+                var sentUI = sentPopup.GetComponent<TradeSentUI>();
+                if (sentUI != null) sentUI.Initialize(offer.toUser);
+            }
+        }
+
+        private void OnChatInputKeyUp(KeyUpEvent evt)
+        {
+            if (evt.keyCode == KeyCode.Return || evt.keyCode == KeyCode.KeypadEnter)
+            {
+                string message = _chatInputField.value.Trim();
+                if (!string.IsNullOrEmpty(message))
+                {
+                    WebSocketService.SendMessage(message);
+                    _chatInputField.value = string.Empty;
+                }
+            }
         }
 
         private void Update()
         {
             WebSocketService.DispatchMessageQueue();
-        }
-
-        private string BuildSummary(ResourceGroup g)
-        {
-            return string.Join(", ",
-                g.GetResourceDictionary()
-                 .Where(kvp => kvp.Value > 0)
-                 .Select(kvp => $"{kvp.Value} {kvp.Key}")
-            );
         }
     }
 }

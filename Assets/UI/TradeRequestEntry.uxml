@@ -1,8 +1,8 @@
-<Engine:UIDocument xmlns="UnityEngine.UIElements"
-                   xmlns:Engine="UnityEngine.UIElements">
-  <VisualElement name="Root" style="flex-direction: row; align-items: center; padding: 4;">
+<engine:UIDocument xmlns="UnityEngine.UIElements"
+                   xmlns:engine="UnityEngine.UIElements">
+  <VisualElement name="Root" style="flex-direction: row; align-items: center; padding: 4px;">
     <Label   name="ChatContent" style="flex: 1;" />
-    <Button  name="AcceptButton" text="Accept" style="margin-left: 8;" />
-    <Button  name="DenyButton"   text="Deny"   style="margin-left: 4;" />
+    <Button  name="AcceptButton" text="Accept" style="margin-left: 8px;" />
+    <Button  name="DenyButton"   text="Deny"   style="margin-left: 4px;" />
   </VisualElement>
-</Engine:UIDocument>
+</engine:UIDocument>

@@ -11213,8 +11213,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ba997ac9e83a3a74db7e5633b697dbd5, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  chatEntryTemplateUxml: {fileID: 9197481963319205126, guid: 846792d3b08c38143a1affaa702cb014, type: 3}
-  tradeEntryTemplateUxml: {fileID: 9197481963319205126, guid: b41834a545704124ab3fa0530fb6d1dc, type: 3}
+  tradeRequestUIPrefab: {fileID: 1232469723917034421, guid: f08ff8025739309459449786023a00c2, type: 3}
+  tradeSentUIPrefab: {fileID: 3361020519889423502, guid: b5943756ee58a284d9a8ff20d9ea5940, type: 3}
+  uiCanvasRoot: {fileID: 585541649}
 --- !u!114 &469276500
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -32685,6 +32686,7 @@ MonoBehaviour:
   chatPanel: {fileID: 2056976329}
   textPrefab: {fileID: 4141476386423561602, guid: 68e1c3aff7f54d1478f830cfff5be714, type: 3}
   chatInput: {fileID: 1868164727}
+  tradePrefab: {fileID: 0}
 --- !u!1 &1296972878
 GameObject:
   m_ObjectHideFlags: 0
@@ -43914,7 +43916,7 @@ MonoBehaviour:
   m_TargetGraphic: {fileID: 461437390}
   m_HandleRect: {fileID: 461437389}
   m_Direction: 2
-  m_Value: 0
+  m_Value: 1
   m_Size: 1
   m_NumberOfSteps: 0
   m_OnValueChanged:
@@ -49949,7 +49951,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 7767528661798030020, guid: 57012f12d3fe8654f8b63c958455dc97, type: 3}
       propertyPath: m_LocalPosition.x
-      value: 5.947846
+      value: 6.7730184
       objectReference: {fileID: 0}
     - target: {fileID: 7767528661798030020, guid: 57012f12d3fe8654f8b63c958455dc97, type: 3}
       propertyPath: m_LocalPosition.y
@@ -49957,7 +49959,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 7767528661798030020, guid: 57012f12d3fe8654f8b63c958455dc97, type: 3}
       propertyPath: m_LocalPosition.z
-      value: 37.843887
+      value: 34.875877
       objectReference: {fileID: 0}
     - target: {fileID: 7767528661798030020, guid: 57012f12d3fe8654f8b63c958455dc97, type: 3}
       propertyPath: m_LocalRotation.w

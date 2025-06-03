@@ -19,6 +19,8 @@ namespace Assets.Scripts.Utils
 
         public static event Action<TradeOfferMessage> OnTradeOfferReceived;
         public static event Action<TradeResponseMessage> OnTradeResponseReceived;
+        public static event Action  OnPlayerJoined;
+
 
         // ✅ ADD THESE NEW EVENTS FOR DEV CARDS:
         public static event Action<BuyCardResponseDto> OnBuyCardResponse;
@@ -95,6 +97,10 @@ namespace Assets.Scripts.Utils
                             OnChatMessageReceived?.Invoke(chatMsg);
                         } else if (destination != null && destination.Contains(WebSocketBrokerDestinations.Moves.Value))
                         {
+                            //GameMoveResponseDto gameMove = JsonConvert.DeserializeObject<GameMoveResponseDto>(jsonBody);
+                            //GameMoveType gameMoveType = gameMove.GameMoveType;
+
+
                             GameMoveResponseDto gameMove = JsonConvert.DeserializeObject<GameMoveResponseDto>(jsonBody);
                             GameMoveType gameMoveType = gameMove.GameMoveType;
 
@@ -156,34 +162,24 @@ namespace Assets.Scripts.Utils
                                 case GameMoveType.MAP_GEN:
                                     GenerateMapDto generateMapDto = (GenerateMapDto)gameMove.moveData;
                                     break;
-
                                 case GameMoveType.TRADE_OFFER:
                                     {
-                                        Debug.Log("[WebSocketService] Received TRADE_OFFER frame");
-                                        // jsonBody already contains the entire GameMoveResponseDto as JSON.
-                                        // We know moveData is a TradeOfferMessage, so deserialize that field directly:
-                                        var gm = JsonConvert.DeserializeObject<GameMoveResponseDto>(jsonBody);
+                                        // 'gameMove.moveData' holds a TradeOfferMessage
                                         var offer = JsonConvert.DeserializeObject<TradeOfferMessage>(
-                                            JsonConvert.SerializeObject(gm.moveData)
+                                            JsonConvert.SerializeObject(gameMove.moveData)
                                         );
-
-
-                                        Debug.Log($"[WebSocketService] Deserialized TradeOfferMessage from {offer.fromUser} to {offer.toUser}");
-
+                                        Debug.Log($"[WebSocketService] Deserialized TradeOfferMessage: from {offer.fromUser} to {offer.toUser}");
                                         OnTradeOfferReceived?.Invoke(offer);
-                                        Debug.Log("[WebSocketService] OnTradeOfferReceived fired");
-
                                         break;
                                     }
+
                                 case GameMoveType.TRADE_RESPONSE:
                                     {
                                         string respJson = JsonConvert.SerializeObject(gameMove.moveData);
                                         var resp = JsonConvert.DeserializeObject<TradeResponseMessage>(respJson);
-
-                                        Debug.Log($"[WebSocketService] Received TRADE_RESPONSE from {resp.fromUser} to {resp.toUser}, accepted: {resp.accepted}");
-
+                                        Debug.Log($"[WebSocketService] Deserialized TradeResponseMessage: from {resp.fromUser} → {resp.toUser}, accepted={resp.accepted}");
                                         OnTradeResponseReceived?.Invoke(resp);
-                                        break; // ✅ fix CS8070 here
+                                        break;
                                     }
 
 
@@ -202,7 +198,10 @@ namespace Assets.Scripts.Utils
                             }
                         }
                         else if (destination != null && destination.Contains(WebSocketBrokerDestinations.Players.Value)){
-                            JoinSessionNotification joinSessionNotification = JsonConvert.DeserializeObject<JoinSessionNotification>(jsonBody);
+                            JoinSessionNotification joinSessionNotification =
+                                JsonConvert.DeserializeObject<JoinSessionNotification>(jsonBody);
+                            OnPlayerJoined?.Invoke();
+
                         }
                     }
                 }
@@ -232,23 +231,20 @@ namespace Assets.Scripts.Utils
             await webSocket.SendText(
                 WebSocketEndpointsUtils.SubscribeFrame(WebSocketBrokerDestinations.Private, sessionCode)
             );
-            
+
             // 4) Subscribe to Moves channel (using your helper)
             await webSocket.SendText(
                 WebSocketEndpointsUtils.SubscribeFrame(WebSocketBrokerDestinations.Moves, sessionCode)
             );
 
-            /*// 4) Manually subscribe to /topic/moves/{sessionCode}
-            string movesDestination = $"/topic/moves/{sessionCode}";
-            Debug.Log($"[WebSocketService] Subscribing raw to: {movesDestination}");
-
-            // Build a correct STOMP SUBSCRIBE frame (no payload!)
-            string subscribeFrame = "SUBSCRIBE\n" +
-                                    $"destination:{movesDestination}\n" +
-                                    "id:sub-moves\n\n" +
-                                    "\0";
-
-            await webSocket.SendText(subscribeFrame);*/
+            //string movesDestination = $"/game/move/{sessionCode}";
+            //Debug.Log($"[WebSocketService] Subscribing to Moves at: {movesDestination}");
+            //string movesSubscribeFrame =
+            //    "SUBSCRIBE\n" +
+            //    $"destination:{movesDestination}\n" +
+            //    $"id:sub-moves-{sessionCode}\n\n" +
+            //    "\0";
+            //await webSocket.SendText(movesSubscribeFrame);
         }
 
         public static async Task SendMessage(string message)
@@ -350,10 +346,10 @@ namespace Assets.Scripts.Utils
 
             await webSocket.SendText(frame);
         }
-        public static void RaiseChatMessage(ChatMessage msg)
-        {
-            OnChatMessageReceived?.Invoke(msg);
-        }
+        //public static void RaiseChatMessage(ChatMessage msg)
+        //{
+        //    OnChatMessageReceived?.Invoke(msg);
+        //}
 
     }
 }
