@@ -9,9 +9,8 @@ using UnityEngine.UI;
 using TMPro;
 using Assets.Scripts.Utils;                   // for WebSocketService
 using Assets.Scripts.GameMode.Trading.Models;
-using Assets.Scripts.GameMode.Trading;
 using Assets.Scripts.User;                    // for LocalStorageService
-using Assets.Scripts.Dtos.GameMoveResponses;  // for TradeResponseMessage
+using Assets.Scripts.Dtos.GameMoveResponses;  // for TradeResponseMessage & TradeExecutedDto
 
 namespace Assets.Scripts.GameMode.Trading
 {
@@ -29,22 +28,28 @@ namespace Assets.Scripts.GameMode.Trading
         [Header("Player Dropdown")]
         public Dropdown playerDropdown;
 
-        [Header("Trade Popups")]
-        [Tooltip("Drag the 'Trade Sent' panel instance here (a simple popup that says 'Trade Sent').")]
+        [Header("Trade Popup (Player A only)")]
+        [Tooltip("A single popup panel that displays 'Trade Sent', 'Trade Accepted!', or 'Trade Declined!'.")]
         public GameObject tradeSentPanel;
 
-        [Tooltip("Drag the 'Incoming Trade Offer' panel instance here.")]
+        [Tooltip("The TextMeshProUGUI inside tradeSentPanel where we write the dynamic message.")]
+        public TextMeshProUGUI sentMessageText;
+
+        [Header("Incoming-offer Popup (Player B only)")]
+        [Tooltip("Shown to Player B when Player A sends a trade.")]
         public GameObject tradeOfferPanel;
 
-        [Header("Trade Offer UI Fields (Inside tradeOfferPanel)")]
-        [Tooltip("The single Text component inside tradeOfferPanel where we'll write 'From: ...' and 'Offers: ... Wants: ...'.")]
+        [Tooltip("TextMeshProUGUI inside tradeOfferPanel for 'From: …' and 'Offers: … Wants: …'.")]
         public TextMeshProUGUI contentText;
 
-        [Tooltip("The Accept button inside tradeOfferPanel.")]
+        [Tooltip("Accept button inside tradeOfferPanel.")]
         public Button acceptButton;
 
-        [Tooltip("The Decline button inside tradeOfferPanel.")]
+        [Tooltip("Decline button inside tradeOfferPanel.")]
         public Button declineButton;
+
+        // Holds the incoming offer so that RespondToOffer can forward the exact ResourceGroups
+        private TradeOfferMessage pendingOffer;
 
         readonly List<string> selectedRequestedResources = new();
         readonly List<int> selectedRequestedQuantities = new();
@@ -56,7 +61,6 @@ namespace Assets.Scripts.GameMode.Trading
 
         private void Awake()
         {
-            // Grab session‐ID & user‐name early
             sessionId = LocalStorageService.GetInt("session-id") ?? 0;
             currentUserName = LocalStorageService.GetString("username") ?? "";
         }
@@ -66,6 +70,7 @@ namespace Assets.Scripts.GameMode.Trading
             WebSocketService.OnTradeResponseReceived += HandleTradeResponse;
             WebSocketService.OnPlayerJoined += HandlePlayerJoined;
             WebSocketService.OnTradeOfferReceived += HandleTradeOffer;
+            WebSocketService.OnTradeExecuted += HandleTradeExecuted;
         }
 
         private void OnDisable()
@@ -73,29 +78,35 @@ namespace Assets.Scripts.GameMode.Trading
             WebSocketService.OnTradeResponseReceived -= HandleTradeResponse;
             WebSocketService.OnPlayerJoined -= HandlePlayerJoined;
             WebSocketService.OnTradeOfferReceived -= HandleTradeOffer;
+            WebSocketService.OnTradeExecuted -= HandleTradeExecuted;
         }
 
-        async void Start()
+        private void Start()
         {
-            // 1) Populate the dropdown immediately
             RefreshPlayerDropdown();
 
-            // 2) Connect to WebSocket if not already
+            // Connect to WebSocket if not already
             string sessionCode = LocalStorageService.GetString("session-code");
             if (!WebSocketService.Connected)
             {
                 Debug.Log("[TradeScreenManager] Connecting to WebSocket…");
-                await WebSocketService.ConnectToChat(sessionCode);
+                WebSocketService.ConnectToChat(sessionCode).ContinueWith(_ => { });
             }
 
-            // 3) Ensure both popups start hidden
+            // Hide both popups at launch
             tradeSentPanel.SetActive(false);
             tradeOfferPanel.SetActive(false);
         }
 
         /// <summary>
-        /// Whenever Start() runs _or_ a new player arrives, call this to re‐fetch + re‐draw the dropdown.
+        /// We must call this on every frame so NativeWebSocket can pump incoming messages.
+        /// Without it, only the first STOMP frame arrives; subsequent ones are ignored.
         /// </summary>
+        private void Update()
+        {
+            WebSocketService.DispatchMessageQueue();
+        }
+
         private void RefreshPlayerDropdown()
         {
             TradingManager.Instance.GetSessionPlayers(
@@ -105,24 +116,17 @@ namespace Assets.Scripts.GameMode.Trading
             );
         }
 
-        /// <summary>
-        /// Called by TradingManager once it has the up‐to‐date list of everyone in this session.
-        /// We sort them, put “Bank” at index 0, then everyone else (alphabetically, skipping self).
-        /// </summary>
         private void OnPlayersLoaded(List<SessionPlayerDto> players)
         {
-            // 1) Filter out ourselves, then sort the remaining by username
             var otherPlayers = players
                 .Where(p => !p.username.Equals(currentUserName, StringComparison.OrdinalIgnoreCase))
                 .Select(p => p.username)
                 .OrderBy(name => name, StringComparer.OrdinalIgnoreCase)
                 .ToList();
 
-            // 2) Build the dropdown list: always “Bank” first
             var options = new List<string> { "Bank" };
             options.AddRange(otherPlayers);
 
-            // 3) Re‐populate UnityEngine.UI.Dropdown
             playerDropdown.ClearOptions();
             playerDropdown.AddOptions(options);
             playerDropdown.value = 0;
@@ -194,9 +198,14 @@ namespace Assets.Scripts.GameMode.Trading
 
         #endregion
 
-        #region “Apply Trade” Button
+        #region “Apply Trade” Button (Player A)
 
-        public async void OnApplyTradeClicked()
+        /// <summary>
+        /// Called when Player A taps “Apply Trade.”
+        /// If “Bank,” do a bank trade; otherwise send a PlayerTradeDto → server,
+        /// then dispatch a STOMP frame. Once WebSocket send completes, show “Trade Sent.”
+        /// </summary>
+        public void OnApplyTradeClicked()
         {
             string toUser = playerDropdown.options[playerDropdown.value].text;
 
@@ -233,7 +242,7 @@ namespace Assets.Scripts.GameMode.Trading
             }
             else
             {
-                // ───── Player‐to‐player trade ─────
+                // ───── Player-to-player trade ─────
                 ApplyRequestSelection();
                 ApplyOfferSelection();
 
@@ -262,12 +271,15 @@ namespace Assets.Scripts.GameMode.Trading
                             requested = dto.requested
                         };
 
-                        // 1) Await the WebSocket send so we’re back on Unity’s main thread when it completes
+                        // Await the STOMP frame so we remain on Unity’s main thread when it finishes:
                         await WebSocketService.SendTradeOffer(offerMsg);
                         Debug.Log("[TradeScreenManager] SendTradeOffer() completed");
 
-                        // 2) Now it’s safe to toggle UI
-                        tradeSentPanel.SetActive(true);
+                        // 1) Change the single popup’s text to “Trade Sent”
+                        sentMessageText.text = $"Trade Sent to {toUser}";
+
+                        // 2) Show that popup for 2 seconds
+                        ShowTemporaryPopup(tradeSentPanel);
                     },
                     onError: e =>
                     {
@@ -295,20 +307,21 @@ namespace Assets.Scripts.GameMode.Trading
 
         #endregion
 
-
-        #region “Incoming Trade Offer” Handler
+        #region “Incoming Trade Offer” Handler (Player B)
 
         /// <summary>
-        /// Called when someone else (Player A) sends us a TradeOfferMessage via WebSocket.
-        /// If the “toUser” field matches our currentUserName, we pop up tradeOfferPanel.
+        /// Called whenever B’s WebSocket receives a TRADE_OFFER frame.
+        /// If “toUser” == currentUserName, show B the popup.
         /// </summary>
         private void HandleTradeOffer(TradeOfferMessage offer)
         {
-            // Only show the popup if the offer is addressed to me:
             if (!offer.toUser.Equals(currentUserName, StringComparison.OrdinalIgnoreCase))
                 return;
 
-            // 1) Build a single string that includes “From: [user]” and the resource details:
+            // Save the incoming offer so RespondToOffer can forward its ResourceGroups
+            pendingOffer = offer;
+
+            // Build the “From: …” line
             string fromLine = $"From: {offer.fromUser}";
 
             // Summarize offered resources
@@ -325,60 +338,151 @@ namespace Assets.Scripts.GameMode.Trading
 
             string detailLines = $"Offers: {offeredText}\nWants:  {requestedText}";
 
-            // 2) Populate the single Text field
+            // 1) Populate the single TextMeshProUGUI inside tradeOfferPanel
             contentText.text = $"{fromLine}\n{detailLines}";
 
-            // 3) Show the “Incoming Trade Offer” panel
+            // 2) Show the “Incoming Trade Offer” popup for Player B
             tradeOfferPanel.SetActive(true);
 
-            // 4) Re‐wire Accept/Decline button callbacks so they pass the real fromUser:
+            // 3) Re-wire Accept and Decline to call the new RespondToOffer(bool)
             acceptButton.onClick.RemoveAllListeners();
             declineButton.onClick.RemoveAllListeners();
-
-            acceptButton.onClick.AddListener(() => RespondToOffer(offer.fromUser, true));
-            declineButton.onClick.AddListener(() => RespondToOffer(offer.fromUser, false));
+            acceptButton.onClick.AddListener(() => RespondToOffer(true));
+            declineButton.onClick.AddListener(() => RespondToOffer(false));
         }
 
         #endregion
 
-        #region “Respond to Incoming Offer” Helper
+        #region “Respond to Incoming Offer” (Player B)
 
         /// <summary>
-        /// Called by Accept/Decline buttons inside tradeOfferPanel.
+        /// Called when Player B taps “Accept” or “Decline” inside tradeOfferPanel.
+        /// Uses pendingOffer to forward the exact ResourceGroups that Player A sent.
         /// </summary>
-        public void RespondToOffer(string fromUser, bool accepted)
+        public void RespondToOffer(bool accepted)
         {
-            // 1) Immediately hide the incoming‐offer panel
+            // Hide B’s incoming-offer popup immediately
             tradeOfferPanel.SetActive(false);
 
-            // 2) Build the TradeResponseMessage and send it
+            if (pendingOffer == null)
+            {
+                Debug.LogError("[TradeScreenManager] No pending offer to respond to!");
+                return;
+            }
+
+            // Build the TradeResponseMessage
             var response = new TradeResponseMessage
             {
-                fromUser = currentUserName,
-                toUser = fromUser,
-                accepted = accepted
+                sessionId = sessionId,
+                fromUser = currentUserName,        // Player B
+                toUser = pendingOffer.fromUser,  // Player A
+                accepted = accepted,
+                offered = pendingOffer.offered,
+                requested = pendingOffer.requested
             };
 
-            _ = WebSocketService.SendTradeResponse(response);
+            // Tell TradingManager to POST /api/trade/response
+            TradingManager.Instance.RespondToTrade(
+                response,
+                onSuccess: () =>
+                {
+                    Debug.Log("[TradeScreenManager] /api/trade/response POST succeeded");
+                    // Now the server will broadcast:
+                    //   1) TRADE_RESPONSE → Player A’s HandleTradeResponse shows “Accepted!” / “Declined!”
+                    //   2) (if accepted) TRADE_EXECUTED → both clients’ HandleTradeExecuted(...) runs
+                },
+                onError: err =>
+                {
+                    Debug.LogError($"[TradeScreenManager] Failed to POST trade response: {err}");
+                }
+            );
 
-            // (Optionally: you can show a small “You accepted” or “You declined” message here)
+            // Clear pendingOffer so we don’t re-use it accidentally
+            pendingOffer = null;
         }
 
         #endregion
 
-        #region Trade‐Response Handler (unchanged)
+        #region “Incoming Trade Response” Handler (Player A)
 
         private void HandleTradeResponse(TradeResponseMessage resp)
         {
+            Debug.Log($"[TradeScreenManager] HandleTradeResponse invoked: toUser={resp.toUser}, accepted={resp.accepted}");
+
+            // Only Player A (the original sender) should react
             if (!resp.toUser.Equals(currentUserName, StringComparison.OrdinalIgnoreCase))
                 return;
 
+            // If accepted == true, show “Trade Accepted”; otherwise show “Trade Declined”
             if (resp.accepted)
-                Debug.Log($"[TradeScreenManager] Trade ACCEPTED by {resp.fromUser}");
+                sentMessageText.text = "Trade Accepted!";
             else
-                Debug.Log($"[TradeScreenManager] Trade DENIED by {resp.fromUser}");
+                sentMessageText.text = "Trade Declined!";
+
+            // Immediately show the single popup for 2 seconds
+            ShowTemporaryPopup(tradeSentPanel);
+
+            Debug.Log($"[TradeScreenManager] Trade {(resp.accepted ? "ACCEPTED" : "DECLINED")} by {resp.fromUser}");
         }
 
         #endregion
+
+        #region “Incoming Trade Executed” Handler (both A & B)
+
+        private void HandleTradeExecuted(TradeExecutedDto dto)
+        {
+            // 1) Was I the “fromUser” (Player A)?
+            if (dto.fromUser.Equals(currentUserName, StringComparison.OrdinalIgnoreCase))
+            {
+                // I offered dto.offered → remove them from my inventory
+                // I requested dto.requested → add them to my inventory
+                Debug.Log($"[TradeScreenManager] (Player A) Remove: {ResourcesToString(dto.offered)}, Add: {ResourcesToString(dto.requested)}");
+                // TODO: replace these logs with calls into your Catan.GameMode.ResourceManager / PlayerState
+            }
+            // 2) Or was I the “toUser” (Player B)?
+            else if (dto.toUser.Equals(currentUserName, StringComparison.OrdinalIgnoreCase))
+            {
+                // I was the recipient → remove dto.requested, add dto.offered
+                Debug.Log($"[TradeScreenManager] (Player B) Remove: {ResourcesToString(dto.requested)}, Add: {ResourcesToString(dto.offered)}");
+                // TODO: replace these logs with calls into your Catan.GameMode.ResourceManager / PlayerState
+            }
+
+            // 3) Update whatever UI shows our current resources
+            UpdateResourceUI();
+        }
+
+        private void UpdateResourceUI()
+        {
+            // Example placeholder: if you have UI texts for each resource, refresh them here.
+            // e.g. woodText.text = ResourceManager.Instance.GetCurrentCounts()["wood"].ToString();
+            // Implementation depends on your own resource-display system.
+        }
+
+        #endregion
+
+        #region Helpers to show/hide popup
+
+        private void ShowTemporaryPopup(GameObject panel)
+        {
+            panel.SetActive(true);
+            CancelInvoke(nameof(HidePopup));
+            Invoke(nameof(HidePopup), 2f);
+        }
+
+        private void HidePopup()
+        {
+            tradeSentPanel.SetActive(false);
+        }
+
+        #endregion
+
+        // Helper to format a ResourceGroup as a string (for debugging/logging)
+        private string ResourcesToString(ResourceGroup group)
+        {
+            var dict = group.GetResourceDictionary();
+            return string.Join(", ", dict
+                .Where(kvp => kvp.Value > 0)
+                .Select(kvp => $"{kvp.Value}×{kvp.Key}"));
+        }
     }
 }

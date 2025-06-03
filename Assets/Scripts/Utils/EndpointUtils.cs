@@ -64,6 +64,8 @@ namespace Assets.Scripts.Utils
         // TRADE
         public static string TradeWithBank => $"{BaseUrl}/trade/bank";
         public static string TradeWithPlayer => $"{BaseUrl}/trade/player";
+        public static string TradeResponse = $"{BaseUrl}/trade/response";
+
 
         // SESSION PLAYER
         public static string GetSessionPlayers(long sessionId) => $"{BaseUrl}/session-players/session/{sessionId}";

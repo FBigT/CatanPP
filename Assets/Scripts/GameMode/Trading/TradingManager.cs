@@ -1,4 +1,5 @@
 ﻿// Assets/Scripts/GameMode/Trading/TradingManager.cs
+
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -6,6 +7,7 @@ using UnityEngine;
 using UnityEngine.Networking;
 using Assets.Scripts.Utils;
 using Assets.Scripts.GameMode.Trading.Models;
+using Assets.Scripts.Dtos.GameMoveResponses; // ← needed for TradeResponseMessage
 
 namespace Assets.Scripts.GameMode.Trading
 {
@@ -56,6 +58,23 @@ namespace Assets.Scripts.GameMode.Trading
             StartCoroutine(TradeRoutine(EndpointUtils.TradeWithBank,
                                         JsonUtility.ToJson(dto),
                                         onSuccess, onError));
+        }
+
+        /// <summary>
+        /// Sends a TradeResponseMessage (accept or decline) to /api/trade/response.
+        /// Once the server processes this, it will broadcast a TRADE_RESPONSE STOMP frame
+        /// (so Player A sees “Accepted!” / “Declined!”) and, if accepted, a TRADE_EXECUTED.
+        /// </summary>
+        public void RespondToTrade(TradeResponseMessage dto,
+                                   Action onSuccess,
+                                   Action<string> onError)
+        {
+            StartCoroutine(TradeRoutine(
+                EndpointUtils.TradeResponse,
+                JsonUtility.ToJson(dto),
+                onSuccess,
+                onError
+            ));
         }
 
         /* ───────────────────────- internals -────────────────────────── */

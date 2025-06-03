@@ -21,6 +21,8 @@ namespace Assets.Scripts.Utils
         public static event Action<TradeResponseMessage> OnTradeResponseReceived;
         public static event Action  OnPlayerJoined;
 
+        public static event Action<TradeExecutedDto> OnTradeExecuted;
+
 
         // ✅ ADD THESE NEW EVENTS FOR DEV CARDS:
         public static event Action<BuyCardResponseDto> OnBuyCardResponse;
@@ -182,6 +184,16 @@ namespace Assets.Scripts.Utils
                                         break;
                                     }
 
+                                case GameMoveType.TRADE_EXECUTED:
+                                    {
+                                        // 'moveData' holds a TradeExecutedDto
+                                        var executed = JsonConvert.DeserializeObject<TradeExecutedDto>(
+                                            JsonConvert.SerializeObject(gameMove.moveData)
+                                        );
+                                        Debug.Log($"[WebSocketService] Deserialized TradeExecuted: {executed.fromUser}→{executed.toUser}");
+                                        OnTradeExecuted?.Invoke(executed);
+                                        break;
+                                    }
 
                             };
                         }
