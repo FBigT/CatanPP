@@ -196,7 +196,7 @@ namespace Assets.Scripts.GameMode.Trading
 
         #region “Apply Trade” Button
 
-        public void OnApplyTradeClicked()
+        public async void OnApplyTradeClicked()
         {
             string toUser = playerDropdown.options[playerDropdown.value].text;
 
@@ -248,7 +248,7 @@ namespace Assets.Scripts.GameMode.Trading
 
                 TradingManager.Instance.TradeWithPlayer(
                     dto,
-                    onSuccess: () =>
+                    onSuccess: async () =>
                     {
                         Debug.Log("[TradeScreen] Trade request sent to server.");
                         Debug.Log($"[TradeScreenManager] WebSocket Connected = {WebSocketService.Connected}");
@@ -262,18 +262,12 @@ namespace Assets.Scripts.GameMode.Trading
                             requested = dto.requested
                         };
 
-                        // Send the STOMP frame; once it’s queued, show “Trade Sent” popup.
-                        _ = WebSocketService
-                                .SendTradeOffer(offerMsg)
-                                .ContinueWith(_ =>
-                                {
-                                    Debug.Log("[TradeScreenManager] SendTradeOffer() completed");
-                                    // Make sure UI changes happen on Unity’s main thread:
-                                    UnityEngine.WSA.Application.InvokeOnAppThread(
-                                        () => tradeSentPanel.SetActive(true),
-                                        false
-                                    );
-                                });
+                        // 1) Await the WebSocket send so we’re back on Unity’s main thread when it completes
+                        await WebSocketService.SendTradeOffer(offerMsg);
+                        Debug.Log("[TradeScreenManager] SendTradeOffer() completed");
+
+                        // 2) Now it’s safe to toggle UI
+                        tradeSentPanel.SetActive(true);
                     },
                     onError: e =>
                     {
@@ -300,6 +294,7 @@ namespace Assets.Scripts.GameMode.Trading
         }
 
         #endregion
+
 
         #region “Incoming Trade Offer” Handler
 
