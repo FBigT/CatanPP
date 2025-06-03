@@ -14,5 +14,6 @@ public enum GameMoveTypeEnum {
     MAP_GEN,
     TRADE_OFFER,
     TRADE_RESPONSE,
+    TRADE_EXECUTED,
     TURN_ORDER
 }
