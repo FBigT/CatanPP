@@ -26,17 +26,22 @@ public class TradeController {
     private final SimpMessagingTemplate messagingTemplate;
     private final ObjectMapper          objectMapper;
 
-
+    /**
+     * Player A sends a trade offer to Player B.  We only broadcast the
+     * TradeOfferMessage here—do NOT execute the swap yet.
+     */
     @PostMapping("/player")
     public ResponseEntity<Void> tradePlayer(@RequestBody PlayerTradeDto dto) {
-        tradeService.tradeBetweenPlayers(
-                dto.getSessionId(),
-                dto.getFromUser(),
-                dto.getToUser(),
-                dto.getOffered(),
-                dto.getRequested()
-        );
+        // ─── Remove this line (it was prematurely swapping resources) ───
+        // tradeService.tradeBetweenPlayers(
+        //         dto.getSessionId(),
+        //         dto.getFromUser(),
+        //         dto.getToUser(),
+        //         dto.getOffered(),
+        //         dto.getRequested()
+        // );
 
+        // Build the TradeOfferMessage to broadcast over STOMP:
         TradeOfferMessage offerMsg = new TradeOfferMessage(
                 dto.getFromUser(),
                 dto.getToUser(),
@@ -44,18 +49,18 @@ public class TradeController {
                 dto.getRequested()
         );
 
-        // 3) Convert to Map<String,Object> so it fits into GameMoveDto.moveData
+        // Convert to Map<String,Object> for GameMoveDto.moveData
         Map<String, Object> moveData = objectMapper.convertValue(
                 offerMsg, new TypeReference<Map<String,Object>>() {}
         );
 
-        // 4) Wrap in GameMoveDto with gameMoveType = "TRADE_OFFER"
+        // Wrap in GameMoveDto with type = "TRADE_OFFER"
         GameMoveDto gameMove = new GameMoveDto(
                 GameMoveTypeEnum.TRADE_OFFER.name(),
                 moveData
         );
 
-        // 5) Broadcast to /topic/moves/{sessionId}
+        // Broadcast to /topic/moves/{sessionId}
         String destination = "/topic/moves/" + dto.getSessionId();
         messagingTemplate.convertAndSend(destination, gameMove);
 
@@ -63,20 +68,20 @@ public class TradeController {
     }
 
     /**
-     * When Player B accepts or declines, Unity should POST here with a TradeResponseMessage.
-     * If accepted == true, we apply the actual resource‐swap in the database and then
-     * broadcast a “TRADE_EXECUTED” to both players so they can update local UIs.
+     * When Player B accepts or declines, Unity POSTs a TradeResponseMessage here.
+     * If accepted == true, we now apply the database swap exactly once, and then
+     * broadcast both TRADE_RESPONSE & TRADE_EXECUTED.
      */
     @PostMapping("/response")
     public ResponseEntity<Void> handleTradeResponse(@RequestBody TradeResponseMessage resp) {
         Long sessionId = resp.getSessionId();
-        String fromUser = resp.getFromUser();  // Player B’s username
-        String toUser   = resp.getToUser();    // Player A’s username
+        String fromUser = resp.getFromUser();  // This is Player B
+        String toUser   = resp.getToUser();    // This is Player A
 
         String destination = "/topic/moves/" + sessionId;
 
         if (resp.isAccepted()) {
-            // 1) First: broadcast a TRADE_RESPONSE so Player A’s client sees “Trade Accepted!”
+            // 1) Broadcast TRADE_RESPONSE so Player A sees “Trade Accepted!”
             Map<String,Object> respMoveData = objectMapper.convertValue(
                     resp, new TypeReference<Map<String,Object>>() {}
             );
@@ -86,13 +91,10 @@ public class TradeController {
             );
             messagingTemplate.convertAndSend(destination, acceptanceMove);
 
-            // 2) Now actually swap resources in the database:
-            //    Note: tradeService.tradeBetweenPlayers expects (sessionId, fromUser, toUser, offered, requested)
-            //    where “offered” is taken from fromUser, “requested” is taken from toUser.
-            //    Our resp.getOffered() == originalOffer.offered  (resources A was giving)
-            //    Our resp.getRequested() == originalOffer.requested (resources A wanted from B).
-            //
-            //    Because fromUser=Player B and toUser=Player A in the incoming `resp`, we must invert them:
+            // 2) Now actually perform the swap in the database (only once!)
+            //    NOTE: resp.getOffered() == originalOffer.offered  (what A was giving)
+            //    resp.getRequested() == originalOffer.requested (what A wanted from B)
+            //    Because “fromUser” is B and “toUser” is A in the response, we invert:
             tradeService.tradeBetweenPlayers(
                     sessionId,
                     toUser,     // “fromUser” in service = Player A
@@ -101,7 +103,7 @@ public class TradeController {
                     resp.getRequested()
             );
 
-            // 3) Finally: broadcast TRADE_EXECUTED with a TradeExecutedDto so both clients update inventories
+            // 3) Broadcast TRADE_EXECUTED so both clients update inventories
             TradeExecutedDto executedDto = new TradeExecutedDto(
                     toUser,              // A
                     fromUser,            // B
@@ -118,7 +120,7 @@ public class TradeController {
             messagingTemplate.convertAndSend(destination, executedMove);
         }
         else {
-            // If declined, broadcast a TRADE_RESPONSE (accepted=false) so Player A sees “Trade Declined!”
+            // If declined, just broadcast TRADE_RESPONSE (accepted=false)
             Map<String,Object> respMoveData = objectMapper.convertValue(
                     resp, new TypeReference<Map<String,Object>>() {}
             );
