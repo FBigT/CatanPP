@@ -59,6 +59,18 @@ namespace Assets.Scripts.GameMode.Trading
         private long sessionId;
         private string currentUserName;
 
+        public void ResetAllResourceSelections()
+        {
+            foreach (var handler in requestResourceButtons)
+            {
+                handler.ResetQuantity();
+            }
+
+            foreach (var handler in offerResourceButtons)
+            {
+                handler.ResetQuantity();
+            }
+        }
         private void Awake()
         {
             sessionId = LocalStorageService.GetInt("session-id") ?? 0;
@@ -188,6 +200,7 @@ namespace Assets.Scripts.GameMode.Trading
             foreach (var b in buttons)
             {
                 int q = b.GetQuantity();
+                Debug.Log($"[CaptureSelections] {b.resourceName} → quantity={q}");
                 if (q > 0)
                 {
                     names.Add(b.resourceName);
@@ -195,6 +208,7 @@ namespace Assets.Scripts.GameMode.Trading
                 }
             }
         }
+
 
         #endregion
 
