@@ -22,7 +22,8 @@ namespace Assets.Scripts.Utils
         private static UserManager _userManager;   // lives on that host
 
 
-        public static Func<string, Methods, bool, string?, UnityWebRequest?> ConstructSimpleWebRequestOverride;
+#nullable enable
+        public static Func<string, Methods, bool, string?, UnityWebRequest?>? ConstructSimpleWebRequestOverride;
 
 
         private static void EnsureHost()

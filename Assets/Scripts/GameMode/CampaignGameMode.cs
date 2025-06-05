@@ -155,8 +155,8 @@ namespace Catan.GameMode
         private void GrantSetupResources()
         {
             // grab all corners & all cells
-            var corners = Object.FindObjectsOfType<Connector>();
-            var cells = Object.FindObjectsOfType<HexCell>();
+            var corners = Object.FindObjectsByType<Connector>(FindObjectsSortMode.None);
+            var cells = Object.FindObjectsByType<HexCell>(FindObjectsSortMode.None);
 
             // for each corner you occupy as seat 0
             foreach (var corner in corners)
@@ -183,7 +183,7 @@ namespace Catan.GameMode
         private void DistributeResources(int roll)
         {
             // parameterless FindObjectsOfType<T>() only
-            foreach (var cell in Object.FindObjectsOfType<HexCell>())
+            foreach (var cell in Object.FindObjectsByType<HexCell>(FindObjectsSortMode.None))
             {
                 if (!cell.NumberTokenIs(roll) || cell.HasRobber()) continue;
                 var res = cell.GetResource();

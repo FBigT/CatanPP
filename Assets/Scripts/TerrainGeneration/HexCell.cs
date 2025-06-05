@@ -20,7 +20,7 @@ public class HexCell : MonoBehaviour
     [Header("Gameplay")]
     [SerializeField] ResourceType resourceType;
     [SerializeField] int numberToken = 0;
-    [SerializeField] bool hasRobber = false;
+    //[SerializeField] bool hasRobber = false;
 
     // ───────────────────────────── stored references
     MeshRenderer _renderer;

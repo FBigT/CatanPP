@@ -9,13 +9,15 @@ namespace Assets.Scripts.Dtos
         public int y;
         public string tileType;
         public int number;
+        public bool hasRobber = false;
 
-        public TileDto(int x, int y, string tileType, int number)
+        public TileDto(int x, int y, string tileType, int number, bool hasRobber)
         {
             this.x = x;
             this.y = y;
             this.tileType = tileType;
             this.number = number;
+            this.hasRobber = hasRobber;
         }
     }
 }

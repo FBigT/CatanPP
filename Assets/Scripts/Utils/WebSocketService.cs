@@ -1,4 +1,5 @@
 ﻿using Assets.Scripts.Dtos;
+using Assets.Scripts.Dtos.Board;
 using Assets.Scripts.Dtos.GameMoveResponses;
 using Assets.Scripts.Dtos.GameMoves;
 using Assets.Scripts.Enums;
@@ -6,6 +7,7 @@ using Assets.Scripts.User;
 using NativeWebSocket;
 using Newtonsoft.Json;
 using System;
+using System.Collections.Generic;
 using System.Text;
 using System.Threading.Tasks;
 using UnityEngine;
@@ -162,7 +164,8 @@ namespace Assets.Scripts.Utils
                                     TurnOrderResponse turnOrder = (TurnOrderResponse)gameMove.moveData;
                                     break;
                                 case GameMoveType.MAP_GEN:
-                                    GenerateMapDto generateMapDto = (GenerateMapDto)gameMove.moveData;
+                                    var tiles = JsonConvert.DeserializeObject<List<TileDto>>(jsonBody);
+                                    BoardGen.Instance.BuildBoardFromTiles(tiles);
                                     break;
                                 case GameMoveType.TRADE_OFFER:
                                     {
@@ -292,19 +295,19 @@ namespace Assets.Scripts.Utils
             }
         }
         // Add these methods to your existing WebSocketService class
-        public static void SendBuyDevCard()
+        public static async void SendBuyDevCard()
         {
             var gameMove = new Assets.Scripts.Dtos.GameMoveDto(Assets.Scripts.Enums.GameMoveType.BUY_CARD);
             string json = JsonUtility.ToJson(gameMove);
-            SendMessage(json);
+            await SendMessage(json);
         }
 
 
-        public static void SendPlayDevCard(PlayCardDto playCardDto)
+        public static async void SendPlayDevCard(PlayCardDto playCardDto)
         {
             var gameMove = new GameMoveDto(playCardDto);  // This constructor might need to be added
             string json = JsonUtility.ToJson(gameMove);
-            SendMessage(json);
+            await SendMessage(json);
         }
 
         public static void DispatchMessageQueue()
@@ -362,6 +365,27 @@ namespace Assets.Scripts.Utils
         //{
         //    OnChatMessageReceived?.Invoke(msg);
         //}
+
+        public static async Task SendTilesState(List<TileDto> tiles)
+        {
+            if (!Connected)
+            {
+                Debug.LogWarning("Cannot send tiles state: WebSocket not connected.");
+                return;
+            }
+
+            var dto = new GameMoveDto(tiles);
+
+            string frame = WebSocketEndpointsUtils.MessageFrame(
+                WebSocketApplicationDestinations.Moves,
+                sessionCode,
+                dto
+            );
+
+            Debug.Log($"[WebSocketService] >> Sending TILES_STATE:\n{frame}");
+            await webSocket.SendText(frame);
+        }
+
 
     }
 }

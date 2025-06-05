@@ -2,7 +2,7 @@
 using UnityEngine.UI;
 using TMPro;
 using UnityEngine.SceneManagement;
-using Assets.Scripts.Utils;                     // for SessionManager, LocalStorageService
+using Assets.Scripts.Utils;
 using Assets.Scripts.GameMode.Trading.Models;
 using Assets.Scripts.User;  // for SessionCodeDto
 
@@ -79,7 +79,7 @@ namespace Assets.Scripts.MainMenu
         {
             Debug.Log("Session created");
             WebSocketService.OnChatMessageReceived += OnMessage;
-            WebSocketService.ConnectToChat(dto.code);
+            _ = WebSocketService.ConnectToChat(dto.code);
 
             // store session info for later screens
             LocalStorageService.SetVariable("session-id", dto.id.ToString());

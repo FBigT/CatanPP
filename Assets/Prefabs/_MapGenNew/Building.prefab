@@ -12,6 +12,7 @@ GameObject:
   - component: {fileID: 2373606430321756302}
   - component: {fileID: 2592223750052428894}
   - component: {fileID: 550330692119370985}
+  - component: {fileID: 4238581053181398146}
   m_Layer: 17
   m_Name: Building
   m_TagString: Untagged
@@ -51,6 +52,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   nearbyTiles: []
+  edgePoints: []
 --- !u!135 &2592223750052428894
 SphereCollider:
   m_ObjectHideFlags: 0
@@ -86,8 +88,29 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   hoverScale: {x: 1.3, y: 1.3, z: 1.3}
   animationSpeed: 5
-  hoverColor: {r: 0.148332, g: 1, b: 0, a: 1}
   useColorTint: 0
+--- !u!95 &4238581053181398146
+Animator:
+  serializedVersion: 7
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2401219261774266400}
+  m_Enabled: 1
+  m_Avatar: {fileID: 0}
+  m_Controller: {fileID: 9100000, guid: b508a50346a5d5247aa593031071ddba, type: 2}
+  m_CullingMode: 0
+  m_UpdateMode: 0
+  m_ApplyRootMotion: 0
+  m_LinearVelocityBlending: 0
+  m_StabilizeFeet: 0
+  m_AnimatePhysics: 0
+  m_WarningMessage: 
+  m_HasTransformHierarchy: 1
+  m_AllowConstantClipSamplingOptimization: 1
+  m_KeepAnimatorStateOnDisable: 0
+  m_WriteDefaultValuesOnDisable: 0
 --- !u!1 &4696413076661482985
 GameObject:
   m_ObjectHideFlags: 0

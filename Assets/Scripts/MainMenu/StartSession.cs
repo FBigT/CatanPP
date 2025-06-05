@@ -17,7 +17,7 @@ public class StartSession : MonoBehaviour
     public Button btnCancleStartGame;
     public GameObject mainPanel;
 
-    async void Awake()
+    void Awake()
     {
         sessionService = gameObject.AddComponent<SessionManager>();
         btnCancleStartGame.onClick.AddListener(() =>

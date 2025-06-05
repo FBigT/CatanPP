@@ -1,15 +1,16 @@
-﻿using System;
-using System.Collections;
-using System.Collections.Generic;
-using UnityEngine;
-using UnityEngine.Networking;
-using Assets.Scripts.Utils;  // for RequestService, EndpointUtils, Methods, LocalStorageService
+﻿using Assets.Scripts.Dtos;
+using Assets.Scripts.Dtos.Board;
 using Assets.Scripts.GameMode.Trading.Models; // for SessionCodeDto
 using Assets.Scripts.MainMenu;
-using System.Linq;
-using Assets.Scripts.Dtos;
+using Assets.Scripts.Utils;  // for RequestService, EndpointUtils, Methods, LocalStorageService
 using Catan.TerrainGeneration;
 using Newtonsoft.Json; // for SessionSave
+using System;
+using System.Collections;
+using System.Collections.Generic;
+using System.Linq;
+using UnityEngine;
+using UnityEngine.Networking;
 
 namespace Assets.Scripts.Utils
 {
@@ -27,9 +28,18 @@ namespace Assets.Scripts.Utils
 
     public class SessionManager : MonoBehaviour
     {
+        public bool IsHost { get; private set; } = false;
+
         public void CreateSession(int maxPlayers, Action<SessionCodeDto> onSuccess, Action<string> onFail)
         {
-            StartCoroutine(CreateSessionRequest(maxPlayers, onSuccess, onFail));
+            StartCoroutine(CreateSessionRequest(maxPlayers, dto =>
+            {
+                IsHost = true; // This player is host/creator
+                if (BoardGen.Instance != null)
+                    BoardGen.Instance.generateBoardOnStart = true; // Generate board on start
+
+                onSuccess?.Invoke(dto);
+            }, onFail));
         }
 
         private IEnumerator CreateSessionRequest(int maxPlayers, Action<SessionCodeDto> onSuccess, Action<string> onFail)
@@ -54,16 +64,7 @@ namespace Assets.Scripts.Utils
             else onFail?.Invoke(req.error);
         }
 
-        public void JoinSession(string sessionCode, Action<SessionCodeDto> onSuccess, Action<string> onFail)
-        {
-            StartCoroutine(JoinSessionRequest(sessionCode, onSuccess, onFail));
-        }
-
-        private IEnumerator JoinSessionRequest(
-            string sessionCode,
-            Action<SessionCodeDto> onSuccess,
-            Action<string> onFail
-        )
+        public IEnumerator JoinSession(string sessionCode, Action<SessionCodeDto> onSuccess, Action<string> onFail)
         {
             UnityWebRequest req = null;
             yield return RequestService.ConstructSimpleWebRequest(
@@ -73,23 +74,44 @@ namespace Assets.Scripts.Utils
                 null,
                 result => req = result
             );
+
             if (req == null)
             {
                 onFail?.Invoke("Failed to construct request");
                 yield break;
             }
 
-            // send the HTTP request
             yield return req.SendWebRequest();
-
-            // *** ADD THIS DEBUG LINE ***
-            Debug.Log($"[JoinSession] Raw JSON: {req.downloadHandler.text}");
 
             if (req.result == UnityWebRequest.Result.Success)
             {
                 var dto = JsonUtility.FromJson<SessionCodeDto>(req.downloadHandler.text);
+
                 LocalStorageService.SetVariable("session-id", dto.sessionId.ToString());
                 LocalStorageService.SetVariable("session-code", dto.code);
+
+                IsHost = false; // This player joined, not host
+
+                // Disable board generation on start for joiners
+                if (BoardGen.Instance != null)
+                    BoardGen.Instance.generateBoardOnStart = false;
+
+                // Load the map from backend instead of generating
+                GetMapState(
+                    tileList =>
+                    {
+                        if (BoardGen.Instance != null)
+                        {
+                            BoardGen.Instance.BuildBoardFromTiles(tileList);
+                        }
+                        else
+                        {
+                            Debug.LogError("[JoinSession] BoardGen instance is null!");
+                        }
+                    },
+                    error => Debug.LogError("[JoinSession] Failed to load map: " + error)
+                );
+
                 onSuccess?.Invoke(dto);
             }
             else
@@ -97,7 +119,6 @@ namespace Assets.Scripts.Utils
                 onFail?.Invoke(req.error);
             }
         }
-
 
         public void CloseSession(Action onSuccess, Action<string> onFail)
         {
@@ -137,30 +158,47 @@ namespace Assets.Scripts.Utils
             if (req != null) yield return req.SendWebRequest();
         }
 
-        public void GenerateMap(List<HexCell> hexes, Action<string> onSuccess, Action<string> onFail) {
-            StartCoroutine(GenerateMapRequest(hexes, onSuccess, onFail));
+        public void GetMapState(Action<List<TileDto>> onSuccess, Action<string> onFail)
+        {
+            StartCoroutine(GetMapStateRequest(onSuccess, onFail));
         }
 
-        private IEnumerator GenerateMapRequest(List<HexCell> hexes, Action<string> onSuccess, Action<string> onFail) {
+        private IEnumerator GetMapStateRequest(Action<List<TileDto>> onSuccess, Action<string> onFail)
+        {
             UnityWebRequest req = null;
-            List<TileDto> enumerable = hexes.Select(hex => {
-                return new TileDto(hex.coordinates.X, hex.coordinates.Z, hex.GetResource().ToString(), hex.GetNumberToken());
-            }).ToList();
-
             yield return RequestService.ConstructSimpleWebRequest(
-                EndpointUtils.GenerateMap,
-                Methods.POST,
+                EndpointUtils.GetMapState,
+                Methods.GET,
                 true,
-                JsonConvert.SerializeObject(new GenerateMapDto(enumerable)),
+                null,
                 result => req = result
             );
-            if (req == null) { onFail?.Invoke("Failed to construct request"); yield break; }
+
+            if (req == null)
+            {
+                onFail?.Invoke("Failed to construct request");
+                yield break;
+            }
+
             yield return req.SendWebRequest();
+
             if (req.result == UnityWebRequest.Result.Success)
             {
-                onSuccess?.Invoke(req.downloadHandler.text);
+                try
+                {
+                    // Deserialize JSON into List<TileDto>
+                    var tileDtos = JsonConvert.DeserializeObject<List<TileDto>>(req.downloadHandler.text);
+                    onSuccess?.Invoke(tileDtos);
+                }
+                catch (Exception ex)
+                {
+                    onFail?.Invoke("Deserialization error: " + ex.Message);
+                }
             }
-            else onFail?.Invoke(req.error);
+            else
+            {
+                onFail?.Invoke(req.error);
+            }
         }
 
         public void GetAllSessionSaves(Action<List<SessionSave>> onSuccess, Action<string> onFail)

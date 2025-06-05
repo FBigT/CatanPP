@@ -28,7 +28,7 @@ public class JoinGame : MonoBehaviour
                 errorMessage.text = "Please enter a valid session code.";
                 return;
             }
-            sessionService.JoinSession(code, OnJoinSuccess, OnJoinError);
+            StartCoroutine(sessionService.JoinSession(code, OnJoinSuccess, OnJoinError));
         });
     }
 

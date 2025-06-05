@@ -57,7 +57,7 @@ namespace Catan.Controllers
 
         private void Start()
         {
-            _ui = FindObjectOfType<OnStructureTabEvents>();
+            _ui = FindFirstObjectByType<OnStructureTabEvents>();
             PurchaseManager.Instance.OnPurchaseChanged += BeginPlacement;
         }
 
@@ -98,7 +98,7 @@ namespace Catan.Controllers
 
         private void HighlightValid(PurchaseType t)
         {
-            foreach (var c in FindObjectsOfType<Connector>())
+            foreach (var c in FindObjectsByType<Connector>(FindObjectsSortMode.None))
             {
                 bool ok =
                     (t == PurchaseType.Road && c.Connection == Connector.ConnectionType.Edge) ||

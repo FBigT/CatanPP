@@ -1,10 +1,12 @@
-﻿using System;
+﻿using Assets.Scripts.Dtos.Board;
 using Assets.Scripts.Dtos.GameMoveResponses;
 using Assets.Scripts.Dtos.GameMoves;
 using Assets.Scripts.Enums;
 using Assets.Scripts.Utils;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
+using System;
+using System.Collections.Generic;
 
 namespace Assets.Scripts.Dtos
 {
@@ -57,11 +59,28 @@ namespace Assets.Scripts.Dtos
             moveData = resp;
         }
 
-
         public GameMoveDto(TradeOfferMessage tradeOffer)
         {
             gameMoveType = GameMoveType.TRADE_OFFER;
             moveData = tradeOffer;
+        }
+
+        public GameMoveDto(EndTurnResponse endTurnResponse)
+        {
+            gameMoveType = GameMoveType.END_TURN;
+            moveData = endTurnResponse;
+        }
+
+        public GameMoveDto(DiceResultDto diceResultDto)
+        {
+            gameMoveType = GameMoveType.DICE_ROLL;
+            moveData = diceResultDto;
+        }
+
+        public GameMoveDto(List<TileDto> tiles)
+        {
+            gameMoveType = GameMoveType.MAP_GEN;
+            moveData = tiles;
         }
 
         [JsonConverter(typeof(StringEnumConverter))]

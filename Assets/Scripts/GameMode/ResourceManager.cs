@@ -22,7 +22,7 @@ namespace Catan.GameMode
             if (p.Seat == 0 && TopBarUI.Instance != null)
             {
                 TopBarUI.Instance.SendMessage("SetValues", p.Resources);
-                var ui = Object.FindObjectOfType<OnStructureTabEvents>();
+                var ui = Object.FindFirstObjectByType<OnStructureTabEvents>();
                 if (ui != null)
                     ui.UpdateAffordability(p.Resources);
             }

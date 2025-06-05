@@ -35,11 +35,11 @@ public class MainMenu : MonoBehaviour
             () => _sessions.CloseSession(SessionClosed, SetError)
         );
         btnQuit.onClick.AddListener(Application.Quit);
-        btnLogout.onClick.AddListener(() =>
-        {
-            LocalStorageService.ClearAll();
-            SceneManager.LoadScene("Login");
-        });
+        //btnLogout.onClick.AddListener(() =>
+        //{
+        //    LocalStorageService.ClearAll();
+        //    SceneManager.LoadScene("Login");
+        //});
     }
 
     void OnStartCampaignClicked()

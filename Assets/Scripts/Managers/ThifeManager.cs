@@ -35,7 +35,7 @@ public class ThifeManager : Singleton<ThifeManager>
     {
         if (BoardGen == null)
         {
-            BoardGen = FindObjectOfType<BoardGen>();
+            BoardGen = FindAnyObjectByType<BoardGen>();
             if (BoardGen == null)
             {
                 Debug.LogError("BoardGen not found in the scene. Please ensure it is present.");

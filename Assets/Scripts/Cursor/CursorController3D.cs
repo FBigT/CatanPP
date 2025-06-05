@@ -42,7 +42,6 @@ public class CursorController3D : MonoBehaviour
 
     [Header("Settings")]
     [SerializeField] private float cursorYLevel = 0.05f;
-    [SerializeField] private CursorMode previewMode = CursorMode.Idle;
 
     [Header("Cursor Modes")]
     [SerializeField] private List<CursorModeData> cursorModes = new();

@@ -23,7 +23,7 @@ namespace Catan.TerrainGeneration
         /* ----------------------------------------------------------- */
         void SpawnPrefabs()
         {
-            foreach (HexCell cell in FindObjectsOfType<HexCell>())
+            foreach (HexCell cell in FindObjectsByType<HexCell>(FindObjectsSortMode.None))
             {
                 GameObject prefab = PickPrefab(cell.GetResource());
 

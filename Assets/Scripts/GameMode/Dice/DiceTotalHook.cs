@@ -38,7 +38,7 @@ namespace Catan.GameMode.Dice
         static void AutoSpawn()
         {
             // Ensures the hook exists once per scene.
-            if (FindObjectOfType<DiceTotalHook>() == null)
+            if (FindFirstObjectByType<DiceTotalHook>() == null)
             {
                 var go = new GameObject("[DiceTotalHook]");
                 DontDestroyOnLoad(go);

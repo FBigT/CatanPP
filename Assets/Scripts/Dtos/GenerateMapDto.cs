@@ -1,14 +1,15 @@
-﻿using System.Collections.Generic;
+﻿using Assets.Scripts.Dtos.Board;
+using System.Collections.Generic;
 
 namespace Assets.Scripts.Dtos
 {
     public class GenerateMapDto
     {
-        private List<TileDto> tileDtos;
+        public BoardStateDto board { get; set; }
 
-        public GenerateMapDto(List<TileDto> tileDtos)
+        public GenerateMapDto(BoardStateDto board)
         {
-            this.tileDtos = tileDtos;
+            this.board = board;
         }
     }
 }

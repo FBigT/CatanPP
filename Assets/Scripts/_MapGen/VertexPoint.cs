@@ -1,11 +1,12 @@
 using System.Collections.Generic;
 using UnityEngine;
 using Assets.Scripts.Enums;
-using System; // <-- Import the enum
 
 public class VertexPoint : MonoBehaviour
 {
     public Vector3 Position => transform.position;
+
+    public StructureType? structure = null;
 
     public object owner;
     public List<HexTile> nearbyTiles = new();
@@ -20,6 +21,7 @@ public class VertexPoint : MonoBehaviour
     {
         owner = "debug"; //temp
 
+        structure = structureType;
         foreach (Transform child in transform)
         {
             child.gameObject.SetActive(child.name.ToUpper() == structureType.ToString());

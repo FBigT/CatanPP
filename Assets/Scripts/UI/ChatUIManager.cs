@@ -78,14 +78,14 @@ namespace Assets.Scripts.UI
             }
         }
 
-        private void OnChatInputKeyUp(KeyUpEvent evt)
+        private async void OnChatInputKeyUp(KeyUpEvent evt)
         {
             if (evt.keyCode == KeyCode.Return || evt.keyCode == KeyCode.KeypadEnter)
             {
                 string message = _chatInputField.value.Trim();
                 if (!string.IsNullOrEmpty(message))
                 {
-                    WebSocketService.SendMessage(message);
+                    await WebSocketService.SendMessage(message);
                     _chatInputField.value = string.Empty;
                 }
             }

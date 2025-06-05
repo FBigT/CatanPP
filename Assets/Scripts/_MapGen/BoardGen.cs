@@ -1,10 +1,16 @@
+using Assets.Scripts.Dtos;
+using Assets.Scripts.Dtos.Board;
 using Assets.Scripts.Enums;
+using Assets.Scripts.Utils;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 
 public class BoardGen : MonoBehaviour
 {
+    public static BoardGen Instance { get; private set; }
+
     public GameObject hexTilePrefab;
     public GameObject edgePointPrefab;
 
@@ -18,6 +24,8 @@ public class BoardGen : MonoBehaviour
 
     public GameObject vertexPrefab;
     private Dictionary<Vector3, VertexPoint> vertexMap = new();
+
+    public bool generateBoardOnStart = true;
 
     public GameObject portPrefab;
     public List<PortType> portTypes = new()
@@ -60,14 +68,29 @@ public class BoardGen : MonoBehaviour
         5, 2, 6, 3, 8, 10, 9, 12, 11, 4,
         8, 10, 9, 4, 5, 6, 3, 11
     };
+    private void Awake()
+    {
+        if (Instance != null && Instance != this)
+        {
+            Debug.LogWarning("Multiple BoardGen instances detected! Destroying duplicate.");
+            Destroy(gameObject);
+            return;
+        }
+        Instance = this;
+        DontDestroyOnLoad(gameObject);
+    }
 
     void Start()
     {
-        GenerateBoard();
-        List<VertexPoint> allPoints = FindObjectsOfType<VertexPoint>().ToList();
-        GenerateEdgePoints(allPoints);
-        PlacePorts();
+        if (generateBoardOnStart)
+        {
+            GenerateBoard();
+            List<VertexPoint> allPoints = FindObjectsByType<VertexPoint>(FindObjectsSortMode.None).ToList();
+            GenerateEdgePoints(allPoints);
+            PlacePorts();
+        }
     }
+
 
     void GenerateBoard()
     {
@@ -122,7 +145,7 @@ public class BoardGen : MonoBehaviour
 
         foreach (var vertex in vertexMap.Values)
         {
-            foreach (var tile in FindObjectsOfType<HexTile>())
+            foreach (var tile in FindObjectsByType<HexTile>(FindObjectsSortMode.None))
             {
                 if (Vector3.Distance(tile.transform.position, vertex.Position) < hexSize + .1f)
                 {
@@ -251,7 +274,7 @@ public class BoardGen : MonoBehaviour
         Vector3 sum = Vector3.zero;
         int count = 0;
 
-        foreach (var tile in FindObjectsOfType<HexTile>())
+        foreach (var tile in FindObjectsByType<HexTile>(FindObjectsSortMode.None))
         {
             sum += tile.transform.position;
             count++;
@@ -271,7 +294,7 @@ public class BoardGen : MonoBehaviour
     {
         for (int i = 0; i < list.Count; i++)
         {
-            int rand = Random.Range(i, list.Count);
+            int rand = UnityEngine.Random.Range(i, list.Count);
             (list[i], list[rand]) = (list[rand], list[i]);
         }
     }
@@ -289,5 +312,88 @@ public class BoardGen : MonoBehaviour
     public HexTile GetCurrentThiefTile()
     {
         return currentThiefTile;
+    }
+
+    public async void SendTilesState()
+    {
+        var tiles = FindObjectsByType<HexTile>(FindObjectsSortMode.None).Select(tile => new TileDto(
+            tile.Q,                 // x coordinate
+            tile.R,                 // y coordinate
+            tile.resourceType,      // tileType string
+            tile.numberToken,       // number token on tile
+            tile == currentThiefTile // hasRobber if this tile currently has the thief
+        )).ToList();
+
+        try
+        {
+            await WebSocketService.SendTilesState(tiles); // Your existing websocket method to send tiles
+            Debug.Log("[BoardGen] Tile state sent successfully.");
+        }
+        catch (Exception ex)
+        {
+            Debug.LogError($"[BoardGen] Failed to send tile state: {ex.Message}");
+        }
+    }
+
+    public void BuildBoardFromTiles(List<TileDto> tiles)
+    {
+        // Clear existing board objects
+        foreach (var tile in FindObjectsByType<HexTile>(FindObjectsSortMode.None))
+            Destroy(tile.gameObject);
+        foreach (var vertex in vertexMap.Values)
+            Destroy(vertex.gameObject);
+        vertexMap.Clear();
+        foreach (var edge in FindObjectsByType<EdgePoint>(FindObjectsSortMode.None))
+            Destroy(edge.gameObject);
+        foreach (var port in FindObjectsByType<Port>(FindObjectsSortMode.None))
+            Destroy(port.gameObject);
+        if (thiefInstance != null)
+        {
+            Destroy(thiefInstance);
+            thiefInstance = null;
+            currentThiefTile = null;
+        }
+
+        foreach (var tileDto in tiles)
+        {
+            Vector3 pos = HexToWorld(tileDto.x, tileDto.y);
+
+            // Spawn vertices for this tile
+            for (int i = 0; i < 6; i++)
+            {
+                Vector3 vertexPos = GetVertexPosition(pos, i, hexSize);
+                SpawnVertexIfNotExists(vertexPos);
+            }
+
+            // Instantiate hex tile prefab
+            GameObject tileObj = Instantiate(hexTilePrefab, pos, Quaternion.identity);
+
+            if (tileObj.GetComponent<MeshCollider>() == null)
+            {
+                MeshCollider meshCollider = tileObj.AddComponent<MeshCollider>();
+                MeshFilter mf = tileObj.GetComponent<MeshFilter>();
+                if (mf != null)
+                    meshCollider.sharedMesh = mf.sharedMesh;
+            }
+
+            HexTile hexTile = tileObj.GetComponent<HexTile>();
+            hexTile.Initialize(tileDto.tileType, tileDto.number, tileDto.x, tileDto.y);
+
+            if (tileDto.hasRobber)
+            {
+                thiefInstance = Instantiate(thiefPrefab, tileObj.transform);
+                thiefInstance.transform.localPosition = Vector3.up * 0.1f;
+                currentThiefTile = hexTile;
+            }
+        }
+
+        // After all tiles are instantiated, generate edges connecting vertex points
+        var allVertexPoints = vertexMap.Values.ToList();
+        GenerateEdgePoints(allVertexPoints);
+
+        // Place ports if needed (optional, depends on your game state)
+        PlacePorts();
+
+        Debug.Log("Board rebuilt from tile data.");
     }
 }

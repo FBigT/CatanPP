@@ -17,14 +17,14 @@ public class NewChatboxScript : MonoBehaviour
 
     void Start()
     {
-        chatInput.onSubmit.AddListener(text =>
+        chatInput.onSubmit.AddListener(async text =>
         {
             if (!chatInput.wasCanceled)
             {
                 string message = chatInput.text.Trim();
                 if (!string.IsNullOrEmpty(message))
                 {
-                    WebSocketService.SendMessage(message);
+                    await WebSocketService.SendMessage(message);
                     chatInput.text = string.Empty;
                 }
             }
