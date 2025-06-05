@@ -120,4 +120,16 @@ public class Mapper {
         tradeOffer.setRequestResources(tradeOfferDto.getRequested());
         return Optional.of(tradeOffer);
     }
+
+    public TileDto mapTileToDto(Tile tile) {
+        return TileDto.builder()
+                .x(tile.getX())
+                .y(tile.getY())
+                .z(tile.getZ())
+                .tileType(tile.getTileTypeName())
+                .number(tile.getNumber())
+                .hasRobber(tile.isHasRobber())
+                .build();
+    }
+
 }
