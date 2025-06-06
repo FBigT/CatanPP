@@ -15,5 +15,7 @@ public enum GameMoveTypeEnum {
     TRADE_OFFER,
     TRADE_RESPONSE,
     TRADE_EXECUTED,
-    TURN_ORDER
-}
+    TURN_ORDER,
+    REQUEST_DEV_CARDS  // ← ADD THIS LINE
+
+    }

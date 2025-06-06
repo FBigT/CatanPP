@@ -129,6 +129,33 @@ public class GameMoveHandler {
                 return List.of(new PrivateBuyCardResponse(devCard.getType(), devCard.getId()),
                         new BuyCardResponseDto(sessionPlayer.getName(), devCardService.getPlayerCards(sessionPlayer.getId()).size()));
             }
+            case REQUEST_DEV_CARDS -> {
+                System.out.println("🃏 [GameMoveHandler] === REQUEST DEV CARDS ===");
+                System.out.println("🃏 [GameMoveHandler] SessionPlayer: " + sessionPlayer.getName() + " (ID: " + sessionPlayer.getId() + ")");
+
+                try {
+                    // Get player's dev cards
+                    List<DevCard> playerCards = devCardService.getPlayerCards(sessionPlayer.getId());
+
+                    System.out.println("🃏 [GameMoveHandler] Found " + playerCards.size() + " cards for player");
+                    for (DevCard card : playerCards) {
+                        System.out.println("🃏 [GameMoveHandler]   - " + card.getType() +
+                                " (ID: " + card.getId() + ", playable: " + card.isPlayable() +
+                                ", used: " + card.isUsed() + ")");
+                    }
+
+                    // Create response
+                    DevCardsListResponseDto response = new DevCardsListResponseDto(playerCards, sessionPlayer.getName());
+
+                    System.out.println("🃏 [GameMoveHandler] ✅ Returning dev cards list for " + sessionPlayer.getName());
+                    return response;
+
+                } catch (Exception e) {
+                    System.out.println("🃏 [GameMoveHandler] ❌ Error getting dev cards: " + e.getMessage());
+                    e.printStackTrace();
+                    throw new IllegalArgumentException("Failed to load dev cards: " + e.getMessage());
+                }
+            }
 
 
 
@@ -342,8 +369,7 @@ public class GameMoveHandler {
     }
 
     private void checkForSetupOrdering(GameMoveTypeEnum gameMoveType, Session session, SessionPlayer sessionPlayer) {
-        return;
-        /*if (session.getInSetup()) {
+        if (session.getInSetup()) {
             switch (gameMoveType) {
                 case PLACE_ROAD -> {
                     if (Objects.equals(sessionPlayer.getRoadsPlaced(), sessionPlayer.getSettlementsPlaced()))
@@ -357,16 +383,10 @@ public class GameMoveHandler {
                 }
             }
             throw new IllegalArgumentException("Game move type not supported during setup");
-        }*/
+        }
     }
 
     private void checkIfSessionBlocked(Long sessionPlayerId) {
-<<<<<<< Updated upstream
-        return;
-        /*if (moveBlockerService.isSessionBlocked(sessionPlayerId)) {
-            throw new IllegalArgumentException("Cannot move robber now");
-        }*/
-=======
         System.out.println("🔧 [GameMoveHandler] checkIfSessionBlocked called with: " + sessionPlayerId);
 
         try {
@@ -384,15 +404,13 @@ public class GameMoveHandler {
             e.printStackTrace();
             throw e;
         }
->>>>>>> Stashed changes
     }
 
 
     private void checkIfSessionValid(Session session) {
-        return;
-        /*if (!session.getActive()) {
+        if (!session.getActive()) {
             throw new IllegalArgumentException("Session is not active");
-        }*/
+        }
     }
 
     private void checkIfItsTheCurrentPlayer(SessionPlayer sessionPlayer, Session session) {
