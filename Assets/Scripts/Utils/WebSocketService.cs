@@ -22,7 +22,7 @@ namespace Assets.Scripts.Utils
         public static event Action  OnPlayerJoined;
 
         public static event Action<TradeExecutedDto> OnTradeExecuted;
-
+        public static event Action<DevCardsListResponseDto> OnDevCardsListReceived;
 
         // ✅ ADD THESE NEW EVENTS FOR DEV CARDS:
         public static event Action<BuyCardResponseDto> OnBuyCardResponse;
@@ -196,7 +196,10 @@ namespace Assets.Scripts.Utils
                                         OnTradeExecuted?.Invoke(executed);
                                         break;
                                     }
-
+                                case GameMoveType.REQUEST_DEV_CARDS:
+                                    DevCardsListResponseDto devCardsResponse = (DevCardsListResponseDto)gameMove.moveData;
+                                    OnDevCardsListReceived?.Invoke(devCardsResponse);
+                                    break;
                             };
                         }
                         else if (destination != null && destination.Contains(WebSocketBrokerDestinations.Private.Value))

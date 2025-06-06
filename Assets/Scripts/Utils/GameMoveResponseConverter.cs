@@ -4,6 +4,7 @@ using Assets.Scripts.Enums;
 using Newtonsoft.Json.Linq;
 using Newtonsoft.Json;
 using System;
+using Assets.Scripts.Dtos.GameMoveResponses; // Make sure this line exists
 
 namespace Assets.Scripts.Utils
 {
@@ -71,6 +72,7 @@ namespace Assets.Scripts.Utils
                     GameMoveType.PLAY_CARD => DeserializeWithLogging<PlayCardResponseDto>(moveDataToken, serializer, "PLAY_CARD"),
                     GameMoveType.TRADE_OFFER => DeserializeWithLogging<TradeOfferMessage>(moveDataToken, serializer, "TRADE_OFFER"),
                     GameMoveType.TRADE_RESPONSE => DeserializeWithLogging<TradeResponseMessage>(moveDataToken, serializer, "TRADE_RESPONSE"),
+                    GameMoveType.REQUEST_DEV_CARDS => DeserializeWithLogging<DevCardsListResponseDto>(moveDataToken, serializer, "REQUEST_DEV_CARDS"), // ← ADD THIS LINE
                     _ => throw new JsonSerializationException($"Unknown GameMoveType: {gameMoveType}"),
                 };
 
@@ -120,8 +122,6 @@ namespace Assets.Scripts.Utils
                 throw;
             }
         }
-
-
 
         public override void WriteJson(JsonWriter writer, object value, JsonSerializer serializer)
         {

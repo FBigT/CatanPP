@@ -286,18 +286,15 @@ namespace Assets.Scripts.DevCards.Core
 
             try
             {
-<<<<<<< Updated upstream
-                // Use the same JSON parsing as TradingManager
-                Assets.Scripts.GameMode.Trading.Models.SessionPlayerDto[] arr =
-                JsonHelper.FromJson<Assets.Scripts.GameMode.Trading.Models.SessionPlayerDto>(req.downloadHandler.text);
-=======
+
+                
+
                 // Alternative without JsonHelper:
                 string jsonResponse = req.downloadHandler.text;
                 string wrappedJson = $"{{\"Items\":{jsonResponse}}}";
                 var wrapper = JsonUtility.FromJson<SessionPlayerArrayWrapper>(wrappedJson);
                 Assets.Scripts.GameMode.Trading.Models.SessionPlayerDto[] arr = wrapper.Items;
 
->>>>>>> Stashed changes
                 var list = new List<Assets.Scripts.GameMode.Trading.Models.SessionPlayerDto>(arr);
 
                 string currentUsername = LocalStorageService.GetString("username");
@@ -403,6 +400,9 @@ namespace Assets.Scripts.DevCards.Core
 
                 WebSocketService.OnPlayCardResponse += HandlePlayCardResponse;
                 DebugLog("✅ Subscribed to OnPlayCardResponse");
+                // ✅ ADD THIS MISSING SUBSCRIPTION:
+                WebSocketService.OnDevCardsListReceived += HandleDevCardsListReceived;
+                DebugLog("✅ Subscribed to OnDevCardsListReceived");
             }
             catch (Exception ex)
             {
@@ -649,39 +649,89 @@ namespace Assets.Scripts.DevCards.Core
             }
         }
 
-        private void LoadPlayerCards()
+        public void LoadPlayerCards()
         {
-            long sessionPlayerId = GetSessionPlayerId();
+            DebugLog("=== LOAD PLAYER CARDS VIA WEBSOCKET START ===");
 
-            if (sessionPlayerId == -1)
+            if (!WebSocketService.Connected)
             {
-                Debug.LogError("❌ Invalid SessionPlayer ID! Cannot load dev cards.");
+                Debug.LogError("❌ WebSocket not connected - cannot load dev cards");
+                OnError?.Invoke("Not connected to game session");
+                return;
+            }
+
+            if (cachedSessionPlayerId <= 0)
+            {
+                Debug.LogError("❌ Invalid SessionPlayer ID - cannot load dev cards");
                 OnError?.Invoke("Invalid session player ID");
                 return;
             }
 
-            DebugLog($"Loading dev cards for SessionPlayer ID: {sessionPlayerId}");
+            try
+            {
+                // Create request message
+                var gameMove = new GameMoveDto(GameMoveType.REQUEST_DEV_CARDS);
+                string serialized = Newtonsoft.Json.JsonConvert.SerializeObject(gameMove);
+                DebugLog($"✅ Created REQUEST_DEV_CARDS message: {serialized}");
 
-            StartCoroutine(devCardService.List(sessionPlayerId,
-                cards => {
-                    playerCards = cards;
-                    OnCardsUpdated?.Invoke(playerCards);
-                    DebugLog($"✅ Loaded {cards.Count} dev cards from backend");
+                // Send via WebSocket (no StartCoroutine needed)
+                SendRequestDevCards(gameMove);
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError($"❌ Failed to request dev cards: {ex.Message}");
+                OnError?.Invoke("Failed to request dev cards: " + ex.Message);
+            }
 
-                    if (enableVerboseLogging)
-                    {
-                        foreach (var card in cards)
-                        {
-                            DebugLog($"  - {card.type} (ID: {card.id}, playable: {card.playable}, used: {card.used})");
-                        }
-                    }
-                },
-                error => {
-                    Debug.LogError($"❌ Failed to load dev cards: {error}");
-                    OnError?.Invoke(error);
-                }
-            ));
+            DebugLog("=== LOAD PLAYER CARDS VIA WEBSOCKET END ===");
         }
+
+        private void HandleDevCardsListReceived(DevCardsListResponseDto response)
+        {
+            DebugLog("=== DEV CARDS LIST RECEIVED VIA WEBSOCKET ===");
+            DebugLog($"📥 Received {response.devCards.Count} dev cards for {response.username}");
+
+            // Update local cards list
+            playerCards.Clear();
+            playerCards.AddRange(response.devCards);
+
+            // Debug the received cards - this should now show correct types!
+            DebugLog("📋 Received dev cards from WebSocket:");
+            for (int i = 0; i < playerCards.Count; i++)
+            {
+                var card = playerCards[i];
+                DebugLog($"  {i + 1}. {card.type} (ID: {card.id}, playable: {card.playable}, used: {card.used})");
+            }
+
+            // Notify UI
+            OnCardsUpdated?.Invoke(playerCards);
+
+            if (enableEventDebugging)
+            {
+                DebugLog("🔔 OnCardsUpdated event fired with correct card types!");
+            }
+
+            DebugLog("=== DEV CARDS LIST PROCESSING COMPLETE ===");
+        }
+
+
+        private async void SendRequestDevCards(GameMoveDto gameMove)
+        {
+            DebugLog("📤 Sending REQUEST_DEV_CARDS via WebSocket...");
+
+            try
+            {
+                await WebSocketService.SendGameMove(gameMove);
+                DebugLog("✅ REQUEST_DEV_CARDS sent successfully");
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError($"❌ Failed to send REQUEST_DEV_CARDS: {ex.Message}");
+                OnError?.Invoke("Failed to send dev cards request: " + ex.Message);
+            }
+        }
+
+
 
         public List<DevCardDto> GetPlayerCards()
         {

@@ -17,7 +17,12 @@ namespace Assets.Scripts.Dtos
         {
             if (gameMoveType == GameMoveType.VICTORY)
                 throw new ArgumentException("You do not decide this");
-            if (gameMoveType != GameMoveType.DICE_ROLL && gameMoveType != GameMoveType.END_TURN && gameMoveType != GameMoveType.BUY_CARD && gameMoveType != GameMoveType.TURN_ORDER)
+            // Updated to include REQUEST_DEV_CARDS as an allowed type without additional data
+            if (gameMoveType != GameMoveType.DICE_ROLL &&
+                gameMoveType != GameMoveType.END_TURN &&
+                gameMoveType != GameMoveType.BUY_CARD &&
+                gameMoveType != GameMoveType.TURN_ORDER &&
+                gameMoveType != GameMoveType.REQUEST_DEV_CARDS)
                 throw new ArgumentException("Passed game move type requires additional data");
             this.gameMoveType = gameMoveType;
         }
@@ -40,8 +45,8 @@ namespace Assets.Scripts.Dtos
             moveData = placeRoadDto;
         }
 
-
-        public GameMoveDto(PlaceStructureDto placeStructureDto){
+        public GameMoveDto(PlaceStructureDto placeStructureDto)
+        {
             gameMoveType = GameMoveType.PLACE_STRUCTURE;
             moveData = placeStructureDto;
         }
@@ -51,12 +56,12 @@ namespace Assets.Scripts.Dtos
             gameMoveType = GameMoveType.PLAY_CARD;
             moveData = playCardDto;
         }
+
         public GameMoveDto(TradeResponseMessage resp)
         {
             gameMoveType = GameMoveType.TRADE_RESPONSE;
             moveData = resp;
         }
-
 
         public GameMoveDto(TradeOfferMessage tradeOffer)
         {
