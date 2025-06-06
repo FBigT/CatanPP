@@ -56,7 +56,9 @@ namespace Assets.Scripts.Utils
             webSocket.OnMessage += (bytes) =>
             {
                 Debug.Log("[WS] Raw incoming message:\n" + Encoding.UTF8.GetString(bytes));
-
+                Debug.Log($"📡 [WebSocket] === RAW MESSAGE RECEIVED ===");
+                Debug.Log($"📡 [WebSocket] Timestamp: {DateTime.Now:HH:mm:ss.fff}");
+                Debug.Log($"📡 [WebSocket] Message length: {bytes.Length}");
                 var message = Encoding.UTF8.GetString(bytes);
 
                 Debug.Log($"Message received: {message}");

@@ -13,34 +13,115 @@ namespace Assets.Scripts.Utils
 
         public override object ReadJson(JsonReader reader, Type objectType, object existingValue, JsonSerializer serializer)
         {
-            JObject jo = JObject.Load(reader);
+            Console.WriteLine("🔍 [GameMoveResponseConverter] === STARTING JSON DESERIALIZATION ===");
 
-            var gameMoveType = jo["gameMoveType"]?.ToObject<GameMoveType>();
-            object moveData = gameMoveType switch
+            JObject jo;
+            try
             {
-                GameMoveType.PLACE_ROAD => jo["moveData"]?.ToObject<PlaceRoadResponse>(serializer),
-                GameMoveType.BUY_CARD => jo["moveData"]?.ToObject<BuyCardResponseDto>(serializer),
-                GameMoveType.PRIVATE_BUY_CARD => jo["moveData"]?.ToObject<PrivateBuyCard>(serializer),
-                GameMoveType.UPGRADE_STRUCTURE => jo["moveData"]?.ToObject<UpgradeStructureResponse>(serializer),
-                GameMoveType.ROBBER_MOVE => jo["moveData"]?.ToObject<RobberMoveResponse>(serializer),
-                GameMoveType.PLACE_STRUCTURE => jo["moveData"]?.ToObject<PlaceStructureResponse>(serializer),
-                GameMoveType.DICE_ROLL => jo["moveData"]?.ToObject<DiceResultDto>(serializer),
-                GameMoveType.END_TURN => jo["moveData"]?.ToObject<EndTurnResponse>(serializer),
-                GameMoveType.TURN_ORDER => jo["moveData"]?.ToObject<TurnOrderResponse>(serializer),
-                //Complex type
-                GameMoveType.PLAY_CARD => jo["moveData"]?.ToObject<PlayCardResponseDto>(serializer),
-                GameMoveType.TRADE_OFFER => jo["moveData"]?.ToObject<TradeOfferMessage>(serializer),
-                GameMoveType.TRADE_RESPONSE => jo["moveData"]?.ToObject<TradeResponseMessage>(serializer),
-                _ => throw new JsonSerializationException($"Unknown GameMoveType: {gameMoveType}"),
+                jo = JObject.Load(reader);
+                Console.WriteLine($"✅ [GameMoveResponseConverter] Successfully loaded JObject: {jo}");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"❌ [GameMoveResponseConverter] Failed to load JObject: {ex.Message}");
+                throw;
+            }
 
+            var gameMoveTypeToken = jo["gameMoveType"];
+            Console.WriteLine($"🎯 [GameMoveResponseConverter] GameMoveType token: {gameMoveTypeToken}");
 
-            };
-            return new GameMoveResponseDto
+            if (gameMoveTypeToken == null)
+            {
+                Console.WriteLine("❌ [GameMoveResponseConverter] No gameMoveType found in JSON!");
+                throw new JsonSerializationException("Missing gameMoveType in JSON");
+            }
+
+            GameMoveType? gameMoveType;
+            try
+            {
+                gameMoveType = gameMoveTypeToken.ToObject<GameMoveType>();
+                Console.WriteLine($"✅ [GameMoveResponseConverter] Parsed GameMoveType: {gameMoveType}");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"❌ [GameMoveResponseConverter] Failed to parse GameMoveType: {ex.Message}");
+                Console.WriteLine($"Raw gameMoveType value: {gameMoveTypeToken}");
+                throw;
+            }
+
+            var moveDataToken = jo["moveData"];
+            Console.WriteLine($"📦 [GameMoveResponseConverter] MoveData token: {moveDataToken}");
+
+            object moveData;
+            try
+            {
+                Console.WriteLine($"🔄 [GameMoveResponseConverter] Processing moveData for type: {gameMoveType}");
+
+                moveData = gameMoveType switch
+                {
+                    GameMoveType.PLACE_ROAD => DeserializeWithLogging<PlaceRoadResponse>(moveDataToken, serializer, "PLACE_ROAD"),
+                    GameMoveType.BUY_CARD => DeserializeWithLogging<BuyCardResponseDto>(moveDataToken, serializer, "BUY_CARD"),
+                    GameMoveType.PRIVATE_BUY_CARD => DeserializeWithLogging<PrivateBuyCard>(moveDataToken, serializer, "PRIVATE_BUY_CARD"),
+                    GameMoveType.UPGRADE_STRUCTURE => DeserializeWithLogging<UpgradeStructureResponse>(moveDataToken, serializer, "UPGRADE_STRUCTURE"),
+                    GameMoveType.ROBBER_MOVE => DeserializeWithLogging<RobberMoveResponse>(moveDataToken, serializer, "ROBBER_MOVE"),
+                    GameMoveType.PLACE_STRUCTURE => DeserializeWithLogging<PlaceStructureResponse>(moveDataToken, serializer, "PLACE_STRUCTURE"),
+                    GameMoveType.DICE_ROLL => DeserializeWithLogging<DiceResultDto>(moveDataToken, serializer, "DICE_ROLL"),
+                    GameMoveType.END_TURN => DeserializeWithLogging<EndTurnResponse>(moveDataToken, serializer, "END_TURN"),
+                    GameMoveType.TURN_ORDER => DeserializeWithLogging<TurnOrderResponse>(moveDataToken, serializer, "TURN_ORDER"),
+                    GameMoveType.PLAY_CARD => DeserializeWithLogging<PlayCardResponseDto>(moveDataToken, serializer, "PLAY_CARD"),
+                    GameMoveType.TRADE_OFFER => DeserializeWithLogging<TradeOfferMessage>(moveDataToken, serializer, "TRADE_OFFER"),
+                    GameMoveType.TRADE_RESPONSE => DeserializeWithLogging<TradeResponseMessage>(moveDataToken, serializer, "TRADE_RESPONSE"),
+                    _ => throw new JsonSerializationException($"Unknown GameMoveType: {gameMoveType}"),
+                };
+
+                Console.WriteLine($"✅ [GameMoveResponseConverter] Successfully deserialized moveData: {moveData}");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"❌ [GameMoveResponseConverter] Failed to deserialize moveData: {ex.Message}");
+                Console.WriteLine($"Raw moveData: {moveDataToken}");
+                Console.WriteLine($"Stack trace: {ex.StackTrace}");
+                throw;
+            }
+
+            var result = new GameMoveResponseDto
             {
                 GameMoveType = gameMoveType.Value,
                 moveData = moveData
             };
+
+            Console.WriteLine($"🎉 [GameMoveResponseConverter] Final result: GameMoveType={result.GameMoveType}, moveData={result.moveData}");
+            Console.WriteLine("🔍 [GameMoveResponseConverter] === JSON DESERIALIZATION COMPLETE ===");
+
+            return result;
         }
+
+        private T DeserializeWithLogging<T>(JToken token, JsonSerializer serializer, string typeName)
+        {
+            Console.WriteLine($"🔄 [GameMoveResponseConverter] Deserializing {typeName}...");
+            Console.WriteLine($"Raw {typeName} data: {token}");
+
+            try
+            {
+                if (token == null)
+                {
+                    Console.WriteLine($"⚠️ [GameMoveResponseConverter] Token is null for {typeName}");
+                    return default(T);
+                }
+
+                T result = token.ToObject<T>(serializer);
+                Console.WriteLine($"✅ [GameMoveResponseConverter] Successfully deserialized {typeName}: {result}");
+                return result;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"❌ [GameMoveResponseConverter] Failed to deserialize {typeName}: {ex.Message}");
+                Console.WriteLine($"Expected type: {typeof(T).Name}");
+                throw;
+            }
+        }
+
+
 
         public override void WriteJson(JsonWriter writer, object value, JsonSerializer serializer)
         {

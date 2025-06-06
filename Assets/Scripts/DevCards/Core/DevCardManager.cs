@@ -18,7 +18,10 @@ namespace Assets.Scripts.DevCards.Core
     public class DevCardManager : MonoBehaviour
     {
         public static DevCardManager Instance { get; private set; }
-
+        // ADD THESE MISSING FIELDS:
+        private DateTime lastBuyRequestTime;
+        private int buyRequestsSent = 0;
+        private int buyResponsesReceived = 0;
         [Header("Dev Cards")]
         public List<DevCardDto> playerCards = new List<DevCardDto>();
 
@@ -202,16 +205,25 @@ namespace Assets.Scripts.DevCards.Core
                 yield break;
             }
 
+            // Use the same endpoint pattern as TradingManager
             string url = $"http://localhost:8080/api/session/code/{sessionCode}";
             using UnityWebRequest req = UnityWebRequest.Get(url);
-            req.SetRequestHeader("Authorization", jwt);
+
+            // Use the EXACT same authorization header format as TradingManager
+            req.SetRequestHeader("Authorization", jwt); // TradingManager uses jwt directly, not "Bearer " + jwt
 
             DebugLog($"[GetSessionId] GET {url}");
+            DebugLog($"[GetSessionId] Authorization header: {jwt.Substring(0, 20)}...");
+
             yield return req.SendWebRequest();
 
             if (req.result != UnityWebRequest.Result.Success)
             {
                 Debug.LogError($"[GetSessionId] {req.error} ({req.responseCode})");
+                if (!string.IsNullOrEmpty(req.downloadHandler.text))
+                {
+                    Debug.LogError($"[GetSessionId] Response body: {req.downloadHandler.text}");
+                }
                 yield break;
             }
 
@@ -235,6 +247,7 @@ namespace Assets.Scripts.DevCards.Core
                 Debug.LogError("[GetSessionId] JSON parse error: " + ex.Message);
             }
         }
+
         #endregion
 
         #region Get Session Players (exactly like TradingManager)
@@ -273,9 +286,18 @@ namespace Assets.Scripts.DevCards.Core
 
             try
             {
+<<<<<<< Updated upstream
                 // Use the same JSON parsing as TradingManager
                 Assets.Scripts.GameMode.Trading.Models.SessionPlayerDto[] arr =
                 JsonHelper.FromJson<Assets.Scripts.GameMode.Trading.Models.SessionPlayerDto>(req.downloadHandler.text);
+=======
+                // Alternative without JsonHelper:
+                string jsonResponse = req.downloadHandler.text;
+                string wrappedJson = $"{{\"Items\":{jsonResponse}}}";
+                var wrapper = JsonUtility.FromJson<SessionPlayerArrayWrapper>(wrappedJson);
+                Assets.Scripts.GameMode.Trading.Models.SessionPlayerDto[] arr = wrapper.Items;
+
+>>>>>>> Stashed changes
                 var list = new List<Assets.Scripts.GameMode.Trading.Models.SessionPlayerDto>(arr);
 
                 string currentUsername = LocalStorageService.GetString("username");
@@ -480,9 +502,72 @@ namespace Assets.Scripts.DevCards.Core
 
         private void CheckForBuyCardResponse()
         {
-            DebugLog("⏱️ Checking for buy card response after 2 seconds...");
-        }
+            DebugLog("⏱️ === DETAILED BUY CARD RESPONSE CHECK ===");
+            DebugLog($"⏱️ Time since last buy request: {(DateTime.Now - lastBuyRequestTime).TotalSeconds:F1} seconds");
+            DebugLog($"📊 Buy requests sent: {buyRequestsSent}");
+            DebugLog($"📊 Buy responses received: {buyResponsesReceived}");
 
+            // Check WebSocket connection status
+            bool wsConnected = WebSocketService.Connected;
+            DebugLog($"📡 WebSocket Connected: {wsConnected}");
+
+            if (!wsConnected)
+            {
+                Debug.LogError("❌ WebSocket disconnected! This explains why no response was received.");
+                OnError?.Invoke("WebSocket connection lost");
+                return;
+            }
+
+            // Check if we missed a response
+            if (buyResponsesReceived < buyRequestsSent)
+            {
+                Debug.LogWarning($"⚠️ Missing response! Expected {buyRequestsSent}, got {buyResponsesReceived}");
+                DebugLog("🔍 Possible causes:");
+                DebugLog("  1. Backend validation failed (insufficient resources)");
+                DebugLog("  2. Not your turn / game state restrictions");
+                DebugLog("  3. Backend exception occurred");
+                DebugLog("  4. WebSocket message routing failed");
+                DebugLog("  5. JSON deserialization failed");
+                DebugLog("  6. Event subscription not working");
+
+                // Check current resources
+                DebugCurrentPlayerResources();
+
+                // Check session state
+                DebugSessionState();
+
+                // Force reload cards to see if anything changed
+                DebugLog("🔄 Force reloading cards to check for changes...");
+                LoadPlayerCards();
+            }
+            else
+            {
+                DebugLog("✅ Response received successfully!");
+            }
+        }
+        private void DebugCurrentPlayerResources()
+        {
+            DebugLog("💰 === CURRENT PLAYER RESOURCES ===");
+            // You'll need to add a way to get current resources
+            // This might require calling your resource service or checking PlayerPrefs
+            DebugLog("💰 (Add resource checking logic here)");
+        }
+        private void DebugSessionState()
+        {
+            DebugLog("🎮 === CURRENT SESSION STATE ===");
+            string sessionCode = LocalStorageService.GetString("session-code");
+            string username = LocalStorageService.GetString("username");
+
+            DebugLog($"🎮 Session Code: {sessionCode}");
+            DebugLog($"🎮 Username: {username}");
+            DebugLog($"🎮 SessionPlayer ID: {cachedSessionPlayerId}");
+            DebugLog($"🎮 Current Cards: {playerCards.Count}");
+
+            foreach (var card in playerCards)
+            {
+                DebugLog($"  🃏 {card.type} (ID: {card.id}, playable: {card.playable}, used: {card.used})");
+            }
+        }
         public async void PlayDevCard(DevCardDto card, DevCardType type)
         {
             DebugLog($"=== PLAY DEV CARD ATTEMPT ===");
@@ -687,5 +772,11 @@ namespace Assets.Scripts.DevCards.Core
             public string token;
             public string refreshToken;
         }
+        [System.Serializable]
+        private class SessionPlayerArrayWrapper
+        {
+            public Assets.Scripts.GameMode.Trading.Models.SessionPlayerDto[] Items;
+        }
+
     }
 }
