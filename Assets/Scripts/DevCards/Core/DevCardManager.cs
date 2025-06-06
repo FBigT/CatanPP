@@ -10,6 +10,7 @@ using System;
 using System.Linq;
 using System.Collections;
 using System.Text;
+using UnityEngine.Networking;
 
 namespace Assets.Scripts.DevCards.Core
 {
@@ -31,6 +32,8 @@ namespace Assets.Scripts.DevCards.Core
 
         // Dependencies
         private DevCardService devCardService;
+        private long cachedSessionPlayerId = -1;
+        private long cachedSessionId = -1;
 
         private void Awake()
         {
@@ -67,8 +70,236 @@ namespace Assets.Scripts.DevCards.Core
             AddWebSocketDebugging();
             DebugSessionInfo();
 
-            LoadPlayerCards();
+            // Subscribe to TradingManager's OnPlayersLoaded event (same as StructurePlacer)
+            Assets.Scripts.GameMode.Trading.TradingManager.OnPlayersLoaded += HandlePlayersLoaded;
+            DebugLog("✅ Subscribed to TradingManager.OnPlayersLoaded event");
+
+            // Initialize session and load cards
+            StartCoroutine(InitializeSessionAndLoadCards());
         }
+
+        private IEnumerator InitializeSessionAndLoadCards()
+        {
+            DebugLog("🔄 Initializing session and loading dev cards...");
+
+            // Get session ID first
+            yield return StartCoroutine(GetSessionIdFromCode());
+
+            if (cachedSessionId > 0)
+            {
+                DebugLog($"✅ Session ID initialized: {cachedSessionId}");
+
+                // Get session players (same as TradingManager does)
+                yield return StartCoroutine(GetSessionPlayersFromAPI());
+
+                if (cachedSessionPlayerId > 0)
+                {
+                    DebugLog($"✅ SessionPlayer ID initialized: {cachedSessionPlayerId}");
+                    LoadPlayerCards();
+                }
+                else
+                {
+                    Debug.LogError("❌ Failed to get SessionPlayer ID");
+                }
+            }
+            else
+            {
+                Debug.LogError("❌ Failed to get Session ID");
+            }
+        }
+
+        private void HandlePlayersLoaded(List<Assets.Scripts.GameMode.Trading.Models.SessionPlayerDto> players)
+        {
+            DebugLog($"[DevCardManager] TradingManager loaded {players.Count} players");
+
+            string currentUsername = LocalStorageService.GetString("username");
+            var myPlayer = players.FirstOrDefault(p => p.username == currentUsername);
+
+            if (myPlayer != null)
+            {
+                cachedSessionPlayerId = myPlayer.id;
+                DebugLog($"✅ [DevCardManager] Got SessionPlayer ID from TradingManager: {cachedSessionPlayerId}");
+
+                // Store in PlayerPrefs
+                PlayerPrefs.SetString("sessionPlayerId", cachedSessionPlayerId.ToString());
+                PlayerPrefs.Save();
+
+                // Load dev cards with correct sessionPlayerId
+                LoadPlayerCards();
+            }
+            else
+            {
+                Debug.LogError($"❌ Could not find user '{currentUsername}' in TradingManager players");
+            }
+        }
+
+        #region Auth refresh (copied from TradingManager)
+        private IEnumerator EnsureValidToken()
+        {
+            string jwt = LocalStorageService.GetString("token");
+            string refresh = LocalStorageService.GetString("refresh-token");
+
+            DebugLog($"[TokenCheck] Existing JWT: {jwt}");
+            DebugLog($"[TokenCheck] Refresh token: {refresh}");
+
+            if (SecurityUtils.IsTokenValid(jwt))
+            {
+                DebugLog("[TokenCheck] JWT is still valid.");
+                yield break;
+            }
+
+            if (string.IsNullOrEmpty(refresh))
+            {
+                Debug.LogError("[TokenCheck] No refresh token available.");
+                yield break;
+            }
+
+            var body = System.Text.Encoding.UTF8.GetBytes($"\"{refresh}\"");
+            using UnityWebRequest req = new UnityWebRequest(EndpointUtils.Refresh, "POST")
+            {
+                uploadHandler = new UploadHandlerRaw(body),
+                downloadHandler = new DownloadHandlerBuffer()
+            };
+            req.SetRequestHeader("Content-Type", "application/json");
+
+            DebugLog("[TokenCheck] Attempting to refresh token...");
+            yield return req.SendWebRequest();
+
+            if (req.result == UnityWebRequest.Result.Success)
+            {
+                AuthResponse resp = JsonUtility.FromJson<AuthResponse>(req.downloadHandler.text);
+                string newToken = resp.tokenType + " " + resp.token;
+
+                LocalStorageService.SetVariable("token", newToken);
+                LocalStorageService.SetVariable("refresh-token", resp.refreshToken);
+
+                DebugLog("[TokenCheck] Token refresh successful.");
+            }
+            else
+            {
+                Debug.LogError("[TokenCheck] Token refresh failed: " + req.error);
+            }
+        }
+        #endregion
+
+        #region Get Session ID (same pattern as TradingManager)
+        private IEnumerator GetSessionIdFromCode()
+        {
+            string sessionCode = LocalStorageService.GetString("session-code");
+            if (string.IsNullOrEmpty(sessionCode))
+            {
+                Debug.LogError("❌ No session code found");
+                yield break;
+            }
+
+            yield return StartCoroutine(EnsureValidToken());
+
+            string jwt = LocalStorageService.GetString("token");
+            if (!SecurityUtils.IsTokenValid(jwt))
+            {
+                Debug.LogError("❌ User not authenticated (token invalid)");
+                yield break;
+            }
+
+            string url = $"http://localhost:8080/api/session/code/{sessionCode}";
+            using UnityWebRequest req = UnityWebRequest.Get(url);
+            req.SetRequestHeader("Authorization", jwt);
+
+            DebugLog($"[GetSessionId] GET {url}");
+            yield return req.SendWebRequest();
+
+            if (req.result != UnityWebRequest.Result.Success)
+            {
+                Debug.LogError($"[GetSessionId] {req.error} ({req.responseCode})");
+                yield break;
+            }
+
+            DebugLog("[GetSessionId] Response: " + req.downloadHandler.text);
+
+            try
+            {
+                var sessionData = JsonUtility.FromJson<SessionDto>(req.downloadHandler.text);
+                if (sessionData != null && sessionData.id > 0)
+                {
+                    cachedSessionId = sessionData.id;
+                    DebugLog($"✅ Got session ID: {cachedSessionId}");
+                }
+                else
+                {
+                    Debug.LogError("❌ Invalid session data received");
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError("[GetSessionId] JSON parse error: " + ex.Message);
+            }
+        }
+        #endregion
+
+        #region Get Session Players (exactly like TradingManager)
+        private IEnumerator GetSessionPlayersFromAPI()
+        {
+            if (cachedSessionId <= 0)
+            {
+                Debug.LogError("❌ Invalid session ID");
+                yield break;
+            }
+
+            yield return StartCoroutine(EnsureValidToken());
+
+            string jwt = LocalStorageService.GetString("token");
+            if (!SecurityUtils.IsTokenValid(jwt))
+            {
+                Debug.LogError("❌ User not authenticated (token invalid)");
+                yield break;
+            }
+
+            // Use the same endpoint as TradingManager
+            string url = EndpointUtils.GetSessionPlayers(cachedSessionId);
+            using UnityWebRequest req = UnityWebRequest.Get(url);
+            req.SetRequestHeader("Authorization", jwt);
+
+            DebugLog($"[GetSessionPlayers] GET {url}");
+            yield return req.SendWebRequest();
+
+            if (req.result != UnityWebRequest.Result.Success)
+            {
+                Debug.LogError($"[GetSessionPlayers] {req.error} ({req.responseCode})");
+                yield break;
+            }
+
+            DebugLog("[GetSessionPlayers] Response: " + req.downloadHandler.text);
+
+            try
+            {
+                // Use the same JSON parsing as TradingManager
+                Assets.Scripts.GameMode.Trading.Models.SessionPlayerDto[] arr =
+                    JsonHelper.FromJson<Assets.Scripts.GameMode.Trading.Models.SessionPlayerDto>(req.downloadHandler.text);
+                var list = new List<Assets.Scripts.GameMode.Trading.Models.SessionPlayerDto>(arr);
+
+                string currentUsername = LocalStorageService.GetString("username");
+                var myPlayer = list.FirstOrDefault(p => p.username == currentUsername);
+
+                if (myPlayer != null)
+                {
+                    cachedSessionPlayerId = myPlayer.id;
+                    DebugLog($"✅ Found my SessionPlayer ID: {cachedSessionPlayerId}");
+
+                    // Store in PlayerPrefs
+                    PlayerPrefs.SetString("sessionPlayerId", cachedSessionPlayerId.ToString());
+                    PlayerPrefs.Save();
+                }
+                else
+                {
+                    Debug.LogError($"❌ Could not find user '{currentUsername}' in session players");
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError("[GetSessionPlayers] JSON parse error: " + ex.Message);
+            }
+        }
+        #endregion
 
         private void ExtractUserIdFromToken()
         {
@@ -128,21 +359,10 @@ namespace Assets.Scripts.DevCards.Core
                 PlayerPrefs.SetString("userId", tokenData.id.ToString());
                 PlayerPrefs.Save();
                 DebugLog($"✅ User ID {tokenData.id} stored in PlayerPrefs!");
-
-                string storedUserIdStr = PlayerPrefs.GetString("userId", "");
-                if (long.TryParse(storedUserIdStr, out long storedUserId) && storedUserId == tokenData.id)
-                {
-                    DebugLog($"✅ VERIFICATION SUCCESS: User ID {storedUserId} confirmed in PlayerPrefs");
-                }
-                else
-                {
-                    Debug.LogError($"❌ VERIFICATION FAILED: Expected {tokenData.id}, got {storedUserIdStr}");
-                }
             }
             catch (Exception ex)
             {
                 Debug.LogError($"❌ Failed to extract User ID from JWT token: {ex.Message}");
-                Debug.LogError($"❌ Stack trace: {ex.StackTrace}");
             }
         }
 
@@ -173,10 +393,6 @@ namespace Assets.Scripts.DevCards.Core
 
             DebugLog("Adding WebSocket debugging...");
 
-            WebSocketService.OnChatMessageReceived += (msg) => {
-                DebugLog($"[WEBSOCKET] Chat message: {msg.text}");
-            };
-
             WebSocketService.OnBuyCardResponse += (response) => {
                 DebugLog($"[WEBSOCKET] OnBuyCardResponse fired: {response.username} (cards: {response.numberOfCards})");
             };
@@ -194,10 +410,18 @@ namespace Assets.Scripts.DevCards.Core
         {
             string sessionCode = LocalStorageService.GetString("session-code");
             string userIdStr = PlayerPrefs.GetString("userId", "");
+            string sessionPlayerIdStr = PlayerPrefs.GetString("sessionPlayerId", "");
+
             long userId = -1;
             if (!string.IsNullOrEmpty(userIdStr) && long.TryParse(userIdStr, out long parsedUserId))
             {
                 userId = parsedUserId;
+            }
+
+            long sessionPlayerId = -1;
+            if (!string.IsNullOrEmpty(sessionPlayerIdStr) && long.TryParse(sessionPlayerIdStr, out long parsedSessionPlayerId))
+            {
+                sessionPlayerId = parsedSessionPlayerId;
             }
 
             string token = LocalStorageService.GetString("token");
@@ -205,17 +429,20 @@ namespace Assets.Scripts.DevCards.Core
 
             DebugLog($"[SESSION INFO]");
             DebugLog($"  Session Code: {sessionCode ?? "NULL"}");
+            DebugLog($"  Session ID: {cachedSessionId}");
             DebugLog($"  User ID: {userId}");
+            DebugLog($"  SessionPlayer ID: {sessionPlayerId}");
+            DebugLog($"  Cached SessionPlayer ID: {cachedSessionPlayerId}");
             DebugLog($"  Token: {(string.IsNullOrEmpty(token) ? "MISSING" : "Present")}");
             DebugLog($"  WebSocket Connected: {wsConnected}");
 
-            if (userId == -1)
+            if (cachedSessionPlayerId <= 0)
             {
-                Debug.LogError("❌ USER ID IS STILL -1! JWT extraction may have failed!");
+                Debug.LogError("❌ SESSIONPLAYER ID IS INVALID! This is why dev cards aren't working!");
             }
             else
             {
-                DebugLog($"✅ User ID looks valid: {userId}");
+                DebugLog($"✅ SessionPlayer ID looks valid: {cachedSessionPlayerId}");
             }
         }
 
@@ -232,42 +459,6 @@ namespace Assets.Scripts.DevCards.Core
             }
             DebugLog("✅ WebSocket connection verified");
 
-            string sessionCode = LocalStorageService.GetString("session-code");
-            if (string.IsNullOrEmpty(sessionCode))
-            {
-                Debug.LogError("❌ No session code found!");
-                OnError?.Invoke("No active game session");
-                return;
-            }
-            DebugLog($"✅ Session code verified: {sessionCode}");
-
-            string userIdStr = PlayerPrefs.GetString("userId", "");
-            long userId = -1;
-            if (!string.IsNullOrEmpty(userIdStr) && long.TryParse(userIdStr, out long parsedUserId))
-            {
-                userId = parsedUserId;
-            }
-
-            if (userId == -1)
-            {
-                Debug.LogError("❌ Invalid User ID (-1)! Trying to re-extract from token...");
-                ExtractUserIdFromToken();
-
-                userIdStr = PlayerPrefs.GetString("userId", "");
-                if (!string.IsNullOrEmpty(userIdStr) && long.TryParse(userIdStr, out parsedUserId))
-                {
-                    userId = parsedUserId;
-                }
-
-                if (userId == -1)
-                {
-                    Debug.LogError("❌ Still invalid User ID after re-extraction!");
-                    OnError?.Invoke("Invalid user authentication");
-                    return;
-                }
-            }
-            DebugLog($"✅ User ID verified: {userId}");
-
             try
             {
                 var gameMove = new GameMoveDto(GameMoveType.BUY_CARD);
@@ -282,7 +473,6 @@ namespace Assets.Scripts.DevCards.Core
             catch (Exception ex)
             {
                 Debug.LogError($"❌ Failed to send buy dev card: {ex.Message}");
-                Debug.LogError($"❌ Stack trace: {ex.StackTrace}");
                 OnError?.Invoke("Failed to send buy request: " + ex.Message);
             }
         }
@@ -290,11 +480,6 @@ namespace Assets.Scripts.DevCards.Core
         private void CheckForBuyCardResponse()
         {
             DebugLog("⏱️ Checking for buy card response after 2 seconds...");
-            DebugLog("If no response was received, the issue might be:");
-            DebugLog("  1. Backend validation failing (not your turn)");
-            DebugLog("  2. Game phase restrictions");
-            DebugLog("  3. Backend not processing requests");
-            DebugLog("  4. WebSocket events not firing");
         }
 
         public async void PlayDevCard(DevCardDto card, DevCardType type)
@@ -380,21 +565,18 @@ namespace Assets.Scripts.DevCards.Core
 
         private void LoadPlayerCards()
         {
-            string userIdStr = PlayerPrefs.GetString("userId", "");
-            long playerId = 1;
+            long sessionPlayerId = GetSessionPlayerId();
 
-            if (!string.IsNullOrEmpty(userIdStr) && long.TryParse(userIdStr, out long parsedUserId))
+            if (sessionPlayerId == -1)
             {
-                playerId = parsedUserId;
-            }
-            else
-            {
-                DebugLog("⚠️ No valid User ID found in PlayerPrefs, using default: 1");
+                Debug.LogError("❌ Invalid SessionPlayer ID! Cannot load dev cards.");
+                OnError?.Invoke("Invalid session player ID");
+                return;
             }
 
-            DebugLog($"Loading dev cards for player ID: {playerId}");
+            DebugLog($"Loading dev cards for SessionPlayer ID: {sessionPlayerId}");
 
-            StartCoroutine(devCardService.List(playerId,
+            StartCoroutine(devCardService.List(sessionPlayerId,
                 cards => {
                     playerCards = cards;
                     OnCardsUpdated?.Invoke(playerCards);
@@ -420,6 +602,28 @@ namespace Assets.Scripts.DevCards.Core
             return new List<DevCardDto>(playerCards);
         }
 
+        private long GetSessionPlayerId()
+        {
+            // First check cached value
+            if (cachedSessionPlayerId > 0)
+            {
+                DebugLog($"✅ Using cached SessionPlayer ID: {cachedSessionPlayerId}");
+                return cachedSessionPlayerId;
+            }
+
+            // Then try PlayerPrefs
+            string sessionPlayerIdStr = PlayerPrefs.GetString("sessionPlayerId", "");
+            if (!string.IsNullOrEmpty(sessionPlayerIdStr) && long.TryParse(sessionPlayerIdStr, out long sessionPlayerId))
+            {
+                DebugLog($"✅ Found SessionPlayer ID in PlayerPrefs: {sessionPlayerId}");
+                cachedSessionPlayerId = sessionPlayerId; // Cache it
+                return sessionPlayerId;
+            }
+
+            Debug.LogError("❌ SessionPlayer ID not found!");
+            return -1;
+        }
+
         [ContextMenu("Debug Current State")]
         public void DebugCurrentState()
         {
@@ -429,11 +633,12 @@ namespace Assets.Scripts.DevCards.Core
             DebugSessionInfo();
         }
 
-        [ContextMenu("Re-extract User ID from Token")]
-        public void ReextractUserIdFromToken()
+        [ContextMenu("Refresh SessionPlayer ID")]
+        public void RefreshSessionPlayerId()
         {
-            ExtractUserIdFromToken();
-            DebugSessionInfo();
+            cachedSessionPlayerId = -1; // Clear cache
+            cachedSessionId = -1;
+            StartCoroutine(InitializeSessionAndLoadCards());
         }
 
         private void DebugLog(string message)
@@ -450,8 +655,12 @@ namespace Assets.Scripts.DevCards.Core
             WebSocketService.OnBuyCardResponse -= HandleBuyCardResponse;
             WebSocketService.OnPrivateBuyCard -= HandlePrivateBuyCard;
             WebSocketService.OnPlayCardResponse -= HandlePlayCardResponse;
+
+            // Unsubscribe from TradingManager event
+            Assets.Scripts.GameMode.Trading.TradingManager.OnPlayersLoaded -= HandlePlayersLoaded;
         }
 
+        // Helper DTOs (same as TradingManager)
         [System.Serializable]
         public class TokenPayload
         {
@@ -460,6 +669,22 @@ namespace Assets.Scripts.DevCards.Core
             public string jti;
             public long iat;
             public long exp;
+        }
+
+        [System.Serializable]
+        public class SessionDto
+        {
+            public long id;
+            public string code;
+            public string status;
+        }
+
+        [System.Serializable]
+        class AuthResponse
+        {
+            public string tokenType;
+            public string token;
+            public string refreshToken;
         }
     }
 }

@@ -177,6 +177,8 @@ namespace Catan.Controllers
             /* backend ---------------------------------------------------------- */
             StartCoroutine(SendToServer(conn));
         }
+        // In StructurePlacer.cs, add this public method:
+        
 
 
         /* ====================================================================== */
