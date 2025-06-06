@@ -59,71 +59,137 @@ public class WebSocketController {
 
     @MessageMapping("/move/{sessionCode}")
     public void gameMove(@DestinationVariable String sessionCode, @Payload GameMoveDto gameMoveDto, Principal principal) {
+        System.out.println("🎯 [WebSocketController] === GAME MOVE RECEIVED ===");
+        System.out.println("🎯 [WebSocketController] Timestamp: " + java.time.LocalDateTime.now());
+        System.out.println("🎯 [WebSocketController] Session Code: " + sessionCode);
+        System.out.println("🎯 [WebSocketController] Game Move Type: " + gameMoveDto.getGameMoveType());
+        System.out.println("🎯 [WebSocketController] Move Data: " + gameMoveDto.getMoveData());
+        System.out.println("🎯 [WebSocketController] Principal: " + principal);
+        System.out.println("🎯 [WebSocketController] Principal Type: " + (principal != null ? principal.getClass().getSimpleName() : "NULL"));
+
         Object payload;
         Optional<SessionPlayer> winner = Optional.empty();
         SessionPlayer sessionPlayer;
-        GameMoveTypeEnum gameMoveType = GameMoveTypeEnum.valueOf(gameMoveDto.getGameMoveType());
+        GameMoveTypeEnum gameMoveType;
+
+        try {
+            gameMoveType = GameMoveTypeEnum.valueOf(gameMoveDto.getGameMoveType());
+            System.out.println("🎯 [WebSocketController] Parsed GameMoveType enum: " + gameMoveType);
+        } catch (Exception e) {
+            System.out.println("❌ [WebSocketController] Failed to parse GameMoveType: " + e.getMessage());
+            return;
+        }
+
         try {
             if (principal instanceof UsernamePasswordAuthenticationToken token &&
                     token.getPrincipal() instanceof UserDetailsImpl userDetails){
+
+                System.out.println("🎯 [WebSocketController] ✅ Principal is correct type");
+                System.out.println("🎯 [WebSocketController] User ID: " + userDetails.getId());
+                System.out.println("🎯 [WebSocketController] Username: " + userDetails.getUsername());
+
                 Optional<SessionPlayer> player = sessionPlayerService.findPlayerBySessionCodeAndUserId(sessionCode, userDetails.getId());
 
                 if (player.isEmpty()) {
+                    System.out.println("❌ [WebSocketController] Player not found for session: " + sessionCode + ", userId: " + userDetails.getId());
                     throw new MessageDeliveryException("Player not found");
                 }
 
                 sessionPlayer = player.get();
+                System.out.println("🎯 [WebSocketController] ✅ Found SessionPlayer: " + sessionPlayer.getId());
+                System.out.println("🎯 [WebSocketController] SessionPlayer Name: " + sessionPlayer.getName());
+                System.out.println("🎯 [WebSocketController] SessionPlayer Resources: Ore=" + sessionPlayer.getOre() +
+                        ", Rice=" + sessionPlayer.getRice() + ", Sheep=" + sessionPlayer.getSheep());
 
+                System.out.println("🎯 [WebSocketController] 🔄 Calling gameMoveHandler.handleGameMove()...");
                 payload = gameMoveHandler.handleGameMove(gameMoveType, gameMoveDto, sessionPlayer);
+                System.out.println("🎯 [WebSocketController] ✅ gameMoveHandler returned payload: " + payload);
+                System.out.println("🎯 [WebSocketController] Payload type: " + (payload != null ? payload.getClass().getSimpleName() : "NULL"));
 
                 winner = gameService.checkForWinner(sessionPlayer.getSession().getId());
+                System.out.println("🎯 [WebSocketController] Winner check result: " + winner.isPresent());
             } else {
+                System.out.println("❌ [WebSocketController] Unsupported principal type: " + (principal != null ? principal.getClass() : "NULL"));
                 throw new MessageDeliveryException("Unsupported principal type");
             }
-        } catch (Exception ignored) {
-            return;
-        }
-        /*if (gameMoveType == GameMoveTypeEnum.TRADE_OFFER) {
-            TradeOfferDto offer = objectMapper.convertValue(payload, TradeOfferDto.class);
-            messagingTemplate.convertAndSendToUser(
-                    offer.getToUser(),
-                    USER_QUEUE_PATH + sessionCode,
-                    new GameMoveDto(GameMoveTypeEnum.TRADE_OFFER.name(),
-                            objectMapper.convertValue(offer, Map.class))
-            );
+        } catch (Exception e) {
+            System.out.println("❌ [WebSocketController] Exception in gameMove: " + e.getMessage());
+            System.out.println("❌ [WebSocketController] Exception type: " + e.getClass().getSimpleName());
+            e.printStackTrace();
             return;
         }
 
-        if (gameMoveType == GameMoveTypeEnum.TRADE_RESPONSE) {
-            TradeResponseDto resp = objectMapper.convertValue(payload, TradeResponseDto.class);
-            messagingTemplate.convertAndSendToUser(
-                    resp.getToUser(),
-                    USER_QUEUE_PATH + sessionCode,
-                    new GameMoveDto(GameMoveTypeEnum.TRADE_RESPONSE.name(),
-                            objectMapper.convertValue(resp, Map.class))
-            );
-            return;
-        }*/
-
+        // Handle BUY_CARD specific logic with extensive debugging
         if (gameMoveType == GameMoveTypeEnum.BUY_CARD){
-            messagingTemplate.convertAndSendToUser(sessionPlayer.getUser().getUsername(), USER_QUEUE_PATH + sessionCode, new GameMoveDto(GameMoveTypeEnum.PRIVATE_BUY_CARD.name(), objectMapper.convertValue(((List<?>) payload).get(0), Map.class)));
-            payload = ((List<?>) payload).get(1);
+            System.out.println("🎯 [WebSocketController] 🛒 === PROCESSING BUY_CARD RESPONSE ===");
+            System.out.println("🎯 [WebSocketController] Payload type: " + (payload != null ? payload.getClass().getSimpleName() : "NULL"));
+            System.out.println("🎯 [WebSocketController] Payload content: " + payload);
+
+            if (payload instanceof List<?> payloadList) {
+                System.out.println("🎯 [WebSocketController] Payload is List with size: " + payloadList.size());
+
+                if (payloadList.size() >= 2) {
+                    Object privateCardData = payloadList.get(0);
+                    Object publicCardData = payloadList.get(1);
+
+                    System.out.println("🎯 [WebSocketController] Private card data: " + privateCardData);
+                    System.out.println("🎯 [WebSocketController] Private card data type: " + (privateCardData != null ? privateCardData.getClass().getSimpleName() : "NULL"));
+                    System.out.println("🎯 [WebSocketController] Public card data: " + publicCardData);
+                    System.out.println("🎯 [WebSocketController] Public card data type: " + (publicCardData != null ? publicCardData.getClass().getSimpleName() : "NULL"));
+
+                    // Send private message to buyer
+                    String destination = USER_QUEUE_PATH + sessionCode;
+                    String username = sessionPlayer.getUser().getUsername();
+                    System.out.println("🎯 [WebSocketController] 📤 Sending private message to: " + username);
+                    System.out.println("🎯 [WebSocketController] 📤 Private destination: " + destination);
+
+                    try {
+                        GameMoveDto privateMessage = new GameMoveDto(GameMoveTypeEnum.PRIVATE_BUY_CARD.name(), objectMapper.convertValue(privateCardData, Map.class));
+                        System.out.println("🎯 [WebSocketController] 📤 Private message content: " + privateMessage);
+
+                        messagingTemplate.convertAndSendToUser(username, destination, privateMessage);
+                        System.out.println("🎯 [WebSocketController] ✅ Private message sent successfully");
+                    } catch (Exception e) {
+                        System.out.println("❌ [WebSocketController] Failed to send private message: " + e.getMessage());
+                        e.printStackTrace();
+                    }
+
+                    payload = publicCardData;
+                    System.out.println("🎯 [WebSocketController] ✅ Using public payload for broadcast: " + payload);
+                } else {
+                    System.out.println("❌ [WebSocketController] Invalid payload list size: " + payloadList.size());
+                }
+            } else {
+                System.out.println("❌ [WebSocketController] Payload is not a List! Type: " + (payload != null ? payload.getClass().getSimpleName() : "NULL"));
+            }
         }
 
-        if (sessionPlayer.getSession().getInSetup() && gameMoveType == GameMoveTypeEnum.PLACE_ROAD) {
-            Object movePayload = ((List<?>) payload).get(0);
-            Object endTurnPayload = ((List<?>) payload).get(1);
-            messagingTemplate.convertAndSend(GAME_MOVE_DESTINATION + sessionCode, new GameMoveDto(gameMoveType.name(), objectMapper.convertValue(movePayload, Map.class)));
-            messagingTemplate.convertAndSend(GAME_MOVE_DESTINATION + sessionCode, new GameMoveDto(GameMoveTypeEnum.END_TURN.name(), objectMapper.convertValue(endTurnPayload, Map.class)));
-        } else {
-            messagingTemplate.convertAndSend(GAME_MOVE_DESTINATION + sessionCode, new GameMoveDto(gameMoveType.name(), objectMapper.convertValue(payload, Map.class)));
+        // Send public message to all players with debugging
+        String publicDestination = GAME_MOVE_DESTINATION + sessionCode;
+        System.out.println("🎯 [WebSocketController] 📤 Sending public message to: " + publicDestination);
+        System.out.println("🎯 [WebSocketController] 📤 Public payload: " + payload);
+        System.out.println("🎯 [WebSocketController] 📤 Public payload type: " + (payload != null ? payload.getClass().getSimpleName() : "NULL"));
+
+        try {
+            GameMoveDto publicMessage = new GameMoveDto(gameMoveType.name(), objectMapper.convertValue(payload, Map.class));
+            System.out.println("🎯 [WebSocketController] 📤 Public message content: " + publicMessage);
+
+            messagingTemplate.convertAndSend(publicDestination, publicMessage);
+            System.out.println("🎯 [WebSocketController] ✅ Public message sent successfully");
+        } catch (Exception e) {
+            System.out.println("❌ [WebSocketController] Failed to send public message: " + e.getMessage());
+            e.printStackTrace();
         }
 
         if (winner.isPresent()) {
+            System.out.println("🎯 [WebSocketController] 🏆 Processing victory...");
             VictoryDto victoryPayload = new VictoryDto(sessionPlayerService.findPlayersBySessionCode(sessionCode).stream()
                     .sorted(Comparator.comparingInt(SessionPlayer::getPlayerScore)).map(x
                             -> new PlayerScoreDto(x.getName(), x.getPlayerScore())).toList());
             messagingTemplate.convertAndSend(GAME_MOVE_DESTINATION + sessionCode, new GameMoveDto(GameMoveTypeEnum.VICTORY.name(), objectMapper.convertValue(victoryPayload, Map.class)));
         }
+
+        System.out.println("🎯 [WebSocketController] === GAME MOVE PROCESSING COMPLETE ===");
     }
+
 }

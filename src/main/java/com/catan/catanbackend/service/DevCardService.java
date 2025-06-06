@@ -7,6 +7,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 @Service
 @Transactional
@@ -38,14 +39,32 @@ public class DevCardService {
     /** Initialize a fresh shuffled deck for each new session */
     public void initDeckForSession(Session session) {
         List<DevCard> deck = new ArrayList<>();
-        // according to standard counts:
-        for (int i = 0; i < 14; i++) deck.add(new DevCard(DevCardType.KNIGHT, session));
-        for (int i = 0; i < 5;  i++) deck.add(new DevCard(DevCardType.VICTORY_POINT, session));
-        for (int i = 0; i < 2;  i++) deck.add(new DevCard(DevCardType.ROAD_BUILDING, session));
-        for (int i = 0; i < 2;  i++) deck.add(new DevCard(DevCardType.YEAR_OF_PLENTY, session));
+        // More balanced distribution for testing
+        for (int i = 0; i < 6; i++) deck.add(new DevCard(DevCardType.KNIGHT, session));
+        for (int i = 0; i < 6; i++) deck.add(new DevCard(DevCardType.VICTORY_POINT, session));
+        for (int i = 0; i < 6; i++) deck.add(new DevCard(DevCardType.ROAD_BUILDING, session));
+        for (int i = 0; i < 7; i++) deck.add(new DevCard(DevCardType.YEAR_OF_PLENTY, session));
         Collections.shuffle(deck);
 
         devCardRepo.saveAll(deck);
+    }
+
+    public void debugDeckComposition(Long sessionId) {
+        List<DevCard> allCards = devCardRepo.findBySessionId(sessionId);
+
+        Map<DevCardType, Long> cardCounts = allCards.stream()
+                .collect(Collectors.groupingBy(DevCard::getType, Collectors.counting()));
+
+        System.out.println("🃏 [DevCardService] Deck composition for session " + sessionId + ":");
+        cardCounts.forEach((type, count) ->
+                System.out.println("  " + type + ": " + count + " cards"));
+
+        long ownedCards = allCards.stream().filter(c -> c.getOwner() != null).count();
+        long remainingCards = allCards.stream().filter(c -> c.getOwner() == null).count();
+
+        System.out.println("  Total cards: " + allCards.size());
+        System.out.println("  Owned cards: " + ownedCards);
+        System.out.println("  Remaining in deck: " + remainingCards);
     }
 
     /** Player buys one: checks resources, subtracts, draws top card */

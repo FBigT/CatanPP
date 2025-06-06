@@ -122,12 +122,16 @@ public class GameMoveHandler {
                 return mapGenerationDto;
             }
             case BUY_CARD -> {
-                checkIfSessionValid(session);
-                checkIfSessionBlocked(sessionId);
+                // checkIfSessionValid(session);  // Already commented out
+                // checkIfSessionBlocked(sessionPlayer.getId());  // Comment this out too - dev cards don't need robber check
 
                 DevCard devCard = devCardService.buyDevCard(sessionPlayer.getId());
-                return List.of(new PrivateBuyCardResponse(devCard.getType(), devCard.getId()), new BuyCardResponseDto(sessionPlayer.getName(), devCardService.getPlayerCards(sessionPlayer.getId()).size()));
+                return List.of(new PrivateBuyCardResponse(devCard.getType(), devCard.getId()),
+                        new BuyCardResponseDto(sessionPlayer.getName(), devCardService.getPlayerCards(sessionPlayer.getId()).size()));
             }
+
+
+
             case PLACE_ROAD -> {
                 checkIfSessionValid(session);
                 checkIfSessionBlocked(sessionId);
@@ -357,11 +361,32 @@ public class GameMoveHandler {
     }
 
     private void checkIfSessionBlocked(Long sessionPlayerId) {
+<<<<<<< Updated upstream
         return;
         /*if (moveBlockerService.isSessionBlocked(sessionPlayerId)) {
             throw new IllegalArgumentException("Cannot move robber now");
         }*/
+=======
+        System.out.println("🔧 [GameMoveHandler] checkIfSessionBlocked called with: " + sessionPlayerId);
+
+        try {
+            boolean isBlocked = moveBlockerService.isSessionBlocked(sessionPlayerId);
+            System.out.println("🔧 [GameMoveHandler] Session blocked status: " + isBlocked);
+
+            if (isBlocked) {
+                System.out.println("❌ [GameMoveHandler] Session is blocked - throwing exception");
+                throw new IllegalArgumentException("Cannot move robber now");
+            }
+
+            System.out.println("✅ [GameMoveHandler] Session is not blocked - continuing");
+        } catch (Exception e) {
+            System.out.println("❌ [GameMoveHandler] Exception in checkIfSessionBlocked: " + e.getMessage());
+            e.printStackTrace();
+            throw e;
+        }
+>>>>>>> Stashed changes
     }
+
 
     private void checkIfSessionValid(Session session) {
         return;
