@@ -26,7 +26,8 @@ public class RefreshTokenService {
         if (existingToken.isPresent() && tokenIsValid(existingToken.get())) {
             return existingToken.get();
         }
-
+        refreshTokenRepository.deleteByUserId(user.getId());
+        refreshTokenRepository.flush();
         RefreshToken refreshToken = RefreshToken.builder()
                 .user(user)
                 .expireDate(Instant.now().plusSeconds(600))

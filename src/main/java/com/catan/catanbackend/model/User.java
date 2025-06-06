@@ -38,7 +38,4 @@ public class User {
     @OneToOne(mappedBy = "user", cascade = CascadeType.ALL)
     @PrimaryKeyJoinColumn
     private PlayerProfile playerProfile;
-
-    @OneToOne(mappedBy = "user", cascade = CascadeType.ALL)
-    private RefreshToken refreshToken;
 }
