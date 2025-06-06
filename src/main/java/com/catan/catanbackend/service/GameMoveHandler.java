@@ -338,7 +338,8 @@ public class GameMoveHandler {
     }
 
     private void checkForSetupOrdering(GameMoveTypeEnum gameMoveType, Session session, SessionPlayer sessionPlayer) {
-        if (session.getInSetup()) {
+        return;
+        /*if (session.getInSetup()) {
             switch (gameMoveType) {
                 case PLACE_ROAD -> {
                     if (Objects.equals(sessionPlayer.getRoadsPlaced(), sessionPlayer.getSettlementsPlaced()))
@@ -352,19 +353,21 @@ public class GameMoveHandler {
                 }
             }
             throw new IllegalArgumentException("Game move type not supported during setup");
-        }
+        }*/
     }
 
     private void checkIfSessionBlocked(Long sessionPlayerId) {
-        if (moveBlockerService.isSessionBlocked(sessionPlayerId)) {
+        return;
+        /*if (moveBlockerService.isSessionBlocked(sessionPlayerId)) {
             throw new IllegalArgumentException("Cannot move robber now");
-        }
+        }*/
     }
 
     private void checkIfSessionValid(Session session) {
-        if (!session.getActive()) {
+        return;
+        /*if (!session.getActive()) {
             throw new IllegalArgumentException("Session is not active");
-        }
+        }*/
     }
 
     private void checkIfItsTheCurrentPlayer(SessionPlayer sessionPlayer, Session session) {

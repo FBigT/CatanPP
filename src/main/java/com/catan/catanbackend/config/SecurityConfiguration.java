@@ -26,7 +26,7 @@ public class SecurityConfiguration {
     private final AuthEntryPoint unauthorizedHandler;
     private final TokenFilter tokenFilter;
 
-    private static final String[] WHITE_LIST_URL = { "/api/users/login", "/api/users/register", "/api/users/login/guest", "/api/users/logout", "/api/users/refresh", "/api/users/register/guest" };
+    private static final String[] WHITE_LIST_URL = { "/api/users/login", "/api/users/register", "/api/users/login/guest", "/api/users/logout", "/api/users/refresh", "/api/users/register/guest", "api/tests/**" };
 
     public SecurityConfiguration(UserDetailsService userDetailsService,
                                  AuthEntryPoint unauthorizedHandler,

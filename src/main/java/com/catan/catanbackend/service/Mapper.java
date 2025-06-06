@@ -6,23 +6,30 @@ import com.catan.catanbackend.model.ResourceGroup;
 import com.catan.catanbackend.model.dto.move_dtos.TradeOfferDto;
 import com.catan.catanbackend.model.helper.TileTypeEnum;
 import com.catan.catanbackend.model.tile.Tile;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.Objects;
 import java.util.Optional;
 
 @Component
 public class Mapper {
     private final PasswordEncoder passwordEncoder;
     private final TileTypeService tileTypeService;
+    private final EncryptionUtils encryptionUtils;
     private final SessionPlayerService sessionPlayerService;
+    private final ObjectMapper objectMapper;
 
-    public Mapper(TileTypeService tileTypeService, SessionPlayerService sessionPlayerService) {
+    public Mapper(TileTypeService tileTypeService, EncryptionUtils encryptionUtils, SessionPlayerService sessionPlayerService, ObjectMapper objectMapper) {
         this.tileTypeService = tileTypeService;
+        this.encryptionUtils = encryptionUtils;
         this.sessionPlayerService = sessionPlayerService;
+        this.objectMapper = objectMapper;
         this.passwordEncoder = new BCryptPasswordEncoder();
     }
 
@@ -119,6 +126,25 @@ public class Mapper {
         tradeOffer.setOfferResources(tradeOfferDto.getOffered());
         tradeOffer.setRequestResources(tradeOfferDto.getRequested());
         return Optional.of(tradeOffer);
+    }
+
+    public EncryptedMessage mapToEncryptedMessage(Object object) {
+        try {
+            String json = objectMapper.writeValueAsString(object);
+            String encrypt = encryptionUtils.encrypt(json);
+            return new EncryptedMessage(encrypt);
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    public <T> T mapToObject(EncryptedMessage encryptedMessage, Class<T> clazz) {
+        try {
+            String decrypt = encryptionUtils.decrypt(encryptedMessage.getCrypto());
+            return objectMapper.readValue(decrypt, clazz);
+        } catch (Exception e) {
+            return null;
+        }
     }
 
     public TileDto mapTileToDto(Tile tile) {

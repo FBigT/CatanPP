@@ -52,6 +52,6 @@ public class SessionSave {
     private OffsetDateTime savedAt;
 
     @NotNull
-    @Column(name = "save_json", nullable = false)
+    @Column(name = "save_json", nullable = false, columnDefinition = "TEXT")
     private String saveJson;
 }

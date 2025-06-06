@@ -13,37 +13,58 @@ java {
     }
 }
 
-configurations {
-    compileOnly {
-        extendsFrom annotationProcessor
-    }
-}
-
 repositories {
     mavenCentral()
 }
 
+sourceSets {
+    main {
+        // allow test classes to be visible at runtime
+        runtimeClasspath += sourceSets.test.output
+    }
+}
+
 dependencies {
+    // --- Your existing “runtime” dependencies ---
     implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
-    compileOnly 'org.projectlombok:lombok'
-    developmentOnly 'org.springframework.boot:spring-boot-devtools'
-    runtimeOnly 'org.postgresql:postgresql'
-    annotationProcessor 'org.projectlombok:lombok'
-
     implementation 'org.springframework.boot:spring-boot-starter-web'
-
-    implementation 'org.springframework.boot:spring-boot-starter'
     implementation 'org.springframework.boot:spring-boot-starter-validation'
     implementation 'org.springframework.boot:spring-boot-starter-security'
+    implementation 'org.springframework.boot:spring-boot-starter-websocket'
+    implementation 'com.fasterxml.jackson.core:jackson-databind:2.15.2'
     implementation 'io.jsonwebtoken:jjwt:0.12.6'
     implementation 'jakarta.servlet:jakarta.servlet-api:6.1.0'
-    implementation 'org.springframework.boot:spring-boot-starter-websocket'
+    implementation 'com.h2database:h2'
+    runtimeOnly   'org.postgresql:postgresql'
+    compileOnly   'org.projectlombok:lombok'
+    annotationProcessor 'org.projectlombok:lombok'
 
-    implementation 'com.fasterxml.jackson.core:jackson-databind:2.15.2'
+    // --- Bring Spring Boot’s Test Starter into “implementation” scope, not just testImplementation ---
+    // This is what provides org.springframework.test.web.servlet.RequestBuilder, MockMvc, etc. at runtime.
+    implementation('org.springframework.boot:spring-boot-starter-test') {
+        // Exclude the JUnit 5.11.x / Platform 1.11.x that it would normally pull in:
+        exclude group: 'org.junit.jupiter', module: 'junit-jupiter-engine'
+        exclude group: 'org.junit.platform', module: 'junit-platform-commons'
+        exclude group: 'org.junit.platform', module: 'junit-platform-launcher'
+    }
 
-    testImplementation 'com.h2database:h2'
-    testImplementation 'org.springframework.boot:spring-boot-starter-test'
-    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+    // --- Explicitly add “matching” versions of all JUnit Platform/Jupiter dependencies ---
+    implementation 'org.junit.platform:junit-platform-commons:1.10.0'
+    implementation 'org.junit.platform:junit-platform-launcher:1.10.0'
+    implementation 'org.junit.jupiter:junit-jupiter-engine:5.10.0'
+    // (If you use Parameterized tests or other modules, you can add them here as well:
+    //  implementation 'org.junit.jupiter:junit-jupiter-params:5.10.0' etc.)
+
+    // Any other libraries your tests reference at runtime (e.g. spring-security-test).
+    // If you use security-testing features, also pull it in:
+    // implementation 'org.springframework.security:spring-security-test:6.4.4'
+}
+
+dependencyManagement {
+    // This BOM will pin all org.junit.jupiter and org.junit.platform artifacts to 5.10.0 / 1.10.0.
+    imports {
+        mavenBom 'org.junit:junit-bom:5.10.0'
+    }
 }
 
 tasks.named('test') {

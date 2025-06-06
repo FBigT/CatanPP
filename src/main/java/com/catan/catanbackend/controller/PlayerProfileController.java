@@ -27,14 +27,14 @@ public class PlayerProfileController {
 
     @GetMapping("/{id}")
     public ResponseEntity<PlayerProfile> getProfileById(@PathVariable Long id) {
-        Optional<PlayerProfile> profile = profileRepo.findById(id);
+        Optional<PlayerProfile> profile = profileRepo.findByUserId(id);
         return profile.map(ResponseEntity::ok).orElseGet(() -> ResponseEntity.notFound().build());
     }
 
     @PutMapping("/{id}/resources")
     public ResponseEntity<PlayerProfile> updateResources(@PathVariable Long id,
                                                          @RequestBody ResourceGroup newResources) {
-        PlayerProfile profile = profileRepo.findById(id)
+        PlayerProfile profile = profileRepo.findByUserId(id)
                 .orElseThrow(() -> new IllegalArgumentException("No PlayerProfile found for ID: " + id));
         profile.setResources(newResources);
         profileRepo.save(profile);

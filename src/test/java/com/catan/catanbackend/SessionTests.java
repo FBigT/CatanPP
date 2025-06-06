@@ -1,6 +1,7 @@
 package com.catan.catanbackend;
 
 import com.catan.catanbackend.model.dto.*;
+import com.catan.catanbackend.service.Mapper;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -28,14 +29,16 @@ class SessionTests {
     private final MockMvc mockMvc;
     private final ObjectMapper objectMapper;
     private final JdbcTemplate jdbc;
+    private final Mapper mapper;
 
     private String hostToken;
     private String playerToken;
 
-    SessionTests(MockMvc mockMvc, ObjectMapper objectMapper, JdbcTemplate jdbc) {
+    SessionTests(MockMvc mockMvc, ObjectMapper objectMapper, JdbcTemplate jdbc, Mapper mapper) {
         this.mockMvc = mockMvc;
         this.objectMapper = objectMapper;
         this.jdbc = jdbc;
+        this.mapper = mapper;
     }
 
     @BeforeEach
@@ -54,18 +57,19 @@ class SessionTests {
     private LogInResponse registerAndLogin(String username, String password, String email) throws Exception {
         mockMvc.perform(post("/api/users/register")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(new RegisterForm(username, password, email)))
+                        .content(objectMapper.writeValueAsString(mapper.mapToEncryptedMessage(new RegisterForm(username, password, email))))
                 )
                 .andExpect(status().isCreated());
 
         MvcResult login = mockMvc.perform(post("/api/users/login")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(new LogInForm(username, password)))
+                        .content(objectMapper.writeValueAsString(mapper.mapToEncryptedMessage(new LogInForm(username, password))))
                 )
                 .andExpect(status().isOk())
                 .andReturn();
 
-        return objectMapper.readValue(login.getResponse().getContentAsString(), LogInResponse.class);
+        EncryptedMessage encryptedMessage = objectMapper.readValue(login.getResponse().getContentAsString(), EncryptedMessage.class);
+        return mapper.mapToObject(encryptedMessage, LogInResponse.class);
     }
 
     @Test

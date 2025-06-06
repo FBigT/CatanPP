@@ -116,8 +116,6 @@ public class SessionSaveService {
         return new SessionSummaryDto(session.getId(), session.getHost().getUsername(), session.getCreatedAt());
     }
 
-
-
     public Session loadSave(String json) {
         try {
             boolean ignoreId = false;
@@ -324,12 +322,12 @@ public class SessionSaveService {
             if (ignoreId){
                 tiles.forEach(x -> x.setId(null));
                 tileCornerMaps.forEach(x -> x.setId(null));
+                sessionPlayers.forEach(x -> x.setId(null));
                 tileEdgeMaps.forEach(x -> x.setId(null));
                 tileCorners.forEach(x -> x.setId(null));
+                structures.forEach(x -> x.setId(null));
                 tileEdges.forEach(x -> x.setId(null));
                 roads.forEach(x -> x.setId(null));
-                structures.forEach(x -> x.setId(null));
-                sessionPlayers.forEach(x -> x.setId(null));
             }
 
             sessionPlayers.forEach(sessionPlayerService::saveSessionPlayer);

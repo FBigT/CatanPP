@@ -2,16 +2,20 @@ package com.catan.catanbackend;
 
 import com.catan.catanbackend.model.User;
 import com.catan.catanbackend.model.dto.*;
+import com.catan.catanbackend.service.EncryptionUtils;
 import com.catan.catanbackend.service.Mapper;
 import com.catan.catanbackend.service.UserService;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.TestConstructor;
 import org.springframework.test.web.servlet.MockMvc;
@@ -26,10 +30,14 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @AutoConfigureMockMvc
 @TestConstructor(autowireMode = TestConstructor.AutowireMode.ALL)
 class UserTests {
+    @PersistenceContext
+    private EntityManager entityManager;
     private final MockMvc mockMvc;
     private final UserService userService;
     private final Mapper mapper;
     private final ObjectMapper objectMapper;
+    private final EncryptionUtils encryptionUtils;
+    private final JdbcTemplate jdbc;
 
     private static final String DEFAULT_USERNAME = "test";
     private static final String DEFAULT_PASSWORD = "123";
@@ -38,11 +46,13 @@ class UserTests {
     private static final String NEW_PASSWORD = "newPassword";
     private static final String MAIL = "newEmail@test.com";
 
-    public UserTests(UserService userService, MockMvc mockMvc, Mapper mapper, ObjectMapper objectMapper) {
+    public UserTests(UserService userService, MockMvc mockMvc, Mapper mapper, ObjectMapper objectMapper, EncryptionUtils encryptionUtils, JdbcTemplate jdbc) {
         this.userService = userService;
         this.mockMvc = mockMvc;
         this.mapper = mapper;
         this.objectMapper = objectMapper;
+        this.encryptionUtils = encryptionUtils;
+        this.jdbc = jdbc;
     }
 
     @BeforeEach
@@ -53,31 +63,49 @@ class UserTests {
         userService.createUser(test);
     }
 
+    @BeforeEach
+    void cleanDatabase() {
+        jdbc.execute("SET REFERENTIAL_INTEGRITY to FALSE");
+        jdbc.queryForList(
+                "SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA='PUBLIC'",
+                String.class
+        ).forEach(table ->
+                jdbc.execute("TRUNCATE TABLE " + table)
+        );
+        jdbc.execute("SET REFERENTIAL_INTEGRITY to TRUE");
+        entityManager.clear();
+    }
+
     LogInResponse registerAndLogin(RegisterForm registerForm) throws Exception {
         mockMvc.perform(post("/api/users/register")
-                        .content(objectMapper.writeValueAsString(registerForm))
+                        .content(objectMapper.writeValueAsString(mapper.mapToEncryptedMessage(registerForm)))
                         .contentType(MediaType.APPLICATION_JSON));
 
+        LogInForm logInForm = new LogInForm(NEW_USERNAME, NEW_PASSWORD);
+
         MvcResult mvcResult = mockMvc.perform(post("/api/users/login")
-                        .content(objectMapper.writeValueAsString(new LogInForm(NEW_USERNAME, NEW_PASSWORD)))
+                        .content(objectMapper.writeValueAsString(mapper.mapToEncryptedMessage(logInForm)))
                         .contentType(MediaType.APPLICATION_JSON)).andReturn();
         String contentAsString = mvcResult.getResponse().getContentAsString();
-        return objectMapper.readValue(contentAsString, LogInResponse.class);
+        EncryptedMessage encryptedMessage = objectMapper.readValue(contentAsString, EncryptedMessage.class);
+        return mapper.mapToObject(encryptedMessage, LogInResponse.class);
     }
 
     @Test
     void testLogin() throws Exception {
         MvcResult mvcResult = mockMvc.perform(post("/api/users/login")
-                        .content(objectMapper.writeValueAsString(new LogInForm(DEFAULT_USERNAME, DEFAULT_PASSWORD)))
+                        .content(objectMapper.writeValueAsString(mapper.mapToEncryptedMessage(new LogInForm(DEFAULT_USERNAME, DEFAULT_PASSWORD))))
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk()).andReturn();
         String contentAsString = mvcResult.getResponse().getContentAsString();
-        LogInResponse logInResponse = objectMapper.readValue(contentAsString, LogInResponse.class);
+        EncryptedMessage encryptedMessage = objectMapper.readValue(contentAsString, EncryptedMessage.class);
+
+        LogInResponse logInResponse = mapper.mapToObject(encryptedMessage, LogInResponse.class);
         assertThat(logInResponse.getToken()).isNotNull().isNotBlank().isNotEmpty();
         assertThat(logInResponse.getUsername()).isEqualTo(DEFAULT_USERNAME);
 
         mockMvc.perform(post("/api/users/login")
-                        .content(objectMapper.writeValueAsString(new LogInForm(DEFAULT_USERNAME, "wrongPassword")))
+                        .content(objectMapper.writeValueAsString(mapper.mapToEncryptedMessage(new LogInForm(DEFAULT_USERNAME, "wrongPassword"))))
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isUnauthorized());
     }
@@ -85,18 +113,19 @@ class UserTests {
     @Test
     void testRegister() throws Exception {
         mockMvc.perform(post("/api/users/register")
-                        .content(objectMapper.writeValueAsString(new RegisterForm(DEFAULT_USERNAME, DEFAULT_PASSWORD, "test@test.com")))
+                        .content(objectMapper.writeValueAsString(mapper.mapToEncryptedMessage(new RegisterForm(DEFAULT_USERNAME, DEFAULT_PASSWORD, "test@test.com"))))
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isConflict());
 
         MvcResult mvcResult = mockMvc.perform(post("/api/users/register")
-                        .content(objectMapper.writeValueAsString(new RegisterForm(NEW_USERNAME, DEFAULT_PASSWORD, "test@test.com")))
+                        .content(objectMapper.writeValueAsString(mapper.mapToEncryptedMessage(new RegisterForm(NEW_USERNAME, DEFAULT_PASSWORD, "test@test.com"))))
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isCreated()).andReturn();
 
         String contentAsString = mvcResult.getResponse().getContentAsString();
-        UserDto registerResponse = objectMapper.readValue(contentAsString, UserDto.class);
-        assertThat(registerResponse.getUsername()).isEqualTo(NEW_USERNAME);
+        EncryptedMessage encryptedMessage = objectMapper.readValue(contentAsString, EncryptedMessage.class);
+        UserDto userDto = mapper.mapToObject(encryptedMessage, UserDto.class);
+        assertThat(userDto.getUsername()).isEqualTo(NEW_USERNAME);
     }
 
     @Test
@@ -162,7 +191,9 @@ class UserTests {
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk()).andReturn();
         String contentAsString = loginResult.getResponse().getContentAsString();
-        LogInResponse refreshResponse = objectMapper.readValue(contentAsString, LogInResponse.class);
+        EncryptedMessage encryptedMessage = objectMapper.readValue(contentAsString, EncryptedMessage.class);
+
+        LogInResponse refreshResponse = mapper.mapToObject(encryptedMessage, LogInResponse.class);
         assertThat(refreshResponse).isNotNull();
         assertThat(refreshResponse.getToken()).isNotNull().isNotBlank().isNotEmpty();
         assertThat(refreshResponse.getUsername()).isEqualTo(logInResponse.getUsername());
@@ -226,12 +257,13 @@ class UserTests {
                 .andExpect(status().isOk());
 
         MvcResult mvcResult = mockMvc.perform(post("/api/users/login")
-                        .content(objectMapper.writeValueAsString(new LogInForm(updatedUsername, NEW_PASSWORD)))
+                        .content(objectMapper.writeValueAsString(mapper.mapToEncryptedMessage(new LogInForm(updatedUsername, NEW_PASSWORD))))
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk()).andReturn();
         String contentAsString = mvcResult.getResponse().getContentAsString();
-        LogInResponse updatedLoginResponse = objectMapper.readValue(contentAsString, LogInResponse.class);
+        EncryptedMessage encryptedMessage = objectMapper.readValue(contentAsString, EncryptedMessage.class);
 
+        LogInResponse updatedLoginResponse = mapper.mapToObject(encryptedMessage, LogInResponse.class);
         mockMvc.perform(get("/api/users/username/" + updatedUsername)
                         .header(HttpHeaders.AUTHORIZATION, updatedLoginResponse.getFullToken()))
                 .andExpect(status().isOk());

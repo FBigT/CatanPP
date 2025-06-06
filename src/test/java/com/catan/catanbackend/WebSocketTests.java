@@ -79,6 +79,7 @@ class WebSocketTests {
     private final TileCornerRepository tileCornerRepository;
     private final SessionSaveService sessionSaveService;
     private final DevCardService devCardService;
+    private final EncryptionUtils encryptionUtils;
 
     private final RegisterForm userForm1 = new RegisterForm("user1", "123", "test1@gmail.com");
     private final RegisterForm userForm2 = new RegisterForm("user2", "123", "test2@gmail.com");
@@ -107,7 +108,7 @@ class WebSocketTests {
 
     private SessionCode sessionCode;
 
-    WebSocketTests(UserService userService, Mapper mapper, MockMvc mockMvc, ObjectMapper objectMapper, SessionService sessionService, JdbcTemplate jdbc, RoadRepository roadRepository, TileService tileService, StructureRepository structureRepository, SessionPlayerService sessionPlayerService, TileCornerRepository tileCornerRepository, SessionSaveService sessionSaveService, DevCardService devCardService) {
+    WebSocketTests(UserService userService, Mapper mapper, MockMvc mockMvc, ObjectMapper objectMapper, SessionService sessionService, JdbcTemplate jdbc, RoadRepository roadRepository, TileService tileService, StructureRepository structureRepository, SessionPlayerService sessionPlayerService, TileCornerRepository tileCornerRepository, SessionSaveService sessionSaveService, DevCardService devCardService, EncryptionUtils encryptionUtils) {
         this.userService = userService;
         this.mapper = mapper;
         this.mockMvc = mockMvc;
@@ -121,6 +122,7 @@ class WebSocketTests {
         this.tileCornerRepository = tileCornerRepository;
         this.sessionSaveService = sessionSaveService;
         this.devCardService = devCardService;
+        this.encryptionUtils = encryptionUtils;
     }
 
     @BeforeEach
@@ -172,35 +174,38 @@ class WebSocketTests {
 
         LogInForm loginForm = new LogInForm(user1.getUsername(), userForm1.getPassword());
         MvcResult result = mockMvc.perform(post("/api/users/login")
-                        .content(objectMapper.writeValueAsString(loginForm))
+                        .content(objectMapper.writeValueAsString(mapper.mapToEncryptedMessage(loginForm)))
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andReturn();
 
         String responseBody = result.getResponse().getContentAsString();
-        logInResponse1 = objectMapper.readValue(responseBody, LogInResponse.class);
+        EncryptedMessage encryptedMessage = objectMapper.readValue(responseBody, EncryptedMessage.class);
+        logInResponse1 = mapper.mapToObject(encryptedMessage, LogInResponse.class);
 
         loginForm = new LogInForm(user2.getUsername(), userForm2.getPassword());
 
         MvcResult result2 = mockMvc.perform(post("/api/users/login")
-                        .content(objectMapper.writeValueAsString(loginForm))
+                        .content(objectMapper.writeValueAsString(mapper.mapToEncryptedMessage(loginForm)))
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andReturn();
 
         String responseBody2 = result2.getResponse().getContentAsString();
-        logInResponse2 = objectMapper.readValue(responseBody2, LogInResponse.class);
+        encryptedMessage = objectMapper.readValue(responseBody2, EncryptedMessage.class);
+        logInResponse2 = mapper.mapToObject(encryptedMessage, LogInResponse.class);
 
         loginForm = new LogInForm(user3.getUsername(), userForm3.getPassword());
 
         MvcResult result3 = mockMvc.perform(post("/api/users/login")
-                        .content(objectMapper.writeValueAsString(loginForm))
+                        .content(objectMapper.writeValueAsString(mapper.mapToEncryptedMessage(loginForm)))
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andReturn();
 
         String responseBody3 = result3.getResponse().getContentAsString();
-        logInResponse3 = objectMapper.readValue(responseBody3, LogInResponse.class);
+        encryptedMessage = objectMapper.readValue(responseBody3, EncryptedMessage.class);
+        logInResponse3 = mapper.mapToObject(encryptedMessage, LogInResponse.class);
 
         List<Transport> transports = List.of(new WebSocketTransport(new StandardWebSocketClient()));
         SockJsClient sockJsClient = new SockJsClient(transports);

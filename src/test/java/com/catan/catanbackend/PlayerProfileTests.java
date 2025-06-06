@@ -2,12 +2,17 @@ package com.catan.catanbackend;
 
 import com.catan.catanbackend.model.PlayerProfile;
 import com.catan.catanbackend.model.ResourceGroup;
+import com.catan.catanbackend.model.dto.EncryptedMessage;
 import com.catan.catanbackend.model.dto.LogInForm;
 import com.catan.catanbackend.model.dto.LogInResponse;
 import com.catan.catanbackend.model.dto.RegisterForm;
 import com.catan.catanbackend.repository.PlayerProfileRepository;
+import com.catan.catanbackend.service.Mapper;
 import com.catan.catanbackend.service.UserService;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -15,6 +20,7 @@ import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMock
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
@@ -22,6 +28,7 @@ import org.springframework.test.web.servlet.MvcResult;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.InstanceOfAssertFactories.map;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -30,23 +37,42 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @AutoConfigureMockMvc
 class PlayerProfileTests {
 
+    @PersistenceContext
+    private EntityManager entityManager;
     private final MockMvc mockMvc;
     private final ObjectMapper objectMapper;
     private final UserService userService;
     private final PlayerProfileRepository playerProfileRepo;
+    private final Mapper mapper;
+    private final JdbcTemplate jdbc;
 
     @Autowired
-    public PlayerProfileTests(MockMvc mockMvc, ObjectMapper objectMapper, UserService userService, PlayerProfileRepository playerProfileRepo) {
+    public PlayerProfileTests(MockMvc mockMvc, ObjectMapper objectMapper, UserService userService, PlayerProfileRepository playerProfileRepo, Mapper mapper, JdbcTemplate jdbc) {
         this.mockMvc = mockMvc;
         this.objectMapper = objectMapper;
         this.userService = userService;
         this.playerProfileRepo = playerProfileRepo;
+        this.mapper = mapper;
+        this.jdbc = jdbc;
     }
 
     @BeforeEach
     void setup() {
         userService.deleteAllUsers();
         playerProfileRepo.deleteAll();
+    }
+
+    @BeforeEach
+    void cleanDatabase() {
+        jdbc.execute("SET REFERENTIAL_INTEGRITY to FALSE");
+        jdbc.queryForList(
+                "SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA='PUBLIC'",
+                String.class
+        ).forEach(table ->
+                jdbc.execute("TRUNCATE TABLE " + table)
+        );
+        jdbc.execute("SET REFERENTIAL_INTEGRITY to TRUE");
+        entityManager.clear();
     }
 
     private RegisterForm createUniqueRegisterForm() {
@@ -58,17 +84,18 @@ class PlayerProfileTests {
 
     LogInResponse registerAndLogin(RegisterForm registerForm) throws Exception {
         mockMvc.perform(post("/api/users/register")
-                        .content(objectMapper.writeValueAsString(registerForm))
+                        .content(objectMapper.writeValueAsString(mapper.mapToEncryptedMessage(registerForm)))
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isCreated());
 
         MvcResult mvcResult = mockMvc.perform(post("/api/users/login")
-                        .content(objectMapper.writeValueAsString(new LogInForm(registerForm.getUsername(), registerForm.getPassword())))
+                        .content(objectMapper.writeValueAsString(mapper.mapToEncryptedMessage(new LogInForm(registerForm.getUsername(), registerForm.getPassword()))))
                         .contentType(MediaType.APPLICATION_JSON))
                 .andReturn();
 
         String contentAsString = mvcResult.getResponse().getContentAsString();
-        return objectMapper.readValue(contentAsString, LogInResponse.class);
+        EncryptedMessage encryptedMessage = objectMapper.readValue(contentAsString, EncryptedMessage.class);
+        return mapper.mapToObject(encryptedMessage, LogInResponse.class);
     }
 
     @Test
@@ -92,16 +119,17 @@ class PlayerProfileTests {
         RegisterForm registerForm = createUniqueRegisterForm();
         LogInResponse logInResponse = registerAndLogin(registerForm);
 
-        Long playerId = 1L;
-        MvcResult mvcResult = mockMvc.perform(get("/api/playerProfiles/{id}", playerId)
+        MvcResult mvcResult = mockMvc.perform(get("/api/playerProfiles/{id}", logInResponse.getUserId())
                         .header(HttpHeaders.AUTHORIZATION, logInResponse.getFullToken()))
                 .andExpect(status().isOk())
                 .andReturn();
 
         String contentAsString = mvcResult.getResponse().getContentAsString();
+        JsonNode jsonNode = objectMapper.readTree(contentAsString);
+        String username = jsonNode.get("username").asText();
         PlayerProfile profile = objectMapper.readValue(contentAsString, PlayerProfile.class);
         assertThat(profile).isNotNull();
-        assertThat(profile.getId()).isEqualTo(playerId);
+        assertThat(username).isEqualTo(logInResponse.getUsername());
     }
 
     @Test
@@ -119,8 +147,7 @@ class PlayerProfileTests {
         newResources.setGold(0);
         newResources.setWood(6);
 
-        Long playerId = 1L;
-        MvcResult mvcResult = mockMvc.perform(put("/api/playerProfiles/{id}/resources", playerId)
+        MvcResult mvcResult = mockMvc.perform(put("/api/playerProfiles/{id}/resources", logInResponse.getUserId())
                         .content(objectMapper.writeValueAsString(newResources))
                         .contentType(MediaType.APPLICATION_JSON)
                         .header(HttpHeaders.AUTHORIZATION, logInResponse.getFullToken()))

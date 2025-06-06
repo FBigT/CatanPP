@@ -2,10 +2,7 @@ package com.catan.catanbackend;
 
 import com.catan.catanbackend.model.Session;
 import com.catan.catanbackend.model.SessionPlayer;
-import com.catan.catanbackend.model.dto.LogInForm;
-import com.catan.catanbackend.model.dto.LogInResponse;
-import com.catan.catanbackend.model.dto.RegisterForm;
-import com.catan.catanbackend.model.dto.SessionCodeDto;
+import com.catan.catanbackend.model.dto.*;
 import com.catan.catanbackend.service.*;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
@@ -29,7 +26,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 @SpringBootTest
 @AutoConfigureMockMvc
 @TestConstructor(autowireMode = TestConstructor.AutowireMode.ALL)
-public class OtherSessionTests {
+class OtherSessionTests {
     private final MockMvc mockMvc;
     private final Mapper mapper;
     private final UserService userService;
@@ -78,24 +75,27 @@ public class OtherSessionTests {
 
     private void registerAndLogin() throws Exception {
         mockMvc.perform(post("/api/users/register")
-                .content(objectMapper.writeValueAsString(new RegisterForm(DEFAULT_USERNAME, DEFAULT_PASSWORD, DEFAULT_EMAIL)))
+                .content(objectMapper.writeValueAsString(mapper.mapToEncryptedMessage(new RegisterForm(DEFAULT_USERNAME, DEFAULT_PASSWORD, DEFAULT_EMAIL))))
                 .contentType(MediaType.APPLICATION_JSON));
 
         MvcResult mvcResult = mockMvc.perform(post("/api/users/login")
-                .content(objectMapper.writeValueAsString(new LogInForm(DEFAULT_USERNAME, DEFAULT_PASSWORD)))
+                .content(objectMapper.writeValueAsString(mapper.mapToEncryptedMessage(new LogInForm(DEFAULT_USERNAME, DEFAULT_PASSWORD))))
                 .contentType(MediaType.APPLICATION_JSON)).andReturn();
         String contentAsString = mvcResult.getResponse().getContentAsString();
-        logInResponse1 = objectMapper.readValue(contentAsString, LogInResponse.class);
+        EncryptedMessage encryptedMessage = objectMapper.readValue(contentAsString, EncryptedMessage.class);
+        logInResponse1 = mapper.mapToObject(encryptedMessage, LogInResponse.class);
 
         mockMvc.perform(post("/api/users/register")
-                .content(objectMapper.writeValueAsString(new RegisterForm(NEW_USERNAME, NEW_PASSWORD, MEW_MAIL)))
+                .content(objectMapper.writeValueAsString(mapper.mapToEncryptedMessage(new RegisterForm(NEW_USERNAME, NEW_PASSWORD, MEW_MAIL))))
                 .contentType(MediaType.APPLICATION_JSON));
 
         MvcResult mvcResult2 = mockMvc.perform(post("/api/users/login")
-                .content(objectMapper.writeValueAsString(new LogInForm(NEW_USERNAME, NEW_PASSWORD)))
+                .content(objectMapper.writeValueAsString(mapper.mapToEncryptedMessage(new LogInForm(NEW_USERNAME, NEW_PASSWORD))))
                 .contentType(MediaType.APPLICATION_JSON)).andReturn();
         String contentAsString2 = mvcResult2.getResponse().getContentAsString();
-        logInResponse2 = objectMapper.readValue(contentAsString2, LogInResponse.class);
+
+        encryptedMessage = objectMapper.readValue(contentAsString2, EncryptedMessage.class);
+        logInResponse2 = mapper.mapToObject(encryptedMessage, LogInResponse.class);
     }
 
     private void setupSession() throws Exception {

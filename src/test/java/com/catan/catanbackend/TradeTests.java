@@ -1,17 +1,17 @@
 package com.catan.catanbackend;
 
 import com.catan.catanbackend.model.ResourceGroup;
-import com.catan.catanbackend.model.dto.BankTradeDto;
-import com.catan.catanbackend.model.dto.LogInForm;
-import com.catan.catanbackend.model.dto.LogInResponse;
-import com.catan.catanbackend.model.dto.PlayerTradeDto;
-import com.catan.catanbackend.model.dto.RegisterForm;
+import com.catan.catanbackend.model.dto.*;
+import com.catan.catanbackend.service.Mapper;
 import com.catan.catanbackend.service.UserService;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.TestConstructor;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
@@ -30,18 +30,24 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @AutoConfigureMockMvc
 @TestConstructor(autowireMode = TestConstructor.AutowireMode.ALL)
 class TradeTests {
+    @PersistenceContext
+    private EntityManager entityManager;
 
     private final MockMvc mockMvc;
     private final ObjectMapper objectMapper;
     private final UserService userService;
+    private final Mapper mapper;
+    private final JdbcTemplate jdbc;
 
     @MockitoBean
     private com.catan.catanbackend.service.TradeService tradeService;
 
-    public TradeTests(MockMvc mockMvc, ObjectMapper objectMapper, UserService userService) {
+    public TradeTests(MockMvc mockMvc, ObjectMapper objectMapper, UserService userService, Mapper mapper, JdbcTemplate jdbc) {
         this.mockMvc = mockMvc;
         this.objectMapper = objectMapper;
         this.userService = userService;
+        this.mapper = mapper;
+        this.jdbc = jdbc;
     }
 
     @BeforeEach
@@ -51,17 +57,31 @@ class TradeTests {
         doNothing().when(tradeService).tradeWithBank(anyLong(), anyString(), any(ResourceGroup.class), any(ResourceGroup.class), anyString(), anyInt());
     }
 
+    @BeforeEach
+    void cleanDatabase() {
+        jdbc.execute("SET REFERENTIAL_INTEGRITY to FALSE");
+        jdbc.queryForList(
+                "SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA='PUBLIC'",
+                String.class
+        ).forEach(table ->
+                jdbc.execute("TRUNCATE TABLE " + table)
+        );
+        jdbc.execute("SET REFERENTIAL_INTEGRITY to TRUE");
+        entityManager.clear();
+    }
+
     private LogInResponse registerAndLogin(RegisterForm form) throws Exception {
         mockMvc.perform(post("/api/users/register")
                 .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(form)));
+                .content(objectMapper.writeValueAsString(mapper.mapToEncryptedMessage(form))));
 
         MvcResult mvcResult = mockMvc.perform(post("/api/users/login")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(new LogInForm(form.getUsername(), form.getPassword()))))
+                        .content(objectMapper.writeValueAsString(mapper.mapToEncryptedMessage(new LogInForm(form.getUsername(), form.getPassword())))))
                 .andReturn();
 
-        return objectMapper.readValue(mvcResult.getResponse().getContentAsString(), LogInResponse.class);
+        EncryptedMessage encryptedMessage = objectMapper.readValue(mvcResult.getResponse().getContentAsString(), EncryptedMessage.class);
+        return mapper.mapToObject(encryptedMessage, LogInResponse.class);
     }
 
     @Test

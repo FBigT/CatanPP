@@ -4,6 +4,8 @@ package com.catan.catanbackend.controller;
 import com.catan.catanbackend.model.*;
 import com.catan.catanbackend.model.dto.*;
 import com.catan.catanbackend.service.*;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -29,10 +31,12 @@ public class UserController {
     private final TokenService tokenService;
     private final GuestKeyService guestKeyService;
     private final PlayerProfileService playerProfileService;
+    private final EncryptionUtils encryptionUtils;
+    private final ObjectMapper objectMapper;
 
     private static final String BEARER = "Bearer";
 
-    public UserController(AuthenticationManager authenticationManager, UserService userService, Mapper mapper, TokenService tokenService, GuestKeyService guestKeyService, PlayerProfileService playerProfileService, RefreshTokenService refreshTokenService) {
+    public UserController(AuthenticationManager authenticationManager, UserService userService, Mapper mapper, TokenService tokenService, GuestKeyService guestKeyService, PlayerProfileService playerProfileService, RefreshTokenService refreshTokenService, EncryptionUtils encryptionUtils, ObjectMapper objectMapper) {
         this.authenticationManager = authenticationManager;
         this.userService = userService;
         this.mapper = mapper;
@@ -40,10 +44,19 @@ public class UserController {
         this.guestKeyService = guestKeyService;
         this.playerProfileService = playerProfileService;
         this.refreshTokenService = refreshTokenService;
+        this.encryptionUtils = encryptionUtils;
+        this.objectMapper = objectMapper;
     }
 
     @PostMapping("/login")
-    public ResponseEntity<LogInResponse> login(@RequestBody LogInForm logInForm) {
+    public ResponseEntity<EncryptedMessage> login(@RequestBody EncryptedMessage encryptedMessage) {
+        LogInForm logInForm;
+        try {
+            String decrypt = encryptionUtils.decrypt(encryptedMessage.getCrypto());
+            logInForm = objectMapper.readValue(decrypt, LogInForm.class);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
+        }
         Authentication authentication = authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(logInForm.getUsername(), logInForm.getPassword()));
 
         SecurityContextHolder.getContext()
@@ -58,7 +71,15 @@ public class UserController {
         }
 
         String jwt = tokenService.generateJwtToken(authentication);
-        return new ResponseEntity<>(new LogInResponse(userDetails.getId(), userDetails.getUsername(), jwt, refreshTokenService.createIfNotExists(user.get()).getToken()), HttpStatus.OK);
+        LogInResponse logInResponse = new LogInResponse(userDetails.getId(), userDetails.getUsername(), jwt, refreshTokenService.createIfNotExists(user.get()).getToken());
+        String encrypt;
+        try {
+            String json = objectMapper.writeValueAsString(logInResponse);
+            encrypt = encryptionUtils.encrypt(json);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+        return new ResponseEntity<>(new EncryptedMessage(encrypt), HttpStatus.OK);
     }
 
     @PostMapping("/login/guest")
@@ -81,7 +102,7 @@ public class UserController {
     }
 
     @PostMapping("/refresh")
-    public ResponseEntity<LogInResponse> refreshToken(@RequestBody String refreshToken){
+    public ResponseEntity<EncryptedMessage> refreshToken(@RequestBody String refreshToken){
         refreshToken = refreshToken.replace("\"", "");
         Optional<RefreshToken> existingToken = refreshTokenService.getRefreshTokenByToken(refreshToken);
         if (existingToken.isEmpty()) {
@@ -100,8 +121,14 @@ public class UserController {
         SecurityContextHolder.getContext().setAuthentication(authentication);
 
         String jwt = tokenService.generateJwtToken(authentication);
-
-        return new ResponseEntity<>(new LogInResponse(userDetails.getId(), userDetails.getUsername(), jwt, refreshToken), HttpStatus.OK);
+        String encrypt;
+        try {
+            String json = objectMapper.writeValueAsString(new LogInResponse(userDetails.getId(), userDetails.getUsername(), jwt, refreshToken));
+            encrypt = encryptionUtils.encrypt(json);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+        return new ResponseEntity<>(new EncryptedMessage(encrypt), HttpStatus.OK);
     }
 
     //@PreAuthorize("isAuthenticated()")
@@ -126,10 +153,25 @@ public class UserController {
     }
 
     @PostMapping("/register")
-    public ResponseEntity<UserDto> create(@RequestBody RegisterForm signInForm) {
+    public ResponseEntity<EncryptedMessage> create(@RequestBody EncryptedMessage encryptedMessage) {
+        RegisterForm signInForm;
+        try {
+            String decrypt = encryptionUtils.decrypt(encryptedMessage.getCrypto());
+            signInForm = objectMapper.readValue(decrypt, RegisterForm.class);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
+        }
+
         User newUser = userService.createUser(mapper.mapRegisterFormToUser(signInForm));
         playerProfileService.savePlayerProfile(new PlayerProfile(newUser));
-        return new ResponseEntity<>(mapper.mapUserToDto(newUser), HttpStatus.CREATED);
+        UserDto userDto = mapper.mapUserToDto(newUser);
+        String encrypt;
+        try {
+            encrypt = encryptionUtils.encrypt(objectMapper.writeValueAsString(userDto));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+        return new ResponseEntity<>(new EncryptedMessage(encrypt), HttpStatus.CREATED);
     }
 
     @PostMapping("/register/guest")
@@ -158,7 +200,7 @@ public class UserController {
                 || !Objects.equals(tokenService.getUserIdFromJwtToken(token.split(" ")[1]), id)) {
             return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
         }
-
+        refreshTokenService.deleteByUserId(id);
         userService.deleteUser(id);
 
         return new ResponseEntity<>(HttpStatus.OK);
