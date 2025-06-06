@@ -5,11 +5,14 @@ import com.catan.catanbackend.model.SessionPlayer;
 import com.catan.catanbackend.model.dto.*;
 import com.catan.catanbackend.service.*;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.TestConstructor;
 import org.springframework.test.web.servlet.MockMvc;
@@ -27,6 +30,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 @AutoConfigureMockMvc
 @TestConstructor(autowireMode = TestConstructor.AutowireMode.ALL)
 class OtherSessionTests {
+    @PersistenceContext
+    private EntityManager entityManager;
+    private final JdbcTemplate jdbc;
     private final MockMvc mockMvc;
     private final Mapper mapper;
     private final UserService userService;
@@ -50,7 +56,8 @@ class OtherSessionTests {
     private LogInResponse logInResponse2;
     private SessionCodeDto sessionCodeDto;
 
-    public OtherSessionTests(MockMvc mockMvc, Mapper mapper, UserService userService, ObjectMapper objectMapper, SessionService sessionService, SessionPlayerService sessionPlayerService, DevCardService devCardService) {
+    public OtherSessionTests(JdbcTemplate jdbc, MockMvc mockMvc, Mapper mapper, UserService userService, ObjectMapper objectMapper, SessionService sessionService, SessionPlayerService sessionPlayerService, DevCardService devCardService) {
+        this.jdbc = jdbc;
         this.mockMvc = mockMvc;
         this.mapper = mapper;
         this.userService = userService;
@@ -71,6 +78,19 @@ class OtherSessionTests {
         } catch (Exception e) {
             fail();
         }
+    }
+
+    @BeforeEach
+    void cleanDatabase() {
+        jdbc.execute("SET REFERENTIAL_INTEGRITY to FALSE");
+        jdbc.queryForList(
+                "SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA='PUBLIC'",
+                String.class
+        ).forEach(table ->
+                jdbc.execute("TRUNCATE TABLE " + table)
+        );
+        jdbc.execute("SET REFERENTIAL_INTEGRITY to TRUE");
+        entityManager.clear();
     }
 
     private void registerAndLogin() throws Exception {

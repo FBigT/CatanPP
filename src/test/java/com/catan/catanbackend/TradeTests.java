@@ -32,12 +32,12 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 class TradeTests {
     @PersistenceContext
     private EntityManager entityManager;
+    private final JdbcTemplate jdbc;
 
     private final MockMvc mockMvc;
     private final ObjectMapper objectMapper;
     private final UserService userService;
     private final Mapper mapper;
-    private final JdbcTemplate jdbc;
 
     @MockitoBean
     private com.catan.catanbackend.service.TradeService tradeService;
