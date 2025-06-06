@@ -7,6 +7,7 @@ using System;
 using System.Collections.Generic;
 using System.Net;
 using System.Text;
+using Assets.Scripts.Dtos;
 
 public class UserManager : MonoBehaviour
 {
@@ -18,7 +19,8 @@ public class UserManager : MonoBehaviour
     private IEnumerator LoginRequest(LoginForm form, Action<LoginResponse> onSuccess, Action<string> onFail)
     {
         UnityWebRequest request = null;
-        yield return RequestService.ConstructSimpleWebRequest(EndpointUtils.Login, Methods.POST, false, JsonUtility.ToJson(form), result => request = result);
+        string encrypted = SecurityUtils.Encrypt(JsonUtility.ToJson(form));
+        yield return RequestService.ConstructSimpleWebRequest(EndpointUtils.Login, Methods.POST, false, JsonUtility.ToJson(new EncryptedMessage(encrypted)), result => request = result);
 
         if (request == null)
         {
@@ -30,8 +32,8 @@ public class UserManager : MonoBehaviour
 
         if (request.result == UnityWebRequest.Result.Success)
         {
-            LoginResponse response = JsonUtility.FromJson<LoginResponse>(request.downloadHandler.text);
-            onSuccess?.Invoke(response);
+            EncryptedMessage response = JsonUtility.FromJson<EncryptedMessage>(request.downloadHandler.text);
+            onSuccess?.Invoke(JsonUtility.FromJson<LoginResponse>(SecurityUtils.Decrypt(response.crypto)));
         }
         else
         {
@@ -48,7 +50,8 @@ public class UserManager : MonoBehaviour
     private IEnumerator CreateUserRequest(RegisterForm form, Action onSuccess, Action<string> onFail)
     {
         UnityWebRequest request = null;
-        yield return RequestService.ConstructSimpleWebRequest(EndpointUtils.Register, Methods.POST, false, JsonUtility.ToJson(form), result => request = result);
+        string encrypted = SecurityUtils.Encrypt(JsonUtility.ToJson(form));
+        yield return RequestService.ConstructSimpleWebRequest(EndpointUtils.Register, Methods.POST, false, JsonUtility.ToJson(new EncryptedMessage(encrypted)), result => request = result);
 
         if (request == null)
         {
@@ -153,8 +156,8 @@ public class UserManager : MonoBehaviour
         
         if (request.result == UnityWebRequest.Result.Success)
         {
-            LoginResponse loginResponse = JsonUtility.FromJson<LoginResponse>(request.downloadHandler.text);
-            onSuccess?.Invoke(loginResponse);
+            EncryptedMessage response = JsonUtility.FromJson<EncryptedMessage>(request.downloadHandler.text);
+            onSuccess?.Invoke(JsonUtility.FromJson<LoginResponse>(SecurityUtils.Decrypt(response.crypto)));
             yield break;
         }
         else

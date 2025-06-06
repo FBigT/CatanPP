@@ -17,6 +17,7 @@ namespace Assets.Scripts.Utils
         public static string Encrypt(string plain)
         {
             using var aes = Aes.Create();
+            aes.KeySize = 256;
             aes.Key = Key;
             aes.Mode = CipherMode.CBC;
             aes.Padding = PaddingMode.PKCS7;

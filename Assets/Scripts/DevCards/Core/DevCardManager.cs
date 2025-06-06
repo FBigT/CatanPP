@@ -11,6 +11,7 @@ using System.Linq;
 using System.Collections;
 using System.Text;
 using UnityEngine.Networking;
+using Assets.Scripts.GameMode.Trading;
 
 namespace Assets.Scripts.DevCards.Core
 {
@@ -274,7 +275,7 @@ namespace Assets.Scripts.DevCards.Core
             {
                 // Use the same JSON parsing as TradingManager
                 Assets.Scripts.GameMode.Trading.Models.SessionPlayerDto[] arr =
-                    JsonHelper.FromJson<Assets.Scripts.GameMode.Trading.Models.SessionPlayerDto>(req.downloadHandler.text);
+                JsonHelper.FromJson<Assets.Scripts.GameMode.Trading.Models.SessionPlayerDto>(req.downloadHandler.text);
                 var list = new List<Assets.Scripts.GameMode.Trading.Models.SessionPlayerDto>(arr);
 
                 string currentUsername = LocalStorageService.GetString("username");
