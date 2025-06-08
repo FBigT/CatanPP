@@ -13,12 +13,8 @@ public class JoinGame : MonoBehaviour
     public Button btnJoinGame;
     public TMP_Text errorMessage;
 
-    private SessionManager sessionService;
-
     void Awake()
     {
-        sessionService = this.AddComponent<SessionManager>();
-
         btnJoinGame.onClick.AddListener(() =>
         {
             errorMessage.text = "";
@@ -28,7 +24,7 @@ public class JoinGame : MonoBehaviour
                 errorMessage.text = "Please enter a valid session code.";
                 return;
             }
-            sessionService.JoinSession(code, OnJoinSuccess, OnJoinError);
+            SessionManager.Instance.JoinSession(code, OnJoinSuccess, OnJoinError);
         });
     }
 

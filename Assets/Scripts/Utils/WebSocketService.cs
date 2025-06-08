@@ -6,6 +6,7 @@ using Assets.Scripts.User;
 using NativeWebSocket;
 using Newtonsoft.Json;
 using System;
+using System.Collections.Generic;
 using System.Text;
 using System.Threading.Tasks;
 using UnityEngine;
@@ -24,10 +25,12 @@ namespace Assets.Scripts.Utils
         public static event Action<TradeExecutedDto> OnTradeExecuted;
         public static event Action<DevCardsListResponseDto> OnDevCardsListReceived;
 
-        // ✅ ADD THESE NEW EVENTS FOR DEV CARDS:
         public static event Action<BuyCardResponseDto> OnBuyCardResponse;
         public static event Action<PrivateBuyCard> OnPrivateBuyCard;
         public static event Action<PlayCardResponseDto> OnPlayCardResponse;
+
+        public static event Action<GenerateMapDto> OnMapGenerated;
+
         private static WebSocket webSocket;
         public static bool Connected { get; private set; } = false;
         private static string sessionCode;
@@ -118,7 +121,6 @@ namespace Assets.Scripts.Utils
                                     break;
                                 case GameMoveType.BUY_CARD:
                                     BuyCardResponseDto buyCardResponse = (BuyCardResponseDto)gameMove.moveData;
-                                    // ✅ ADD THIS LINE:
                                     OnBuyCardResponse?.Invoke(buyCardResponse);
                                     break;
                                 case GameMoveType.UPGRADE_STRUCTURE:
@@ -135,14 +137,11 @@ namespace Assets.Scripts.Utils
                                     break;
                                 case GameMoveType.PLAY_CARD:
                                     PlayCardResponseDto playCardResponseDto = (PlayCardResponseDto)gameMove.moveData;
-                                    // ✅ ADD THIS LINE:
                                     OnPlayCardResponse?.Invoke(playCardResponseDto);
                                     switch (playCardResponseDto.devCardType)
                                     {
                                         case Models.DevCardType.KNIGHT:
-                                            //For now only robber move data, will maybe add resource stealing later
                                             RobberMoveDto knightMoveDto = (RobberMoveDto)playCardResponseDto.moveData;
-
                                             break;
                                         case Models.DevCardType.VICTORY_POINT:
                                             PlayerScoreDto playerScoreDto = (PlayerScoreDto)playCardResponseDto.moveData;
@@ -155,7 +154,6 @@ namespace Assets.Scripts.Utils
                                             TradeOfferMessage yearOfPlentyDto = (TradeOfferMessage)playCardResponseDto.moveData;
                                             break;
                                     }
-
                                     break;
                                 case GameMoveType.VICTORY:
                                     VictoryDto victoryDto = (VictoryDto)gameMove.moveData;
@@ -164,11 +162,13 @@ namespace Assets.Scripts.Utils
                                     TurnOrderResponse turnOrder = (TurnOrderResponse)gameMove.moveData;
                                     break;
                                 case GameMoveType.MAP_GEN:
-                                    GenerateMapDto generateMapDto = (GenerateMapDto)gameMove.moveData;
-                                    break;
+                                    {
+                                        GenerateMapDto generateMapDto = (GenerateMapDto)gameMove.moveData;
+                                        OnMapGenerated?.Invoke(generateMapDto);
+                                        break;
+                                    }
                                 case GameMoveType.TRADE_OFFER:
                                     {
-                                        // 'gameMove.moveData' holds a TradeOfferMessage
                                         var offer = JsonConvert.DeserializeObject<TradeOfferMessage>(
                                             JsonConvert.SerializeObject(gameMove.moveData)
                                         );
@@ -188,7 +188,6 @@ namespace Assets.Scripts.Utils
 
                                 case GameMoveType.TRADE_EXECUTED:
                                     {
-                                        // 'moveData' holds a TradeExecutedDto
                                         var executed = JsonConvert.DeserializeObject<TradeExecutedDto>(
                                             JsonConvert.SerializeObject(gameMove.moveData)
                                         );
@@ -210,7 +209,6 @@ namespace Assets.Scripts.Utils
                             if (gameMoveType == GameMoveType.BUY_CARD)
                             {
                                 PrivateBuyCard privateBuyCard = (PrivateBuyCard)gameMove.moveData;
-                                // ✅ ADD THIS LINE:
                                 OnPrivateBuyCard?.Invoke(privateBuyCard);
                             }
                         }
@@ -363,10 +361,17 @@ namespace Assets.Scripts.Utils
 
             await webSocket.SendText(frame);
         }
-        //public static void RaiseChatMessage(ChatMessage msg)
-        //{
-        //    OnChatMessageReceived?.Invoke(msg);
-        //}
 
+        public static async Task SendMapData(GameMoveDto gameMoveDto)
+        {
+            if (gameMoveDto == null)
+            {
+                Debug.LogWarning("game move is null.");
+                return;
+            }
+
+            string messageFrame = WebSocketEndpointsUtils.MessageFrame(WebSocketApplicationDestinations.Moves, sessionCode, gameMoveDto);
+            await webSocket.SendText(messageFrame);
+        }
     }
 }

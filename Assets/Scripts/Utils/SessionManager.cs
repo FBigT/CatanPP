@@ -27,9 +27,28 @@ namespace Assets.Scripts.Utils
 
     public class SessionManager : MonoBehaviour
     {
+        public static SessionManager Instance { get; private set; }
+
+        private void Awake()
+        {
+            if (Instance == null)
+            {
+                Instance = this;
+                DontDestroyOnLoad(gameObject);
+            }
+            else
+            {
+                Destroy(gameObject);
+            }
+        }
+
+        public bool IsHost = false;
+        public BoardGenBackendClient boardGenBackendClient;
+
         public void CreateSession(int maxPlayers, Action<SessionCodeDto> onSuccess, Action<string> onFail)
         {
             StartCoroutine(CreateSessionRequest(maxPlayers, onSuccess, onFail));
+            IsHost = true;
         }
 
         private IEnumerator CreateSessionRequest(int maxPlayers, Action<SessionCodeDto> onSuccess, Action<string> onFail)
@@ -50,6 +69,7 @@ namespace Assets.Scripts.Utils
                 LocalStorageService.SetVariable("session-id", dto.sessionId.ToString());
                 LocalStorageService.SetVariable("session-code", dto.code);
                 onSuccess?.Invoke(dto);
+                BoardGen.Instance?.GenerateAll();
             }
             else onFail?.Invoke(req.error);
         }
@@ -57,6 +77,7 @@ namespace Assets.Scripts.Utils
         public void JoinSession(string sessionCode, Action<SessionCodeDto> onSuccess, Action<string> onFail)
         {
             StartCoroutine(JoinSessionRequest(sessionCode, onSuccess, onFail));
+            IsHost = false;
         }
 
         private IEnumerator JoinSessionRequest(
@@ -102,6 +123,7 @@ namespace Assets.Scripts.Utils
         public void CloseSession(Action onSuccess, Action<string> onFail)
         {
             StartCoroutine(CloseSessionRequest(onSuccess, onFail));
+            IsHost = false;
         }
 
         private IEnumerator CloseSessionRequest(Action onSuccess, Action<string> onFail)
@@ -122,6 +144,7 @@ namespace Assets.Scripts.Utils
         public void DeleteSessionSave(long id)
         {
             StartCoroutine(DeleteSessionSaveRequest(id));
+            IsHost = false;
         }
 
         private IEnumerator DeleteSessionSaveRequest(long id)
@@ -135,32 +158,6 @@ namespace Assets.Scripts.Utils
                 result => req = result
             );
             if (req != null) yield return req.SendWebRequest();
-        }
-
-        public void GenerateMap(List<HexCell> hexes, Action<string> onSuccess, Action<string> onFail) {
-            StartCoroutine(GenerateMapRequest(hexes, onSuccess, onFail));
-        }
-
-        private IEnumerator GenerateMapRequest(List<HexCell> hexes, Action<string> onSuccess, Action<string> onFail) {
-            UnityWebRequest req = null;
-            List<TileDto> enumerable = hexes.Select(hex => {
-                return new TileDto(hex.coordinates.X, hex.coordinates.Z, hex.GetResource().ToString(), hex.GetNumberToken());
-            }).ToList();
-
-            yield return RequestService.ConstructSimpleWebRequest(
-                EndpointUtils.GenerateMap,
-                Methods.POST,
-                true,
-                JsonConvert.SerializeObject(new GenerateMapDto(enumerable)),
-                result => req = result
-            );
-            if (req == null) { onFail?.Invoke("Failed to construct request"); yield break; }
-            yield return req.SendWebRequest();
-            if (req.result == UnityWebRequest.Result.Success)
-            {
-                onSuccess?.Invoke(req.downloadHandler.text);
-            }
-            else onFail?.Invoke(req.error);
         }
 
         public void GetAllSessionSaves(Action<List<SessionSave>> onSuccess, Action<string> onFail)

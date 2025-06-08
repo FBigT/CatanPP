@@ -4,7 +4,7 @@ namespace Assets.Scripts.Dtos
 {
     public class GenerateMapDto
     {
-        private List<TileDto> tileDtos;
+        public List<TileDto> tileDtos;
 
         public GenerateMapDto(List<TileDto> tileDtos)
         {

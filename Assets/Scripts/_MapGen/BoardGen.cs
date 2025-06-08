@@ -1,10 +1,14 @@
+using Assets.Scripts.Dtos;
 using Assets.Scripts.Enums;
+using Assets.Scripts.Utils;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 
 public class BoardGen : MonoBehaviour
 {
+    public static BoardGen Instance { get; private set; }
+
     public GameObject hexTilePrefab;
     public GameObject edgePointPrefab;
 
@@ -20,6 +24,9 @@ public class BoardGen : MonoBehaviour
     private Dictionary<Vector3, VertexPoint> vertexMap = new();
 
     public GameObject portPrefab;
+
+    private List<HexTile> tileList = new List<HexTile>();
+
     public List<PortType> portTypes = new()
     {
         PortType.Generic3To1, PortType.Wood2To1, PortType.Brick2To1,
@@ -61,10 +68,38 @@ public class BoardGen : MonoBehaviour
         8, 10, 9, 4, 5, 6, 3, 11
     };
 
-    void Start()
+    private void Awake()
+    {
+        if (Instance == null)
+        {
+            Instance = this;
+            DontDestroyOnLoad(gameObject);
+        }
+        else
+        {
+            Destroy(gameObject);
+        }
+
+        if (SessionManager.Instance.IsHost)
+        {
+            GenerateAll();
+
+            if (BoardGenBackendClient.Instance != null)
+            {
+                Debug.Log("Sending initial board data to backend...");
+                BoardGenBackendClient.Instance.SendBoardData(tileList);
+            }
+            else
+            {
+                Debug.LogWarning("BoardGenBackendClient not found, cannot send initial board data.");
+            }
+        }
+    }
+
+    public void GenerateAll()
     {
         GenerateBoard();
-        List<VertexPoint> allPoints = FindObjectsOfType<VertexPoint>().ToList();
+        List<VertexPoint> allPoints = FindObjectsByType<VertexPoint>(FindObjectsSortMode.None).ToList();
         GenerateEdgePoints(allPoints);
         PlacePorts();
     }
@@ -96,6 +131,8 @@ public class BoardGen : MonoBehaviour
                 }
 
                 GameObject tileObj = Instantiate(hexTilePrefab, pos, Quaternion.identity);
+
+                tileList.Add(tileObj.GetComponent<HexTile>());
 
                 if (tileObj.GetComponent<MeshCollider>() == null)
                 {
@@ -251,7 +288,7 @@ public class BoardGen : MonoBehaviour
         Vector3 sum = Vector3.zero;
         int count = 0;
 
-        foreach (var tile in FindObjectsOfType<HexTile>())
+        foreach (var tile in FindObjectsByType<HexTile>(FindObjectsSortMode.None))
         {
             sum += tile.transform.position;
             count++;
@@ -289,5 +326,61 @@ public class BoardGen : MonoBehaviour
     public HexTile GetCurrentThiefTile()
     {
         return currentThiefTile;
+    }
+
+    public void ConstructBoardFromTiles(List<TileDto> tiles)
+    {
+        vertexMap.Clear();
+
+        if (thiefInstance != null)
+        {
+            Destroy(thiefInstance);
+            currentThiefTile = null;
+        }
+
+        foreach (var tileDto in tiles)
+        {
+            Vector3 pos = HexToWorld(tileDto.x, tileDto.y);
+
+            for (int i = 0; i < 6; i++)
+            {
+                Vector3 vertexPos = GetVertexPosition(pos, i, hexSize);
+                SpawnVertexIfNotExists(vertexPos);
+            }
+
+            GameObject tileObj = Instantiate(hexTilePrefab, pos, Quaternion.identity);
+
+            if (tileObj.GetComponent<MeshCollider>() == null)
+            {
+                MeshCollider meshCollider = tileObj.AddComponent<MeshCollider>();
+                MeshFilter mf = tileObj.GetComponent<MeshFilter>();
+                if (mf != null) meshCollider.sharedMesh = mf.sharedMesh;
+            }
+
+            HexTile tile = tileObj.GetComponent<HexTile>();
+            tile.Initialize(tileDto.tileType, tileDto.number, tileDto.x, tileDto.y);
+
+            if (tileDto.tileType == "desert")
+            {
+                thiefInstance = Instantiate(thiefPrefab, tileObj.transform);
+                thiefInstance.transform.localPosition = Vector3.up * 0.1f;
+                currentThiefTile = tile;
+            }
+        }
+
+        foreach (var vertex in vertexMap.Values)
+        {
+            foreach (var tile in FindObjectsByType<HexTile>(FindObjectsSortMode.None))
+            {
+                if (Vector3.Distance(tile.transform.position, vertex.Position) < hexSize + 0.1f)
+                {
+                    vertex.nearbyTiles.Add(tile);
+                }
+            }
+        }
+
+        GenerateEdgePoints(vertexMap.Values.ToList());
+
+        Debug.Log("Board constructed from TileDto list.");
     }
 }

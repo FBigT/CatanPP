@@ -8,8 +8,6 @@ using Assets.Scripts.User;
 
 public class StartSession : MonoBehaviour
 {
-    private SessionManager sessionService;
-
     public TMP_Text lblCode;
     public TMP_Text lblLoading;
     public TMP_Text lblStartError;
@@ -19,10 +17,9 @@ public class StartSession : MonoBehaviour
 
     async void Awake()
     {
-        sessionService = gameObject.AddComponent<SessionManager>();
         btnCancleStartGame.onClick.AddListener(() =>
         {
-            sessionService.CloseSession(SessionClosed, SetError);
+            SessionManager.Instance.CloseSession(SessionClosed, SetError);
         });
 
         // Ensure we have a valid token before any WebSocket traffic
@@ -51,7 +48,7 @@ public class StartSession : MonoBehaviour
         gameObject.SetActive(true);
         lblLoading.gameObject.SetActive(true);
 
-        sessionService.CreateSession(4, SessionCreated, SetError);
+        SessionManager.Instance.CreateSession(4, SessionCreated, SetError);
     }
 
     // now async so we can await ConnectToChat

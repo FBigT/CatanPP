@@ -25,13 +25,13 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 3925966018214019736}
   serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
-  - {fileID: 4867228582589227442}
-  m_Father: {fileID: 7767528661798030020}
+  - {fileID: 2321162847611401895}
+  m_Father: {fileID: 4867228582589227442}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!95 &9168848099616163519
 Animator:
@@ -80,13 +80,13 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 7506162103304317177}
   serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
-  - {fileID: 2321162847611401895}
-  m_Father: {fileID: 5907004331174123205}
+  - {fileID: 5907004331174123205}
+  m_Father: {fileID: 7767528661798030020}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!114 &7410074579910608017
 MonoBehaviour:
@@ -130,12 +130,12 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 7822924957389247319}
   serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0.7071068, w: 0.7071068}
-  m_LocalPosition: {x: -0.47, y: 2.86, z: 0}
+  m_LocalRotation: {x: -0, y: -0, z: 0.7071068, w: 0.7071068}
+  m_LocalPosition: {x: -0.4699993, y: 2.86, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
-  m_Father: {fileID: 4867228582589227442}
+  m_Father: {fileID: 5907004331174123205}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 90}
 --- !u!212 &4442992520872620321
 SpriteRenderer:
@@ -220,11 +220,11 @@ Transform:
   m_GameObject: {fileID: 8466373214652617226}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalPosition: {x: 18.155657, y: 0.20000076, z: 37.218346}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
-  - {fileID: 5907004331174123205}
+  - {fileID: 4867228582589227442}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!114 &1451719220748451897
@@ -253,6 +253,7 @@ MonoBehaviour:
     localRotationEuler: {x: 0, y: 0, z: 90}
     sfx: {fileID: 8300000, guid: e1112fdb37aab6246954b9ba266011fb, type: 3}
     clickTriggerName: PressFinger
+    transitionDelay: 0
   - name: Building
     mode: 1
     sprite: {fileID: 21300000, guid: 3fffca0efba95b043833d14793882fc1, type: 3}
@@ -260,6 +261,7 @@ MonoBehaviour:
     localRotationEuler: {x: 0, y: 0, z: 15.75}
     sfx: {fileID: 8300000, guid: 749e6f60b6e81fc44805ee63613247f5, type: 3}
     clickTriggerName: HitHammer
+    transitionDelay: 0
 --- !u!82 &8309433244184054453
 AudioSource:
   m_ObjectHideFlags: 0

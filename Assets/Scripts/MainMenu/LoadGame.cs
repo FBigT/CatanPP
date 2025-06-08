@@ -25,13 +25,10 @@ public class LoadGame : MonoBehaviour
     public GameObject confirmDialog;
     public Button confirmDelete;
 
-    private SessionManager sessionService;
     private Transform currentDeleteSelection;
 
     void Awake()
     {
-        sessionService = this.AddComponent<SessionManager>();
-
         // initialize UI
         template.SetActive(false);
         confirmDialog.SetActive(false);
@@ -46,13 +43,13 @@ public class LoadGame : MonoBehaviour
                 joinErrorMessage.text = "Please enter a session code.";
                 return;
             }
-            sessionService.JoinSession(code, OnJoinSuccess, OnJoinError);
+            SessionManager.Instance.JoinSession(code, OnJoinSuccess, OnJoinError);
         });
 
         confirmDelete.onClick.AddListener(() => DeleteSave(currentDeleteSelection));
 
         // load existing saves from backend
-        sessionService.GetAllSessionSaves(PrintEntries, error => Debug.LogError("Failed to fetch saves: " + error));
+        SessionManager.Instance.GetAllSessionSaves(PrintEntries, error => Debug.LogError("Failed to fetch saves: " + error));
     }
 
     public void PrintEntries(IEnumerable<SessionSave> saves)
@@ -113,7 +110,7 @@ public class LoadGame : MonoBehaviour
     {
         if (long.TryParse(entry.Find("id").GetComponent<TMP_Text>().text, out long id))
         {
-            sessionService.DeleteSessionSave(id);
+            SessionManager.Instance.DeleteSessionSave(id);
         }
 
         // remove UI entry

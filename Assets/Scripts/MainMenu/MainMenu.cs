@@ -20,11 +20,8 @@ public class MainMenu : MonoBehaviour
     public GameObject startPanel;
     public GameObject mainPanel;
 
-    SessionManager _sessions;
-
     void Awake()
     {
-        _sessions = gameObject.AddComponent<SessionManager>();
         gameObject.AddComponent<UserManager>();
 
         if (LocalStorageService.GetString("guest-code") != null)
@@ -32,7 +29,7 @@ public class MainMenu : MonoBehaviour
 
         btnStartGame.onClick.AddListener(OnStartCampaignClicked);
         btnCancleStartGame.onClick.AddListener(
-            () => _sessions.CloseSession(SessionClosed, SetError)
+            () => SessionManager.Instance.CloseSession(SessionClosed, SetError)
         );
         btnQuit.onClick.AddListener(Application.Quit);
         btnLogout.onClick.AddListener(() =>
@@ -46,7 +43,7 @@ public class MainMenu : MonoBehaviour
     {
         btnStartGame.interactable = false;
         lblLoading.gameObject.SetActive(true);
-        _sessions.CreateSession(
+        SessionManager.Instance.CreateSession(
             4,
             SessionCreated,
             _ => LoadOfflineGame()

@@ -15,7 +15,6 @@ public class TopBar : MonoBehaviour
     void Awake()
     {
         UserManager userManager = this.AddComponent<UserManager>();
-        SessionManager sessionService = this.AddComponent<SessionManager>();
 
         _eventSystem = EventSystem.current;
         //btnStart.onClick.AddListener(() => sessionService.CreateSession());

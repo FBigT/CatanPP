@@ -30,13 +30,8 @@ namespace Assets.Scripts.MainMenu
         [Tooltip("Text to display errors (invalid input or server errors)")]
         public TMP_Text errorText;
 
-        private SessionManager sessionManager;
-
         void Awake()
         {
-            // attach the SessionManager for API calls
-            sessionManager = gameObject.AddComponent<SessionManager>();
-
             // hide the create-session panel at start
             if (createGamePanel != null)
                 createGamePanel.SetActive(false);
@@ -68,7 +63,7 @@ namespace Assets.Scripts.MainMenu
             submitButton.interactable = false;
 
             // call backend to create session
-            sessionManager.CreateSession(
+            SessionManager.Instance.CreateSession(
                 n,
                 OnSessionCreated,
                 OnSessionError

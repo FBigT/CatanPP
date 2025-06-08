@@ -17,7 +17,6 @@ namespace Assets.Scripts.Dtos
         {
             if (gameMoveType == GameMoveType.VICTORY)
                 throw new ArgumentException("You do not decide this");
-            // Updated to include REQUEST_DEV_CARDS as an allowed type without additional data
             if (gameMoveType != GameMoveType.DICE_ROLL &&
                 gameMoveType != GameMoveType.END_TURN &&
                 gameMoveType != GameMoveType.BUY_CARD &&
@@ -67,6 +66,12 @@ namespace Assets.Scripts.Dtos
         {
             gameMoveType = GameMoveType.TRADE_OFFER;
             moveData = tradeOffer;
+        }
+
+        public GameMoveDto(GenerateMapDto generateMapDto)
+        {
+            gameMoveType = GameMoveType.MAP_GEN;
+            moveData = generateMapDto;
         }
 
         [JsonConverter(typeof(StringEnumConverter))]
