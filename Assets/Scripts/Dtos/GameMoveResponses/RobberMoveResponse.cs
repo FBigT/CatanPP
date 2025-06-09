@@ -6,15 +6,20 @@
         public int originatingTileY;
         public int destinationTileX;
         public int destinationTileY;
-        public string username;
+        public string moverName;
 
-        public RobberMoveResponse(int originatingTileX, int originatingTileY, int destinationTileX, int destinationTileY, string username)
+        public string victimName;
+        public string resourceName;
+
+        public RobberMoveResponse(int originatingTileX, int originatingTileY, int destinationTileX, int destinationTileY, string moverName, string victimName, string resourceName)
         {
             this.originatingTileX = originatingTileX;
             this.originatingTileY = originatingTileY;
             this.destinationTileX = destinationTileX;
             this.destinationTileY = destinationTileY;
-            this.username = username;
+            this.moverName = moverName;
+            this.victimName = victimName;
+            this.resourceName = resourceName;
         }
     }
 }
