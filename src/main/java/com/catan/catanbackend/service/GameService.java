@@ -1,7 +1,10 @@
 package com.catan.catanbackend.service;
 
+import com.catan.catanbackend.controller.web_socket.WebSocketController;
 import com.catan.catanbackend.model.*;
+import com.catan.catanbackend.model.dto.ChatMessage;
 import com.catan.catanbackend.model.dto.PlayerScoreDto;
+import com.catan.catanbackend.model.dto.RawChatMessage;
 import com.catan.catanbackend.model.dto.TradeOfferMessage;
 import com.catan.catanbackend.model.dto.move_dtos.Place2RoadsDto;
 import com.catan.catanbackend.model.dto.move_dtos.PlaceRoadDto;
@@ -9,10 +12,12 @@ import com.catan.catanbackend.model.dto.move_dtos.responses.Place2RoadsResponseD
 import com.catan.catanbackend.model.dto.move_dtos.responses.PlaceRoadResponseDto;
 import com.catan.catanbackend.model.dto.move_dtos.RobberMoveDto;
 import com.catan.catanbackend.model.dto.move_dtos.responses.PlayCardResponseDto;
+import com.catan.catanbackend.model.dto.move_dtos.responses.RobberMoveResponseDto;
 import com.catan.catanbackend.model.helper.DevCardType;
 import com.catan.catanbackend.model.tile.Tile;
 import com.catan.catanbackend.repository.RobberBlockerRepository;
 import com.catan.catanbackend.repository.RobberMoveBlockerRepository;
+import com.catan.catanbackend.repository.SessionCodeRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -32,12 +37,14 @@ public class GameService {
     private final TileService tileService;
     private final DevCardService devCardService;
     private final PlacementService placementService;
+    private final NotificationService notificationService;
     private final ObjectMapper objectMapper;
     private final TradeService tradeService;
     private final ResourceService resourceService;
     private final PlayerProfileService playerProfileService;
+    private final SessionCodeRepository sessionCodeRepository;
 
-    public GameService(SessionService sessionService, RobberBlockerRepository robberBlockerRepository, SessionPlayerService sessionPlayerService, RobberMoveBlockerRepository robberMoveBlockerRepository, TileService tileService, DevCardService devCardService, PlacementService placementService, ObjectMapper objectMapper, TradeService tradeService, ResourceService resourceService, PlayerProfileService playerProfileService) {
+    public GameService(SessionService sessionService, RobberBlockerRepository robberBlockerRepository, SessionPlayerService sessionPlayerService, RobberMoveBlockerRepository robberMoveBlockerRepository, TileService tileService, DevCardService devCardService, PlacementService placementService, NotificationService notificationService, ObjectMapper objectMapper, TradeService tradeService, ResourceService resourceService, PlayerProfileService playerProfileService, SessionCodeRepository sessionCodeRepository) {
         this.sessionService = sessionService;
         this.robberBlockerRepository = robberBlockerRepository;
         this.sessionPlayerService = sessionPlayerService;
@@ -45,10 +52,12 @@ public class GameService {
         this.tileService = tileService;
         this.devCardService = devCardService;
         this.placementService = placementService;
+        this.notificationService = notificationService;
         this.objectMapper = objectMapper;
         this.tradeService = tradeService;
         this.resourceService = resourceService;
         this.playerProfileService = playerProfileService;
+        this.sessionCodeRepository = sessionCodeRepository;
     }
 
     public static String generateRandomName(){
@@ -109,9 +118,14 @@ public class GameService {
                 }
                 RobberMoveDto robberMoveDto = objectMapper.convertValue(playData, RobberMoveDto.class);
 
-                placementService.moveRobber(robberMoveDto, devCard.getOwner());
+                RobberMoveResponseDto robberMoveResponseDto = placementService.moveRobber(robberMoveDto, devCard.getOwner());
 
-                return new PlayCardResponseDto(DevCardType.KNIGHT.name(), objectMapper.convertValue(robberMoveDto, Map.class));
+                devCard.getOwner().setKnightsPlayed(devCard.getOwner().getKnightsPlayed() + 1);
+                sessionPlayerService.updateSessionPlayer(devCard.getOwner());
+
+                checkForBiggestArmy(devCard);
+
+                return new PlayCardResponseDto(DevCardType.KNIGHT.name(), objectMapper.convertValue(robberMoveResponseDto, Map.class));
             }
             case VICTORY_POINT -> {
                 devCard.getOwner().setPlayerScore(devCard.getOwner().getPlayerScore() + 1);
@@ -156,6 +170,29 @@ public class GameService {
             }
         }
         throw new IllegalArgumentException("Incorrect card type");
+    }
+
+    private void checkForBiggestArmy(DevCard devCard) {
+        Session session = devCard.getOwner().getSession();
+        if (devCard.getOwner().getKnightsPlayed() > session.getBiggestArmyValue() && !devCard.getOwner().getBiggestArmy()) {
+            List<SessionPlayer> players = sessionPlayerService.findPlayerBySessionId(session.getId());
+            players.stream().filter(SessionPlayer::getBiggestArmy).forEach(sessionPlayer -> {
+                sessionPlayer.setPlayerScore(sessionPlayer.getPlayerScore() - 2);
+                sessionPlayer.setBiggestArmy(false);
+                sessionPlayerService.updateSessionPlayer(sessionPlayer);
+            });
+
+            devCard.getOwner().setBiggestArmy(true);
+            devCard.getOwner().setPlayerScore(devCard.getOwner().getPlayerScore() + 2);
+            sessionPlayerService.updateSessionPlayer(devCard.getOwner());
+
+            session.setBiggestArmyValue(devCard.getOwner().getKnightsPlayed());
+            sessionService.save(session);
+
+            sessionCodeRepository.findBySessionId(session.getId()).ifPresent(sessionCode ->
+                    notificationService.sendChatMessage(sessionCode.getCode(),
+                        new ChatMessage("System", new RawChatMessage("A new biggest army has been achieved by " + devCard.getOwner().getName() + " it is " + devCard.getOwner().getKnightsPlayed()))));
+        }
     }
 
     public Optional<SessionPlayer> checkForWinner(Long sessionId) {

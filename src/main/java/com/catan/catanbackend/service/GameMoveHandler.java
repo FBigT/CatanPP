@@ -20,6 +20,7 @@ import org.springframework.stereotype.Service;
 
 import java.time.OffsetDateTime;
 import java.util.*;
+import java.util.stream.Collectors;
 
 @Service
 public class GameMoveHandler {
@@ -220,8 +221,7 @@ public class GameMoveHandler {
                 if (moveBlockerService.isSessionBlocked(sessionId) && moveBlockerService.isPlayerBlocked(sessionPlayer.getId())) {
                     RobberMoveDto robberMoveDto = objectMapper.convertValue(gameMoveDto.getMoveData(), RobberMoveDto.class);
 
-                    placementService.moveRobber(robberMoveDto, sessionPlayer);
-                    return robberMoveDto;
+                    return placementService.moveRobber(robberMoveDto, sessionPlayer);
                 } else {
                     throw new IllegalArgumentException("You cannot move the robber now");
                 }
@@ -231,22 +231,30 @@ public class GameMoveHandler {
                 int result = diceRollService.rollDice();
                 //Find tiles with matching numbers
                 List<Tile> affectedTiles = tileService.findBySessionId(sessionId).stream().filter(x -> x.getNumber() == result).toList();
-
+                Map<SessionPlayer, ResourceGroup> gainedResourceGroups = new HashMap<>();
                 for (Tile affectedTile : affectedTiles) {
                     //Find structures on the corners
                     affectedTile.getTileCornerMaps().stream().map(tileCornerMap -> tileCornerMap.getCorner().getStructure())
                             .filter(Objects::nonNull).forEach(structure -> {
+                        gainedResourceGroups.computeIfAbsent(structure.getOwner(), x -> new ResourceGroup());
+
                         //If city gain 2
                         if (StructureTypeEnum.CITY.equals(StructureTypeEnum.valueOf(structure.getStructureType().getName()))) {
-                            resourceService.addResource(ResourceType.valueOf(affectedTile.getTileType().getResource().getName()), 2, sessionPlayer);
+                            resourceService.addResource(ResourceType.valueOf(affectedTile.getTileType().getResource().getName()),
+                                    2, structure.getOwner(), gainedResourceGroups.get(structure.getOwner()));
                         } //If settlement gain 1
                         else if (StructureTypeEnum.SETTLEMENT.equals(StructureTypeEnum.valueOf(structure.getStructureType().getName()))) {
-                            resourceService.addResource(ResourceType.valueOf(affectedTile.getTileType().getResource().getName()), 1, sessionPlayer);
+                            resourceService.addResource(ResourceType.valueOf(affectedTile.getTileType().getResource().getName()),
+                                    1, structure.getOwner(), gainedResourceGroups.get(structure.getOwner()));
                         }
                     });
                 }
-
-                return new DiceResultDto(sessionPlayer.getName(), result);
+                Map<String, ResourceGroup> resultMap = gainedResourceGroups.entrySet().stream()
+                        .collect(Collectors.toMap(
+                                e -> (e.getKey()).getName(), // Extract field
+                                Map.Entry::getValue
+                        ));
+                return new DiceResultDto(sessionPlayer.getName(), result, resultMap);
             }
             case PLAY_CARD -> {
                 checkIfSessionValid(session);

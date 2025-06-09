@@ -1,5 +1,6 @@
 package com.catan.catanbackend;
 
+import com.catan.catanbackend.config.EncryptionTestConfig;
 import com.catan.catanbackend.model.*;
 import com.catan.catanbackend.model.dto.*;
 import com.catan.catanbackend.model.dto.move_dtos.*;
@@ -17,12 +18,14 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
+import org.apache.juli.logging.Log;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.server.LocalServerPort;
+import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.lang.NonNull;
@@ -55,6 +58,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @ActiveProfiles("test")
 @AutoConfigureMockMvc
+@Import(EncryptionTestConfig.class)
 @TestConstructor(autowireMode = TestConstructor.AutowireMode.ALL)
 class WebSocketTests {
     @LocalServerPort
@@ -173,39 +177,40 @@ class WebSocketTests {
         sessionService.joinSession(user2.getId(), sessionCode.getCode());
 
         LogInForm loginForm = new LogInForm(user1.getUsername(), userForm1.getPassword());
+        EncryptedMessageWithKey encryptedMessageWithKey = mapper.mapToEncryptedMessage(loginForm);
         MvcResult result = mockMvc.perform(post("/api/users/login")
-                        .content(objectMapper.writeValueAsString(mapper.mapToEncryptedMessage(loginForm)))
+                        .content(objectMapper.writeValueAsString(encryptedMessageWithKey.getEncryptedMessage()))
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andReturn();
 
         String responseBody = result.getResponse().getContentAsString();
-        EncryptedMessage encryptedMessage = objectMapper.readValue(responseBody, EncryptedMessage.class);
-        logInResponse1 = mapper.mapToObject(encryptedMessage, LogInResponse.class);
+        EncryptedResponse encryptedMessage = objectMapper.readValue(responseBody, EncryptedResponse.class);
+        logInResponse1 = (LogInResponse) mapper.mapFromEncryptedResponse(encryptedMessage, encryptedMessageWithKey.getKey(), LogInResponse.class);
 
         loginForm = new LogInForm(user2.getUsername(), userForm2.getPassword());
-
-        MvcResult result2 = mockMvc.perform(post("/api/users/login")
-                        .content(objectMapper.writeValueAsString(mapper.mapToEncryptedMessage(loginForm)))
+        encryptedMessageWithKey = mapper.mapToEncryptedMessage(loginForm);
+        result = mockMvc.perform(post("/api/users/login")
+                        .content(objectMapper.writeValueAsString(encryptedMessageWithKey.getEncryptedMessage()))
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andReturn();
 
-        String responseBody2 = result2.getResponse().getContentAsString();
-        encryptedMessage = objectMapper.readValue(responseBody2, EncryptedMessage.class);
-        logInResponse2 = mapper.mapToObject(encryptedMessage, LogInResponse.class);
+        responseBody = result.getResponse().getContentAsString();
+        encryptedMessage = objectMapper.readValue(responseBody, EncryptedResponse.class);
+        logInResponse2 = (LogInResponse) mapper.mapFromEncryptedResponse(encryptedMessage, encryptedMessageWithKey.getKey(), LogInResponse.class);
 
         loginForm = new LogInForm(user3.getUsername(), userForm3.getPassword());
-
-        MvcResult result3 = mockMvc.perform(post("/api/users/login")
-                        .content(objectMapper.writeValueAsString(mapper.mapToEncryptedMessage(loginForm)))
+        encryptedMessageWithKey = mapper.mapToEncryptedMessage(loginForm);
+        result = mockMvc.perform(post("/api/users/login")
+                        .content(objectMapper.writeValueAsString(encryptedMessageWithKey.getEncryptedMessage()))
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andReturn();
 
-        String responseBody3 = result3.getResponse().getContentAsString();
-        encryptedMessage = objectMapper.readValue(responseBody3, EncryptedMessage.class);
-        logInResponse3 = mapper.mapToObject(encryptedMessage, LogInResponse.class);
+        responseBody = result.getResponse().getContentAsString();
+        encryptedMessage = objectMapper.readValue(responseBody, EncryptedResponse.class);
+        logInResponse3 = (LogInResponse) mapper.mapFromEncryptedResponse(encryptedMessage, encryptedMessageWithKey.getKey(), LogInResponse.class);
 
         List<Transport> transports = List.of(new WebSocketTransport(new StandardWebSocketClient()));
         SockJsClient sockJsClient = new SockJsClient(transports);
@@ -659,12 +664,9 @@ class WebSocketTests {
     @Test
     void testTrade() throws Exception {
         BlockingQueue<GameMoveDto> gameFuture1 = new LinkedBlockingQueue<>();
-        BlockingQueue<GameMoveDto> secretFuture1 = new LinkedBlockingQueue<>();
         BlockingQueue<GameMoveDto> gameFuture2 = new LinkedBlockingQueue<>();
-        BlockingQueue<GameMoveDto> secretFuture2 = new LinkedBlockingQueue<>();
 
         String gameTopic = "/game/move/" + sessionCode.getCode();
-        String privateTopic = "/user/queue/" + sessionCode.getCode();
         String sendGameTopic = "/send/move/" + sessionCode.getCode();
 
         stompSession1.subscribe(getStompHeaders(gameTopic, logInResponse1), new StompFrameHandler() {
@@ -675,14 +677,6 @@ class WebSocketTests {
                 Assertions.assertTrue(gameFuture1.offer((GameMoveDto) payload));
             }
         });
-        stompSession1.subscribe(getStompHeaders(privateTopic, logInResponse1), new StompFrameHandler() {
-            @Override @NonNull public Type getPayloadType(@NonNull StompHeaders headers) {
-                return GameMoveDto.class;
-            }
-            @Override public void handleFrame(@NonNull StompHeaders headers, Object payload) {
-                Assertions.assertTrue(secretFuture1.offer((GameMoveDto) payload));
-            }
-        });
 
         stompSession2.subscribe(getStompHeaders(gameTopic, logInResponse2), new StompFrameHandler() {
             @Override @NonNull public Type getPayloadType(@NonNull StompHeaders headers) {
@@ -690,14 +684,6 @@ class WebSocketTests {
             }
             @Override public void handleFrame(@NonNull StompHeaders headers, Object payload) {
                 Assertions.assertTrue(gameFuture2.offer((GameMoveDto) payload));
-            }
-        });
-        stompSession2.subscribe(getStompHeaders(privateTopic, logInResponse2), new StompFrameHandler() {
-            @Override @NonNull public Type getPayloadType(@NonNull StompHeaders headers) {
-                return GameMoveDto.class;
-            }
-            @Override public void handleFrame(@NonNull StompHeaders headers, Object payload) {
-                Assertions.assertTrue(secretFuture2.offer((GameMoveDto) payload));
             }
         });
 
@@ -710,7 +696,6 @@ class WebSocketTests {
 
         turnOffSetup();
 
-        //consume map gen
         GameMoveDto publicReceive1 = gameFuture1.poll(5, TimeUnit.SECONDS);
         GameMoveDto receivedUser2 = gameFuture2.poll(5, TimeUnit.SECONDS);
 
@@ -728,7 +713,7 @@ class WebSocketTests {
 
         Thread.sleep(500);
 
-        GameMoveDto secretReceive2 = secretFuture2.poll(5, TimeUnit.SECONDS);
+        GameMoveDto secretReceive2 = gameFuture2.poll(5, TimeUnit.SECONDS);
 
         assertThat(secretReceive2).isNotNull();
         TradeOfferDto receivedOffer = objectMapper.convertValue(secretReceive2.getMoveData(), TradeOfferDto.class);
@@ -742,7 +727,7 @@ class WebSocketTests {
 
         Thread.sleep(500);
 
-        GameMoveDto secretReceive1 = secretFuture1.poll(5, TimeUnit.SECONDS);
+        GameMoveDto secretReceive1 = gameFuture1.poll(5, TimeUnit.SECONDS);
         assertThat(secretReceive1).isNotNull();
         TradeResponseDto tradeResponseDto = objectMapper.convertValue(secretReceive1.getMoveData(), TradeResponseDto.class);
 
@@ -945,10 +930,12 @@ class WebSocketTests {
                 assertThat(publicReceive1).isNotNull();
                 assertThat(receivedUser2).isNotNull().isEqualTo(publicReceive1);
 
-                assertThat(currentSessionPlayerByUserId1).isPresent();
-                SessionPlayer newPlayer = currentSessionPlayerByUserId1.get();
-                assertThat(newPlayer.getSilver()).isEqualTo(silver+1);
-                assertThat(newPlayer.getGold()).isEqualTo(gold+1);
+                Optional<SessionPlayer> currentSessionPlayerOp = sessionPlayerService.findCurrentSessionPlayerByUserId(user1.getId());
+                assertThat(currentSessionPlayerOp).isPresent();
+                SessionPlayer currentSessionPlayer = currentSessionPlayerOp.get();
+
+                assertThat(currentSessionPlayer.getSilver()).isEqualTo(silver+1);
+                assertThat(currentSessionPlayer.getGold()).isEqualTo(gold+1);
             }
         }
 

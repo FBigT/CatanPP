@@ -1,5 +1,6 @@
 package com.catan.catanbackend;
 
+import com.catan.catanbackend.config.EncryptionTestConfig;
 import com.catan.catanbackend.model.User;
 import com.catan.catanbackend.model.dto.*;
 import com.catan.catanbackend.service.EncryptionUtils;
@@ -13,6 +14,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.context.annotation.Import;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -27,6 +29,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 @ActiveProfiles("test")
 @SpringBootTest
+@Import(EncryptionTestConfig.class)
 @AutoConfigureMockMvc
 @TestConstructor(autowireMode = TestConstructor.AutowireMode.ALL)
 class UserTests {
@@ -78,34 +81,39 @@ class UserTests {
 
     LogInResponse registerAndLogin(RegisterForm registerForm) throws Exception {
         mockMvc.perform(post("/api/users/register")
-                        .content(objectMapper.writeValueAsString(mapper.mapToEncryptedMessage(registerForm)))
+                        .content(objectMapper.writeValueAsString(mapper.mapToEncryptedMessage(registerForm).getEncryptedMessage()))
                         .contentType(MediaType.APPLICATION_JSON));
 
         LogInForm logInForm = new LogInForm(NEW_USERNAME, NEW_PASSWORD);
-
+        EncryptedMessageWithKey encryptedMessageWithKey = mapper.mapToEncryptedMessage(logInForm);
         MvcResult mvcResult = mockMvc.perform(post("/api/users/login")
-                        .content(objectMapper.writeValueAsString(mapper.mapToEncryptedMessage(logInForm)))
-                        .contentType(MediaType.APPLICATION_JSON)).andReturn();
+                        .content(objectMapper.writeValueAsString(encryptedMessageWithKey.getEncryptedMessage()))
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk()).andReturn();
         String contentAsString = mvcResult.getResponse().getContentAsString();
-        EncryptedMessage encryptedMessage = objectMapper.readValue(contentAsString, EncryptedMessage.class);
-        return mapper.mapToObject(encryptedMessage, LogInResponse.class);
+        EncryptedResponse encryptedMessage = objectMapper.readValue(contentAsString, EncryptedResponse.class);
+
+        return (LogInResponse) mapper.mapFromEncryptedResponse(encryptedMessage, encryptedMessageWithKey.getKey(), LogInResponse.class);
     }
 
     @Test
     void testLogin() throws Exception {
+        EncryptedMessageWithKey encryptedMessageWithKey = mapper.mapToEncryptedMessage(new LogInForm(DEFAULT_USERNAME, DEFAULT_PASSWORD));
         MvcResult mvcResult = mockMvc.perform(post("/api/users/login")
-                        .content(objectMapper.writeValueAsString(mapper.mapToEncryptedMessage(new LogInForm(DEFAULT_USERNAME, DEFAULT_PASSWORD))))
+                        .content(objectMapper.writeValueAsString(encryptedMessageWithKey.getEncryptedMessage()))
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk()).andReturn();
         String contentAsString = mvcResult.getResponse().getContentAsString();
-        EncryptedMessage encryptedMessage = objectMapper.readValue(contentAsString, EncryptedMessage.class);
+        EncryptedResponse encryptedMessage = objectMapper.readValue(contentAsString, EncryptedResponse.class);
 
-        LogInResponse logInResponse = mapper.mapToObject(encryptedMessage, LogInResponse.class);
+        LogInResponse logInResponse = (LogInResponse) mapper.mapFromEncryptedResponse(encryptedMessage, encryptedMessageWithKey.getKey(), LogInResponse.class);
         assertThat(logInResponse.getToken()).isNotNull().isNotBlank().isNotEmpty();
         assertThat(logInResponse.getUsername()).isEqualTo(DEFAULT_USERNAME);
 
+        EncryptedMessageWithKey wrongPasswordMessage = mapper.mapToEncryptedMessage(new LogInForm(DEFAULT_USERNAME, "wrongPassword"));
+
         mockMvc.perform(post("/api/users/login")
-                        .content(objectMapper.writeValueAsString(mapper.mapToEncryptedMessage(new LogInForm(DEFAULT_USERNAME, "wrongPassword"))))
+                        .content(objectMapper.writeValueAsString(wrongPasswordMessage.getEncryptedMessage()))
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isUnauthorized());
     }
@@ -113,18 +121,19 @@ class UserTests {
     @Test
     void testRegister() throws Exception {
         mockMvc.perform(post("/api/users/register")
-                        .content(objectMapper.writeValueAsString(mapper.mapToEncryptedMessage(new RegisterForm(DEFAULT_USERNAME, DEFAULT_PASSWORD, "test@test.com"))))
+                        .content(objectMapper.writeValueAsString(mapper.mapToEncryptedMessage(new RegisterForm(DEFAULT_USERNAME, DEFAULT_PASSWORD, "test@test.com")).getEncryptedMessage()))
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isConflict());
 
+        EncryptedMessageWithKey encryptedMessageWithKey = mapper.mapToEncryptedMessage(new RegisterForm(NEW_USERNAME, DEFAULT_PASSWORD, "test@test.com"));
         MvcResult mvcResult = mockMvc.perform(post("/api/users/register")
-                        .content(objectMapper.writeValueAsString(mapper.mapToEncryptedMessage(new RegisterForm(NEW_USERNAME, DEFAULT_PASSWORD, "test@test.com"))))
+                        .content(objectMapper.writeValueAsString(encryptedMessageWithKey.getEncryptedMessage()))
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isCreated()).andReturn();
 
         String contentAsString = mvcResult.getResponse().getContentAsString();
-        EncryptedMessage encryptedMessage = objectMapper.readValue(contentAsString, EncryptedMessage.class);
-        UserDto userDto = mapper.mapToObject(encryptedMessage, UserDto.class);
+        EncryptedResponse encryptedMessage = objectMapper.readValue(contentAsString, EncryptedResponse.class);
+        UserDto userDto = (UserDto) mapper.mapFromEncryptedResponse(encryptedMessage, encryptedMessageWithKey.getKey(), UserDto.class);
         assertThat(userDto.getUsername()).isEqualTo(NEW_USERNAME);
     }
 
@@ -162,22 +171,31 @@ class UserTests {
 
     @Test
     void testGuest() throws Exception {
-        MvcResult mvcResult = mockMvc.perform(post("/api/users/register/guest"))
+        EncryptedMessageWithKey encryptedMessageWithKey = mapper.mapToEncryptedMessage(null);
+        MvcResult mvcResult = mockMvc.perform(post("/api/users/register/guest")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(encryptedMessageWithKey.getEncryptedMessage())))
                 .andExpect(status().isCreated()).andReturn();
 
         String profileJson = mvcResult.getResponse().getContentAsString();
-        GuestRegisterResponse registerResponse = objectMapper.readValue(profileJson, GuestRegisterResponse.class);
+        EncryptedResponse encryptedResponse = objectMapper.readValue(profileJson, EncryptedResponse.class);
+        GuestRegisterResponse registerResponse = (GuestRegisterResponse) mapper.mapFromEncryptedResponse(encryptedResponse, encryptedMessageWithKey.getKey(), GuestRegisterResponse.class);
+
         assertThat(registerResponse).isNotNull();
         assertThat(registerResponse.getUsername()).isNotBlank().startsWith("Guest");
         assertThat(registerResponse.getGuestKey()).isNotNull().isNotBlank();
 
+        encryptedMessageWithKey = mapper.mapToEncryptedMessage(new RefreshRequest(registerResponse.getGuestKey()));
+
         MvcResult loginResult = mockMvc.perform(post("/api/users/login/guest")
-                        .content(registerResponse.getGuestKey())
+                        .content(objectMapper.writeValueAsString(encryptedMessageWithKey.getEncryptedMessage()))
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk()).andReturn();
 
         String contentAsString = loginResult.getResponse().getContentAsString();
-        LogInResponse logInResponse = objectMapper.readValue(contentAsString, LogInResponse.class);
+
+        encryptedResponse = objectMapper.readValue(contentAsString, EncryptedResponse.class);
+        LogInResponse logInResponse = (LogInResponse) mapper.mapFromEncryptedResponse(encryptedResponse, encryptedMessageWithKey.getKey(), LogInResponse.class);
         assertThat(logInResponse.getToken()).isNotNull().isNotBlank().isNotEmpty();
         assertThat(logInResponse.getUsername()).isEqualTo(registerResponse.getUsername());
     }
@@ -186,14 +204,15 @@ class UserTests {
     void testRefresh() throws Exception {
         LogInResponse logInResponse = registerAndLogin(new RegisterForm(NEW_USERNAME, NEW_PASSWORD, MAIL));
 
+        EncryptedMessageWithKey encryptedMessageWithKey = mapper.mapToEncryptedMessage(new RefreshRequest(logInResponse.getRefreshToken()));
         MvcResult loginResult = mockMvc.perform(post("/api/users/refresh")
-                        .content(logInResponse.getRefreshToken())
+                        .content(objectMapper.writeValueAsString(encryptedMessageWithKey.getEncryptedMessage()))
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk()).andReturn();
         String contentAsString = loginResult.getResponse().getContentAsString();
-        EncryptedMessage encryptedMessage = objectMapper.readValue(contentAsString, EncryptedMessage.class);
+        EncryptedResponse encryptedMessage = objectMapper.readValue(contentAsString, EncryptedResponse.class);
 
-        LogInResponse refreshResponse = mapper.mapToObject(encryptedMessage, LogInResponse.class);
+        LogInResponse refreshResponse = (LogInResponse) mapper.mapFromEncryptedResponse(encryptedMessage, encryptedMessageWithKey.getKey(), LogInResponse.class);
         assertThat(refreshResponse).isNotNull();
         assertThat(refreshResponse.getToken()).isNotNull().isNotBlank().isNotEmpty();
         assertThat(refreshResponse.getUsername()).isEqualTo(logInResponse.getUsername());
@@ -204,23 +223,18 @@ class UserTests {
     void testDeactivate() throws Exception {
         LogInResponse logInResponse = registerAndLogin(new RegisterForm(NEW_USERNAME, NEW_PASSWORD, MAIL));
 
-        MvcResult byIdResult = mockMvc.perform(get("/api/users/" + logInResponse.getUserId())
+        mockMvc.perform(get("/api/users/" + logInResponse.getUserId())
                         .header(HttpHeaders.AUTHORIZATION, logInResponse.getFullToken()))
-                .andExpect(status().isOk()).andReturn();
+                .andExpect(status().isOk());
 
-        String contentAsString = byIdResult.getResponse().getContentAsString();
-        UserDto getResponse = objectMapper.readValue(contentAsString, UserDto.class);
 
-        MvcResult deactivateResult = mockMvc.perform(delete("/api/users/deactivate/" + logInResponse.getUserId())
+        mockMvc.perform(delete("/api/users/deactivate/" + logInResponse.getUserId())
                         .header(HttpHeaders.AUTHORIZATION, logInResponse.getFullToken()))
-                .andExpect(status().isOk()).andReturn();
-        contentAsString = deactivateResult.getResponse().getContentAsString();
-        UserDto deactivateResponse = objectMapper.readValue(contentAsString, UserDto.class);
+                .andExpect(status().isOk());
 
-        assertThat(deactivateResponse).isNotNull();
-        assertThat(deactivateResponse.getUsername()).isEqualTo(logInResponse.getUsername());
-        assertThat(getResponse.getActive()).isTrue();
-        assertThat(deactivateResponse.getActive()).isFalse();
+        mockMvc.perform(get("/api/users/" + logInResponse.getUserId())
+                        .header(HttpHeaders.AUTHORIZATION, logInResponse.getFullToken()))
+                .andExpect(status().isNotFound());
     }
 
     @Test
@@ -256,14 +270,15 @@ class UserTests {
                         .header(HttpHeaders.AUTHORIZATION, logInResponse.getFullToken()))
                 .andExpect(status().isOk());
 
+        EncryptedMessageWithKey encryptedMessageWithKey = mapper.mapToEncryptedMessage(new LogInForm(updatedUsername, NEW_PASSWORD));
         MvcResult mvcResult = mockMvc.perform(post("/api/users/login")
-                        .content(objectMapper.writeValueAsString(mapper.mapToEncryptedMessage(new LogInForm(updatedUsername, NEW_PASSWORD))))
+                        .content(objectMapper.writeValueAsString(encryptedMessageWithKey.getEncryptedMessage()))
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk()).andReturn();
         String contentAsString = mvcResult.getResponse().getContentAsString();
-        EncryptedMessage encryptedMessage = objectMapper.readValue(contentAsString, EncryptedMessage.class);
+        EncryptedResponse encryptedMessage = objectMapper.readValue(contentAsString, EncryptedResponse.class);
 
-        LogInResponse updatedLoginResponse = mapper.mapToObject(encryptedMessage, LogInResponse.class);
+        LogInResponse updatedLoginResponse = (LogInResponse) mapper.mapFromEncryptedResponse(encryptedMessage, encryptedMessageWithKey.getKey(), LogInResponse.class);
         mockMvc.perform(get("/api/users/username/" + updatedUsername)
                         .header(HttpHeaders.AUTHORIZATION, updatedLoginResponse.getFullToken()))
                 .andExpect(status().isOk());

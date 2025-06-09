@@ -1,14 +1,19 @@
 package com.catan.catanbackend.service;
 
+import com.catan.catanbackend.controller.web_socket.WebSocketController;
 import com.catan.catanbackend.model.*;
+import com.catan.catanbackend.model.dto.ChatMessage;
+import com.catan.catanbackend.model.dto.RawChatMessage;
 import com.catan.catanbackend.model.dto.move_dtos.RobberMoveDto;
+import com.catan.catanbackend.model.dto.move_dtos.responses.RobberMoveResponseDto;
+import com.catan.catanbackend.model.helper.ResourceType;
 import com.catan.catanbackend.model.helper.StructureTypeEnum;
 import com.catan.catanbackend.model.tile.*;
+import com.catan.catanbackend.repository.SessionCodeRepository;
 import com.catan.catanbackend.repository.tiles.*;
 import org.springframework.stereotype.Service;
 
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
 
 @Service
 public class PlacementService {
@@ -20,6 +25,10 @@ public class PlacementService {
     private final TileEdgeRepository tileEdgeRepository;
     private final TileCornerRepository tileCornerRepository;
     private final PlayerProfileService playerProfileService;
+    private final NotificationService notificationService;
+    private final SessionService sessionService;
+    private final SessionCodeRepository sessionCodeRepository;
+
 
     // We add references to these services so we can access the player's resources.
     private final SessionPlayerService sessionPlayerService;
@@ -29,7 +38,7 @@ public class PlacementService {
                             StructureTypeRepository structureTypeRepository,
                             RoadRepository roadRepository,
                             TileEdgeRepository tileEdgeRepository,
-                            TileCornerRepository tileCornerRepository, PlayerProfileService playerProfileService,
+                            TileCornerRepository tileCornerRepository, PlayerProfileService playerProfileService, NotificationService notificationService, SessionService sessionService, SessionCodeRepository sessionCodeRepository,
                             SessionPlayerService sessionPlayerService) {
         this.tileService = tileService;
         this.structureRepository = structureRepository;
@@ -38,6 +47,9 @@ public class PlacementService {
         this.tileEdgeRepository = tileEdgeRepository;
         this.tileCornerRepository = tileCornerRepository;
         this.playerProfileService = playerProfileService;
+        this.notificationService = notificationService;
+        this.sessionService = sessionService;
+        this.sessionCodeRepository = sessionCodeRepository;
         this.sessionPlayerService = sessionPlayerService;
     }
 
@@ -152,6 +164,8 @@ public class PlacementService {
         tileEdge.setRoad(road);
         tileEdgeRepository.save(tileEdge);
 
+        checkForLongestRoad(road);
+
         return road;
     }
 
@@ -193,7 +207,7 @@ public class PlacementService {
         return structureRepository.save(structure);
     }
 
-    public void moveRobber(RobberMoveDto moveDto, SessionPlayer sessionPlayer) {
+    public RobberMoveResponseDto moveRobber(RobberMoveDto moveDto, SessionPlayer sessionPlayer) {
         Optional<Tile> robberTile = tileService.getRobberTile(sessionPlayer.getSession().getId());
         if (robberTile.isEmpty()) {
             throw new IllegalArgumentException("No robber found");
@@ -214,10 +228,35 @@ public class PlacementService {
             throw new IllegalArgumentException("Invalid move (destination coordinates for robber are invalid)");
         }
 
+        List<SessionPlayer> list = destinationTile.get().getTileCornerMaps().stream().map(x -> x.getCorner().getStructure())
+                .filter(x -> x != null && !x.getOwner().getId().equals(sessionPlayer.getId())).map(Structure::getOwner).distinct().toList();
+
+        RobberMoveResponseDto robberMoveResponseDto;
+        if (!list.isEmpty()) {
+            Random rand = new Random();
+            SessionPlayer victim = list.get(rand.nextInt(list.size()));
+            List<ResourceType> resourceList = victim.resourcesToGroup().resourcesToList();
+            if (!resourceList.isEmpty()) {
+                ResourceType resourceType = resourceList.get(rand.nextInt(resourceList.size()));
+                victim.setResource(resourceType, victim.resourcesToGroup().getResourceAmount(resourceType) - 1);
+                sessionPlayer.setResource(resourceType, sessionPlayer.resourcesToGroup().getResourceAmount(resourceType) - 1);
+
+                sessionPlayerService.updateSessionPlayer(victim);
+                sessionPlayerService.updateSessionPlayer(sessionPlayer);
+                robberMoveResponseDto = new RobberMoveResponseDto(moveDto, victim.getName(), resourceType, sessionPlayer.getName());
+            } else {
+                robberMoveResponseDto = new RobberMoveResponseDto(moveDto, sessionPlayer.getName());
+            }
+        } else {
+            robberMoveResponseDto = new RobberMoveResponseDto(moveDto, sessionPlayer.getName());
+        }
+
+
         robberTile.get().setHasRobber(false);
         destinationTile.get().setHasRobber(true);
         tileService.save(robberTile.get());
         tileService.save(destinationTile.get());
+        return robberMoveResponseDto;
     }
 
     // ----------------------------------------------------
@@ -231,7 +270,7 @@ public class PlacementService {
             return false;
         }
         TileCorner tileCorner = optionalTileCorner.get();
-        List<TileEdge> tileEdges = tileEdgeRepository.findByCorner(tileCorner);
+        List<TileEdge> tileEdges = tileEdgeRepository.findAllConnectedToCorner(tileCorner);
         for (TileEdge tileEdge : tileEdges) {
             if (tileEdge.getCornerB() != tileCorner && tileEdge.getCornerB().getStructure() != null) {
                 return false;
@@ -279,5 +318,64 @@ public class PlacementService {
             }
         }
         return false; // or true, depending on your adjacency logic
+    }
+
+    public void checkForLongestRoad(Road road) {
+        TileEdge startEdge = road.getTileEdge();
+        Long ownerId = road.getOwner().getId();
+
+        Set<Long> visited = new HashSet<>();
+        visited.add(road.getId());
+
+        int left = walkRoad(startEdge.getCornerA(), visited, startEdge, ownerId);
+        int right = walkRoad(startEdge.getCornerB(), visited, startEdge, ownerId);
+
+        Integer totalRoadLength = left + 1 + right;
+        if (totalRoadLength > road.getOwner().getSession().getLongestRoadValue() && !road.getOwner().getLongestRoad()) {
+            List<SessionPlayer> players = sessionPlayerService.findPlayerBySessionId(road.getOwner().getSession().getId());
+            players.stream().filter(SessionPlayer::getLongestRoad).forEach(sessionPlayer -> {
+                sessionPlayer.setPlayerScore(sessionPlayer.getPlayerScore() - 2);
+                sessionPlayer.setLongestRoad(false);
+                sessionPlayerService.updateSessionPlayer(sessionPlayer);
+            });
+
+            road.getOwner().getSession().setLongestRoadValue(totalRoadLength);
+            road.getOwner().setLongestRoad(true);
+            road.getOwner().setPlayerScore(road.getOwner().getPlayerScore() + 2);
+
+            sessionPlayerService.updateSessionPlayer(road.getOwner());
+            sessionService.save(road.getOwner().getSession());
+
+            Optional<SessionCode> bySessionId = sessionCodeRepository.findBySessionId(road.getOwner().getSession().getId());
+            if (bySessionId.isPresent()) {
+                SessionCode sessionCode = bySessionId.get();
+                notificationService.sendChatMessage(sessionCode.getCode(),
+                        new ChatMessage("System", new RawChatMessage("A new longest road has been achieved by " + road.getOwner().getName() + " it is " + totalRoadLength)));
+            }
+        }
+    }
+
+    private int walkRoad(TileCorner currentCorner, Set<Long> visitedRoadIds, TileEdge fromEdge, Long ownerId) {
+        int maxLength = 0;
+
+        List<TileEdge> connectedEdges = tileEdgeRepository.findAllConnectedToCorner(currentCorner);
+
+        for (TileEdge edge : connectedEdges) {
+            if (edge.equals(fromEdge)) continue;
+
+            Road road = edge.getRoad();
+            if (road != null
+                    && !visitedRoadIds.contains(road.getId())
+                    && road.getOwner().getId().equals(ownerId)) {
+
+                visitedRoadIds.add(road.getId());
+                TileCorner nextCorner = edge.getCornerA().equals(currentCorner) ? edge.getCornerB() : edge.getCornerA();
+                int pathLength = 1 + walkRoad(nextCorner, visitedRoadIds, edge, ownerId);
+                maxLength = Math.max(maxLength, pathLength);
+                visitedRoadIds.remove(road.getId()); // backtrack for other paths
+            }
+        }
+
+        return maxLength;
     }
 }

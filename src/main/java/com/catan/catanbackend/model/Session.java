@@ -96,4 +96,10 @@ public class Session {
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)
     private OffsetDateTime createdAt;
+
+    @Column(name = "biggest_army_value")
+    private Integer biggestArmyValue = 2;
+
+    @Column(name = "longest_road_value")
+    private Integer longestRoadValue = 4;
 }

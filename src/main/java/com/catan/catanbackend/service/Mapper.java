@@ -6,7 +6,6 @@ import com.catan.catanbackend.model.ResourceGroup;
 import com.catan.catanbackend.model.dto.move_dtos.TradeOfferDto;
 import com.catan.catanbackend.model.helper.TileTypeEnum;
 import com.catan.catanbackend.model.tile.Tile;
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -14,22 +13,21 @@ import org.springframework.stereotype.Component;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
-import java.util.Objects;
 import java.util.Optional;
 
 @Component
 public class Mapper {
     private final PasswordEncoder passwordEncoder;
     private final TileTypeService tileTypeService;
-    private final EncryptionUtils encryptionUtils;
     private final SessionPlayerService sessionPlayerService;
     private final ObjectMapper objectMapper;
+    private final EncryptionUtils encryptionUtils;
 
-    public Mapper(TileTypeService tileTypeService, EncryptionUtils encryptionUtils, SessionPlayerService sessionPlayerService, ObjectMapper objectMapper) {
+    public Mapper(TileTypeService tileTypeService, SessionPlayerService sessionPlayerService, ObjectMapper objectMapper, EncryptionUtils encryptionUtils) {
         this.tileTypeService = tileTypeService;
-        this.encryptionUtils = encryptionUtils;
         this.sessionPlayerService = sessionPlayerService;
         this.objectMapper = objectMapper;
+        this.encryptionUtils = encryptionUtils;
         this.passwordEncoder = new BCryptPasswordEncoder();
     }
 
@@ -128,22 +126,43 @@ public class Mapper {
         return Optional.of(tradeOffer);
     }
 
-    public EncryptedMessage mapToEncryptedMessage(Object object) {
+    public EncryptedResponse mapToEncryptedResponse(Object object, byte[] aesKey) {
         try {
             String json = objectMapper.writeValueAsString(object);
-            String encrypt = encryptionUtils.encrypt(json);
-            return new EncryptedMessage(encrypt);
+            String encryptedPayload = encryptionUtils.encryptResponse(json, aesKey);
+            return new EncryptedResponse(encryptedPayload);
         } catch (Exception e) {
-            return null;
+            throw new IllegalStateException("Failed to encrypt response", e);
         }
     }
 
-    public <T> T mapToObject(EncryptedMessage encryptedMessage, Class<T> clazz) {
+    public EncryptedMessageWithKey mapToEncryptedMessage(Object object) {
         try {
-            String decrypt = encryptionUtils.decrypt(encryptedMessage.getCrypto());
-            return objectMapper.readValue(decrypt, clazz);
+            String json = objectMapper.writeValueAsString(object);
+            return encryptionUtils.simulateFrontendEncryption(json);
         } catch (Exception e) {
-            return null;
+            throw new IllegalStateException("Failed to encrypt response", e);
+        }
+    }
+
+    public Object mapFromEncryptedResponse(EncryptedResponse encryptedResponse, byte[] aesKey, Class<?> clazz) {
+        try {
+            String s = encryptionUtils.decryptPayload(encryptedResponse.getPayload(), aesKey);
+            return objectMapper.readValue(s, clazz);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    public <T> DecryptedMessage mapToObject(EncryptedMessage encryptedMessage, Class<T> clazz) {
+        try {
+            byte[] aesKey = encryptionUtils.decryptAESKey(encryptedMessage.getEncryptedKey());
+
+            String decryptedJson = encryptionUtils.decryptPayload(encryptedMessage.getPayload(), aesKey);
+            T payload = objectMapper.readValue(decryptedJson, clazz);
+            return new DecryptedMessage(payload, aesKey);
+        } catch (Exception e) {
+            throw new IllegalArgumentException("Failed to decrypt message", e);
         }
     }
 

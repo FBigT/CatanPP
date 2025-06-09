@@ -1,11 +1,9 @@
 package com.catan.catanbackend;
 
+import com.catan.catanbackend.config.EncryptionTestConfig;
 import com.catan.catanbackend.model.PlayerProfile;
 import com.catan.catanbackend.model.ResourceGroup;
-import com.catan.catanbackend.model.dto.EncryptedMessage;
-import com.catan.catanbackend.model.dto.LogInForm;
-import com.catan.catanbackend.model.dto.LogInResponse;
-import com.catan.catanbackend.model.dto.RegisterForm;
+import com.catan.catanbackend.model.dto.*;
 import com.catan.catanbackend.repository.PlayerProfileRepository;
 import com.catan.catanbackend.service.Mapper;
 import com.catan.catanbackend.service.UserService;
@@ -18,6 +16,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.context.annotation.Import;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -28,12 +27,12 @@ import org.springframework.test.web.servlet.MvcResult;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.InstanceOfAssertFactories.map;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @ActiveProfiles("test")
 @SpringBootTest
+@Import(EncryptionTestConfig.class)
 @AutoConfigureMockMvc
 class PlayerProfileTests {
 
@@ -83,19 +82,21 @@ class PlayerProfileTests {
     }
 
     LogInResponse registerAndLogin(RegisterForm registerForm) throws Exception {
+        EncryptedMessageWithKey encryptedMessageWithKey = mapper.mapToEncryptedMessage(registerForm);
         mockMvc.perform(post("/api/users/register")
-                        .content(objectMapper.writeValueAsString(mapper.mapToEncryptedMessage(registerForm)))
+                        .content(objectMapper.writeValueAsString(encryptedMessageWithKey.getEncryptedMessage()))
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isCreated());
 
+        EncryptedMessageWithKey encryptedMessageWithKey1 = mapper.mapToEncryptedMessage(new LogInForm(registerForm.getUsername(), registerForm.getPassword()));
         MvcResult mvcResult = mockMvc.perform(post("/api/users/login")
-                        .content(objectMapper.writeValueAsString(mapper.mapToEncryptedMessage(new LogInForm(registerForm.getUsername(), registerForm.getPassword()))))
+                        .content(objectMapper.writeValueAsString(encryptedMessageWithKey1.getEncryptedMessage()))
                         .contentType(MediaType.APPLICATION_JSON))
                 .andReturn();
 
         String contentAsString = mvcResult.getResponse().getContentAsString();
-        EncryptedMessage encryptedMessage = objectMapper.readValue(contentAsString, EncryptedMessage.class);
-        return mapper.mapToObject(encryptedMessage, LogInResponse.class);
+        EncryptedResponse encryptedMessage = objectMapper.readValue(contentAsString, EncryptedResponse.class);
+        return (LogInResponse) mapper.mapFromEncryptedResponse(encryptedMessage, encryptedMessageWithKey1.getKey(), LogInResponse.class);
     }
 
     @Test

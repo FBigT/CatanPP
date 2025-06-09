@@ -1,5 +1,7 @@
 package com.catan.catanbackend.model;
 
+import com.catan.catanbackend.model.helper.ResourceType;
+import com.catan.catanbackend.service.EncryptedStringConverter;
 import com.catan.catanbackend.service.GameService;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
@@ -7,14 +9,13 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
-import lombok.Data;
-import lombok.EqualsAndHashCode;
-import lombok.NoArgsConstructor;
-import lombok.ToString;
+import lombok.*;
 import org.hibernate.annotations.ColumnDefault;
 import org.hibernate.annotations.OnDelete;
 import org.hibernate.annotations.OnDeleteAction;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Objects;
 
 @Data
@@ -82,6 +83,7 @@ public class SessionPlayer {
     @Size(max = 255)
     @NotNull
     @Column(name = "name", nullable = false)
+    @Convert(converter = EncryptedStringConverter.class)
     private String name;
 
     @NotNull
@@ -133,6 +135,15 @@ public class SessionPlayer {
     @Column(name = "roads_placed")
     private Integer roadsPlaced = 0;
 
+    @Column(name = "longest_road")
+    private Boolean longestRoad = false;
+
+    @Column(name = "biggest_army")
+    private Boolean biggestArmy = false;
+
+    @Column(name = "knights_played")
+    private Integer knightsPlayed = 0;
+
     public Integer getNumberOfResources() {
         return brick + crystal + ore + rice + sheep + silver + gold + wood;
     }
@@ -159,5 +170,23 @@ public class SessionPlayer {
     @Override
     public int hashCode() {
         return Objects.hash(id);
+    }
+
+    @JsonIgnore
+    public ResourceGroup resourcesToGroup(){
+        return new ResourceGroup(brick, crystal, ore, rice, sheep, silver, gold, wood);
+    }
+
+    public void setResource(ResourceType resourceType, int amount) {
+        switch (resourceType) {
+            case BRICK -> brick = amount;
+            case CRYSTAL -> crystal = amount;
+            case ORE -> ore = amount;
+            case RICE -> rice = amount;
+            case SHEEP -> sheep = amount;
+            case SILVER -> silver = amount;
+            case GOLD -> gold = amount;
+            case WOOD -> wood = amount;
+        }
     }
 }

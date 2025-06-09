@@ -167,9 +167,7 @@ public class SessionService {
                 return Optional.empty();
             }
             else {
-                sessionPlayerService.saveSessionPlayer(
-                        new SessionPlayer(sessionCode.get().getSession(), user.get())
-                );
+                sessionPlayerService.saveSessionPlayer(new SessionPlayer(sessionCode.get().getSession(), user.get()));
             }
         }
         return sessionCode;
@@ -195,7 +193,7 @@ public class SessionService {
         if (sessionPlayers.isPresent() && sessionPlayers.get().size() == 1) {
             SessionPlayer sp = sessionPlayers.get().get(0);
             if (sp.getActive()) {
-                sessionPlayerService.saveSessionPlayer(sp);
+                sessionPlayerService.updateSessionPlayer(sp);
                 return true;
             }
         }

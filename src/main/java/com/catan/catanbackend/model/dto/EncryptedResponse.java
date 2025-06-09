@@ -7,7 +7,6 @@ import lombok.NoArgsConstructor;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class EncryptedMessage {
-    private String encryptedKey;
+public class EncryptedResponse {
     private String payload;
 }

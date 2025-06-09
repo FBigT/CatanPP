@@ -1,5 +1,6 @@
 package com.catan.catanbackend;
 
+import com.catan.catanbackend.config.EncryptionTestConfig;
 import com.catan.catanbackend.model.ResourceGroup;
 import com.catan.catanbackend.model.dto.*;
 import com.catan.catanbackend.service.Mapper;
@@ -11,6 +12,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.context.annotation.Import;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.TestConstructor;
@@ -27,6 +29,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 @ActiveProfiles("test")
 @SpringBootTest
+@Import(EncryptionTestConfig.class)
 @AutoConfigureMockMvc
 @TestConstructor(autowireMode = TestConstructor.AutowireMode.ALL)
 class TradeTests {
@@ -71,17 +74,21 @@ class TradeTests {
     }
 
     private LogInResponse registerAndLogin(RegisterForm form) throws Exception {
+
+        EncryptedMessageWithKey encryptedMessageWithKey = mapper.mapToEncryptedMessage(form);
         mockMvc.perform(post("/api/users/register")
                 .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(mapper.mapToEncryptedMessage(form))));
+                .content(objectMapper.writeValueAsString(encryptedMessageWithKey.getEncryptedMessage())));
+
+        encryptedMessageWithKey = mapper.mapToEncryptedMessage(new LogInForm(form.getUsername(), form.getPassword()));
 
         MvcResult mvcResult = mockMvc.perform(post("/api/users/login")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(mapper.mapToEncryptedMessage(new LogInForm(form.getUsername(), form.getPassword())))))
+                        .content(objectMapper.writeValueAsString(encryptedMessageWithKey.getEncryptedMessage())))
                 .andReturn();
 
-        EncryptedMessage encryptedMessage = objectMapper.readValue(mvcResult.getResponse().getContentAsString(), EncryptedMessage.class);
-        return mapper.mapToObject(encryptedMessage, LogInResponse.class);
+        EncryptedResponse encryptedResponse = objectMapper.readValue(mvcResult.getResponse().getContentAsString(), EncryptedResponse.class);
+        return (LogInResponse) mapper.mapFromEncryptedResponse(encryptedResponse, encryptedMessageWithKey.getKey(), LogInResponse.class);
     }
 
     @Test

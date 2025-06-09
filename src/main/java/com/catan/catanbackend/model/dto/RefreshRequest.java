@@ -5,9 +5,8 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 @Data
-@NoArgsConstructor
 @AllArgsConstructor
-public class EncryptedMessage {
-    private String encryptedKey;
-    private String payload;
+@NoArgsConstructor
+public class RefreshRequest {
+    private String refreshToken;
 }

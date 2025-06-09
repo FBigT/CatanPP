@@ -53,10 +53,6 @@ public class WebSocketController {
         messagingTemplate.convertAndSend("/game/players/" + sessionCode, new JoinSessionNotification(users));
     }
 
-    public static void sendGameMoveSubscribeNotif(SimpMessagingTemplate messagingTemplate, String sessionCode, String message) {
-        messagingTemplate.convertAndSend("/game/players/" + sessionCode, message);
-    }
-
     @MessageMapping("/move/{sessionCode}")
     public void gameMove(@DestinationVariable String sessionCode, @Payload GameMoveDto gameMoveDto, Principal principal) {
         System.out.println("🎯 [WebSocketController] === GAME MOVE RECEIVED ===");

@@ -6,6 +6,7 @@ import com.catan.catanbackend.model.SessionPlayer;
 import com.catan.catanbackend.model.helper.ResourceType;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
 import java.util.Optional;
 
 @Service
@@ -31,7 +32,7 @@ public class ResourceService {
         return true;
     }
 
-    public void addResource(ResourceType resourceType, Integer amount, SessionPlayer sessionPlayer) {
+    public void addResource(ResourceType resourceType, Integer amount, SessionPlayer sessionPlayer, ResourceGroup resourceGroup) {
         if (sessionPlayer.getUser() != null) {
             Optional<PlayerProfile> playerProfileByUserId = playerProfileService.getPlayerProfileByUserId(sessionPlayer.getUser().getId());
             if (playerProfileByUserId.isPresent()) {
@@ -51,6 +52,8 @@ public class ResourceService {
             case SILVER -> sessionPlayer.setSilver(sessionPlayer.getSilver() + amount);
             case GOLD -> sessionPlayer.setGold(sessionPlayer.getGold() + amount);
         }
+
+        resourceGroup.addResource(resourceType, amount);
 
         sessionPlayerService.updateSessionPlayer(sessionPlayer);
     }

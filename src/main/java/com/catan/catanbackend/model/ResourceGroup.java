@@ -1,10 +1,13 @@
 package com.catan.catanbackend.model;
 
+import com.catan.catanbackend.model.helper.ResourceType;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Objects;
 
 @Builder
@@ -59,5 +62,42 @@ public class ResourceGroup implements Comparable<ResourceGroup>{
         silver -= resourceGroup.silver;
         gold -= resourceGroup.gold;
         wood -= resourceGroup.wood;
+    }
+
+    public Integer getResourceAmount(ResourceType resourceType) {
+        return switch (resourceType) {
+            case BRICK -> brick;
+            case CRYSTAL -> crystal;
+            case ORE -> ore;
+            case RICE -> rice;
+            case SHEEP -> sheep;
+            case SILVER -> silver;
+            case GOLD -> gold;
+            case WOOD -> wood;
+        };
+    }
+
+    public void addResource(ResourceType resourceType, int amount) {
+        switch (resourceType) {
+            case BRICK -> brick += amount;
+            case CRYSTAL -> crystal += amount;
+            case ORE -> ore += amount;
+            case RICE -> rice += amount;
+            case SHEEP -> sheep += amount;
+            case SILVER -> silver += amount;
+            case GOLD -> gold += amount;
+            case WOOD -> wood += amount;
+        }
+    }
+
+    public List<ResourceType> resourcesToList(){
+        List<ResourceType> resources = new ArrayList<>();
+        for(ResourceType resourceType : ResourceType.values()){
+            Integer resourceAmount = getResourceAmount(resourceType);
+            for (int i = 0; i <resourceAmount; i++){
+                resources.add(resourceType);
+            }
+        }
+        return resources;
     }
 }
