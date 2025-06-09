@@ -133,7 +133,7 @@ namespace Assets.Scripts.Utils
                                     DiceResultDto diceResult = (DiceResultDto)gameMove.moveData;
                                     break;
                                 case GameMoveType.ROBBER_MOVE:
-                                    RobberMoveDto robberMoveDto = (RobberMoveDto)gameMove.moveData;
+                                    RobberMoveResponse robberMoveDto = (RobberMoveResponse)gameMove.moveData;
                                     break;
                                 case GameMoveType.PLAY_CARD:
                                     PlayCardResponseDto playCardResponseDto = (PlayCardResponseDto)gameMove.moveData;
@@ -160,6 +160,9 @@ namespace Assets.Scripts.Utils
                                     break;
                                 case GameMoveType.TURN_ORDER:
                                     TurnOrderResponse turnOrder = (TurnOrderResponse)gameMove.moveData;
+                                    break;
+                                case GameMoveType.START_GAME:
+                                    StartGameResponse startGame = (StartGameResponse)gameMove.moveData;
                                     break;
                                 case GameMoveType.MAP_GEN:
                                     {

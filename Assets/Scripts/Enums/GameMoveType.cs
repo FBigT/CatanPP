@@ -23,6 +23,7 @@ namespace Assets.Scripts.Enums
         TRADE_EXECUTED,
         TURN_ORDER,
         REQUEST_DEV_CARDS,
-        REQUEST_MAP
+        REQUEST_MAP,
+        START_GAME
     }
 }

@@ -5,11 +5,13 @@ namespace Assets.Scripts.Dtos
     [Serializable]
     public class EncryptedMessage
     {
-        public string crypto;
+        public string encryptedKey;
+        public string payload;
 
-        public EncryptedMessage(string crypto)
+        public EncryptedMessage(string encryptedKey, string payload)
         {
-            this.crypto = crypto;
+            this.encryptedKey = encryptedKey;
+            this.payload = payload;
         }
     }
 }

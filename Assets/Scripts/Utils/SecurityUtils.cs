@@ -3,6 +3,9 @@ using System;
 using System.Text;
 using System.Security.Cryptography;
 using UnityEngine;
+using Assets.Scripts.Dtos;
+using static UnityEditor.PlayerSettings;
+using static UnityEditor.IMGUI.Controls.PrimitiveBoundsHandle;
 
 namespace Assets.Scripts.Utils
 {
@@ -13,6 +16,13 @@ namespace Assets.Scripts.Utils
         ────────────────────────────────────────────────── */
         static readonly byte[] Key =
             Encoding.UTF8.GetBytes("12345678901234567890123456789012"); // 32 B
+
+        static byte[] CurrentKey;
+
+        private static readonly string rsaPublicKeyXml = @"<RSAKeyValue>
+  <Modulus>nmJ9lMXCqMhUo9DotRngBZEANKp0E+plE+QL6ZjtNrQV4flHIguU60jBWxCNR6hM7JRvmY2aQcwCNSGxYR0ywlSg+h21eTLQ52/fONrtrA/SwO7JPSp0RtOCSCt2j+XnVi37J6bh9m26G0V6tIJXAFHNdlmyr2CY65DBiERby5dbXxWoEXAVE+aCgBGw3OUUIYGe7c4qm8eov5go3XmrqHdNIRybUwsUA9UuwojDhZpmkV+rt8CUCxCq7LryjtW9ksbUWOPQiIEMct+jtCV6DtYNfLasiOCiP72V2nfBO7YW/G2km/4uXDd4GwzkSu/SzfXQC+y+njVH7o/k6W0c5w==</Modulus>
+  <Exponent>AQAB</Exponent>
+</RSAKeyValue>";
 
         public static string Encrypt(string plain)
         {
@@ -50,6 +60,74 @@ namespace Assets.Scripts.Utils
             byte[] plain = aes.CreateDecryptor()
                                .TransformFinalBlock(enc, 0, enc.Length);
             return Encoding.UTF8.GetString(plain);
+        }
+
+        public static byte[] createKey() {
+            using Aes aes = Aes.Create();
+            aes.KeySize = 256;
+            aes.GenerateKey();
+            aes.GenerateIV();
+            aes.Mode = CipherMode.CBC;
+            aes.Padding = PaddingMode.PKCS7;
+
+            return aes.Key;
+        }
+
+        public static string EncryptKey(byte[] key) {
+            using RSACryptoServiceProvider rsa = new();
+            rsa.FromXmlString(rsaPublicKeyXml);
+            byte[] encryptedKey = rsa.Encrypt(key, false);
+
+            return Convert.ToBase64String(encryptedKey);
+        }
+
+        public static string EncryptRequest(string json, out string encryptedAesKeyB64, out byte[] aesKey)
+        {
+            using Aes aes = Aes.Create();
+            aes.KeySize = 256;
+            aes.GenerateKey();
+            aes.GenerateIV();
+            aes.Mode = CipherMode.CBC;
+            aes.Padding = PaddingMode.PKCS7;
+
+            aesKey = aes.Key;
+            byte[] iv = aes.IV;
+
+            byte[] plainBytes = Encoding.UTF8.GetBytes(json);
+            byte[] encryptedPayload;
+            using (ICryptoTransform encryptor = aes.CreateEncryptor())
+            {
+                encryptedPayload = encryptor.TransformFinalBlock(plainBytes, 0, plainBytes.Length);
+            }
+
+            byte[] ivAndPayload = new byte[iv.Length + encryptedPayload.Length];
+            Buffer.BlockCopy(iv, 0, ivAndPayload, 0, iv.Length);
+            Buffer.BlockCopy(encryptedPayload, 0, ivAndPayload, iv.Length, encryptedPayload.Length);
+
+            encryptedAesKeyB64 = EncryptKey(aesKey);
+
+            return Convert.ToBase64String(ivAndPayload);
+        }
+
+        public static string DecryptResponse(string base64EncryptedResponse, byte[] aesKey)
+        {
+            byte[] ivAndCipher = Convert.FromBase64String(base64EncryptedResponse);
+
+            byte[] iv = new byte[16];
+            byte[] cipherBytes = new byte[ivAndCipher.Length - 16];
+            Buffer.BlockCopy(ivAndCipher, 0, iv, 0, 16);
+            Buffer.BlockCopy(ivAndCipher, 16, cipherBytes, 0, cipherBytes.Length);
+
+            using Aes aes = Aes.Create();
+            aes.Key = aesKey;
+            aes.IV = iv;
+            aes.Mode = CipherMode.CBC;
+            aes.Padding = PaddingMode.PKCS7;
+
+            ICryptoTransform decryptor = aes.CreateDecryptor();
+            byte[] plainBytes = decryptor.TransformFinalBlock(cipherBytes, 0, cipherBytes.Length);
+
+            return Encoding.UTF8.GetString(plainBytes);
         }
 
         /* ──────────────────────────────────────────────────

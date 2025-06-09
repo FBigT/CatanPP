@@ -8,9 +8,20 @@ using System.Collections.Generic;
 using System.Net;
 using System.Text;
 using Assets.Scripts.Dtos;
+using UnityEngine.InputSystem;
 
 public class UserManager : MonoBehaviour
 {
+
+    private class RefreshRequest {
+        public string refreshToken;
+
+        public RefreshRequest(string refreshToken)
+        {
+            this.refreshToken = refreshToken;
+        }
+    }
+
     public void Login(LoginForm loginForm, Action<LoginResponse> onSuccess, Action<string> onFail)
     {
         StartCoroutine(LoginRequest(loginForm, onSuccess, onFail));
@@ -19,8 +30,8 @@ public class UserManager : MonoBehaviour
     private IEnumerator LoginRequest(LoginForm form, Action<LoginResponse> onSuccess, Action<string> onFail)
     {
         UnityWebRequest request = null;
-        string encrypted = SecurityUtils.Encrypt(JsonUtility.ToJson(form));
-        yield return RequestService.ConstructSimpleWebRequest(EndpointUtils.Login, Methods.POST, false, JsonUtility.ToJson(new EncryptedMessage(encrypted)), result => request = result);
+        string encrypted = SecurityUtils.EncryptRequest(JsonUtility.ToJson(form), out string encryptedKey, out byte[] aesKey);
+        yield return RequestService.ConstructSimpleWebRequest(EndpointUtils.Login, Methods.POST, false, JsonUtility.ToJson(new EncryptedMessage(encryptedKey, encrypted)), result => request = result);
 
         if (request == null)
         {
@@ -32,8 +43,9 @@ public class UserManager : MonoBehaviour
 
         if (request.result == UnityWebRequest.Result.Success)
         {
-            EncryptedMessage response = JsonUtility.FromJson<EncryptedMessage>(request.downloadHandler.text);
-            onSuccess?.Invoke(JsonUtility.FromJson<LoginResponse>(SecurityUtils.Decrypt(response.crypto)));
+            EncryptedResponse response = JsonUtility.FromJson<EncryptedResponse>(request.downloadHandler.text);
+            string v = SecurityUtils.DecryptResponse(response.payload, aesKey); 
+            onSuccess?.Invoke(JsonUtility.FromJson<LoginResponse>(v));
         }
         else
         {
@@ -50,8 +62,8 @@ public class UserManager : MonoBehaviour
     private IEnumerator CreateUserRequest(RegisterForm form, Action onSuccess, Action<string> onFail)
     {
         UnityWebRequest request = null;
-        string encrypted = SecurityUtils.Encrypt(JsonUtility.ToJson(form));
-        yield return RequestService.ConstructSimpleWebRequest(EndpointUtils.Register, Methods.POST, false, JsonUtility.ToJson(new EncryptedMessage(encrypted)), result => request = result);
+        string encrypted = SecurityUtils.EncryptRequest(JsonUtility.ToJson(form), out string encryptedKey, out byte[] aesKey);
+        yield return RequestService.ConstructSimpleWebRequest(EndpointUtils.Register, Methods.POST, false, JsonUtility.ToJson(new EncryptedMessage(encryptedKey, encrypted)), result => request = result);
 
         if (request == null)
         {
@@ -79,7 +91,10 @@ public class UserManager : MonoBehaviour
     private IEnumerator CreateGuestRequest(Action<GuestRegisterResponse> onSuccess, Action<string> onFail)
     {
         UnityWebRequest request = null;
-        yield return RequestService.ConstructSimpleWebRequest(EndpointUtils.RegisterGuest, Methods.POST, false, null, result => request = result);
+        byte[] key = SecurityUtils.createKey();
+        string encryptedKey = SecurityUtils.EncryptKey(key);
+        EncryptedMessage encrypted = new(encryptedKey, null);
+        yield return RequestService.ConstructSimpleWebRequest(EndpointUtils.RegisterGuest, Methods.POST, false, JsonUtility.ToJson(encrypted), result => request = result);
 
         if (request == null)
         {
@@ -91,8 +106,10 @@ public class UserManager : MonoBehaviour
 
         if (request.result == UnityWebRequest.Result.Success)
         {
-            GuestRegisterResponse guestResponse = JsonUtility.FromJson<GuestRegisterResponse>(request.downloadHandler.text);
-            onSuccess?.Invoke(guestResponse);
+
+            EncryptedResponse response = JsonUtility.FromJson<EncryptedResponse>(request.downloadHandler.text);
+            string v = SecurityUtils.DecryptResponse(response.payload, key);
+            onSuccess?.Invoke(JsonUtility.FromJson<GuestRegisterResponse>(v));
         }
         else
         {
@@ -108,7 +125,9 @@ public class UserManager : MonoBehaviour
     private IEnumerator GuestLoginRequest(string guestCode, Action<LoginResponse> onSuccess, Action<string> onFail)
     {
         UnityWebRequest request = null;
-        yield return RequestService.ConstructSimpleWebRequest(EndpointUtils.GuestLogin(), Methods.POST, false, $"\"{guestCode}\"", result => request = result);
+        string encrypted = SecurityUtils.EncryptRequest(JsonUtility.ToJson(new RefreshRequest(guestCode)), out string encryptedKey, out byte[] aesKey);
+
+        yield return RequestService.ConstructSimpleWebRequest(EndpointUtils.GuestLogin(), Methods.POST, false, JsonUtility.ToJson(new EncryptedMessage(encryptedKey, encrypted)), result => request = result);
 
         if (request == null)
         {
@@ -120,8 +139,9 @@ public class UserManager : MonoBehaviour
 
         if (request.result == UnityWebRequest.Result.Success)
         {
-            LoginResponse loginResponse = JsonUtility.FromJson<LoginResponse>(request.downloadHandler.text);
-            onSuccess?.Invoke(loginResponse);
+            EncryptedResponse response = JsonUtility.FromJson<EncryptedResponse>(request.downloadHandler.text);
+            string v = SecurityUtils.DecryptResponse(response.payload, aesKey);
+            onSuccess?.Invoke(JsonUtility.FromJson<LoginResponse>(v));
         }
         else
         {
@@ -136,14 +156,17 @@ public class UserManager : MonoBehaviour
 
     public IEnumerator RefreshTokenRequest(string refreshToken, Action<LoginResponse> onSuccess, Action<string> onFail)
     {
-        UnityWebRequest request = new(EndpointUtils.Refresh, Methods.POST.ToString())
+        UnityWebRequest request = null;
+        string encrypted = SecurityUtils.EncryptRequest(JsonUtility.ToJson(new RefreshRequest(refreshToken)), out string encryptedKey, out byte[] aesKey);
+
+        /*UnityWebRequest request = new(EndpointUtils.Refresh, Methods.POST.ToString())
         {
             uploadHandler = new UploadHandlerRaw(Encoding.UTF8.GetBytes($"\"{refreshToken}\"" ?? "")),
             downloadHandler = new DownloadHandlerBuffer()
         };
-        request.SetRequestHeader("Content-Type", "application/json");
+        request.SetRequestHeader("Content-Type", "application/json");*/
         
-        //yield return RequestService.ConstructSimpleWebRequest(EndpointUtils.Refresh, Methods.POST, false, $"\"{refreshToken}\"", result => request = result);
+        yield return RequestService.ConstructSimpleWebRequest(EndpointUtils.Refresh, Methods.POST, false, JsonUtility.ToJson(new EncryptedMessage(encryptedKey, encrypted)), result => request = result);
 
         if (request == null)
         {
@@ -156,8 +179,8 @@ public class UserManager : MonoBehaviour
         
         if (request.result == UnityWebRequest.Result.Success)
         {
-            EncryptedMessage response = JsonUtility.FromJson<EncryptedMessage>(request.downloadHandler.text);
-            onSuccess?.Invoke(JsonUtility.FromJson<LoginResponse>(SecurityUtils.Decrypt(response.crypto)));
+            EncryptedResponse response = JsonUtility.FromJson<EncryptedResponse>(request.downloadHandler.text);
+            onSuccess?.Invoke(JsonUtility.FromJson<LoginResponse>(SecurityUtils.DecryptResponse(response.payload, aesKey)));
             yield break;
         }
         else
@@ -165,34 +188,6 @@ public class UserManager : MonoBehaviour
             LocalStorageService.Clear("refresh-token");
             onFail?.Invoke(request.error);
             yield break;
-        }
-    }
-
-    public void GetAllUsers(Action<List<UserDto>> onSuccess, Action<string> onFail)
-    {
-        StartCoroutine(GetUsersRequest(onSuccess, onFail));
-    }
-
-    private IEnumerator GetUsersRequest(Action<List<UserDto>> onSuccess, Action<string> onFail)
-    {
-        UnityWebRequest request = null;
-        yield return RequestService.ConstructSimpleWebRequest(EndpointUtils.Users, Methods.GET, true, null, result => request = result);
-
-        if (request == null)
-        {
-            yield break;
-        }
-
-        yield return request.SendWebRequest();
-
-        if (request.result == UnityWebRequest.Result.Success)
-        {
-            List<UserDto> users = JsonUtility.FromJson<List<UserDto>>(request.downloadHandler.text);
-            onSuccess?.Invoke(users);
-        }
-        else
-        {
-            onFail?.Invoke(request.error);
         }
     }
 
