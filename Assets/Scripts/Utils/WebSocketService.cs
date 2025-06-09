@@ -17,7 +17,7 @@ namespace Assets.Scripts.Utils
     public static class WebSocketService
     {
         public static event Action<ChatMessage> OnChatMessageReceived;
-
+        
         public static event Action<TradeOfferMessage> OnTradeOfferReceived;
         public static event Action<TradeResponseMessage> OnTradeResponseReceived;
         public static event Action  OnPlayerJoined;
@@ -163,8 +163,23 @@ namespace Assets.Scripts.Utils
                                     break;
                                 case GameMoveType.MAP_GEN:
                                     {
+                                        Debug.Log("🗺️ [WebSocketService] Processing MAP_GEN response");
                                         GenerateMapDto generateMapDto = (GenerateMapDto)gameMove.moveData;
+                                        Debug.Log($"🗺️ [WebSocketService] Map data contains {generateMapDto.tileDtos?.Count ?? 0} tiles");
+
+                                        // Fire the event for map generation
                                         OnMapGenerated?.Invoke(generateMapDto);
+                                        break;
+                                    }
+
+                                case GameMoveType.REQUEST_MAP:
+                                    {
+                                        Debug.Log("🗺️ [WebSocketService] Processing REQUEST_MAP response");
+                                        GenerateMapDto requestedMapDto = (GenerateMapDto)gameMove.moveData;
+                                        Debug.Log($"🗺️ [WebSocketService] Requested map data contains {requestedMapDto.tileDtos?.Count ?? 0} tiles");
+
+                                        // Fire the same event - the response to a map request is the same as map generation
+                                        OnMapGenerated?.Invoke(requestedMapDto);
                                         break;
                                     }
                                 case GameMoveType.TRADE_OFFER:
@@ -373,5 +388,27 @@ namespace Assets.Scripts.Utils
             string messageFrame = WebSocketEndpointsUtils.MessageFrame(WebSocketApplicationDestinations.Moves, sessionCode, gameMoveDto);
             await webSocket.SendText(messageFrame);
         }
+        public static async Task SendMapRequest()
+        {
+            if (!Connected)
+            {
+                Debug.LogWarning("Cannot send map request: WebSocket not connected.");
+                return;
+            }
+
+            try
+            {
+                var gameMove = new GameMoveDto(GameMoveType.REQUEST_MAP);
+                Debug.Log("[WebSocketService] Sending map request...");
+                await SendGameMove(gameMove);
+                Debug.Log("[WebSocketService] Map request sent successfully");
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError($"[WebSocketService] Failed to send map request: {ex.Message}");
+            }
+        }
+
+
     }
 }

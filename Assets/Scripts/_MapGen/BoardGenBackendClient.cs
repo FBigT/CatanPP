@@ -30,7 +30,7 @@ public class BoardGenBackendClient : MonoBehaviour
 
         foreach (var hex in tilesRaw)
         {
-            tiles.Add(new TileDto(hex.Q, hex.R, hex.resourceType, hex.numberToken));
+            tiles.Add(new TileDto(hex.Q, hex.R, hex.resourceType, hex.numberToken,0));
         }
 
         var ggm = new GenerateMapDto(tiles);
@@ -45,7 +45,7 @@ public class BoardGenBackendClient : MonoBehaviour
 
         foreach (var hex in tilesRaw)
         {
-            tiles.Add(new TileDto(hex.Q, hex.R, hex.resourceType, hex.numberToken));
+            tiles.Add(new TileDto(hex.Q, hex.R, hex.resourceType, hex.numberToken,0));
         }
 
         var ggm = new GenerateMapDto(tiles);
