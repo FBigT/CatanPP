@@ -9,5 +9,5 @@ public enum ResourceType {
     SHEEP,
     SILVER,
     GOLD,
-
+    WHEAT
 }

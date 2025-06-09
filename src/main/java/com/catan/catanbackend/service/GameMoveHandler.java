@@ -91,7 +91,7 @@ public class GameMoveHandler {
         }
         Session session = sessionById.get();
 
-        checkForSetupOrdering(gameMoveTypeEnum, session, sessionPlayer);
+        //checkForSetupOrdering(gameMoveTypeEnum, session, sessionPlayer);
         //Disabled for testing
         /*if (gameMoveTypeEnum != GameMoveTypeEnum.MAP_GEN && gameMoveTypeEnum != GameMoveTypeEnum.TRADE_RESPONSE && gameMoveTypeEnum != GameMoveTypeEnum.TURN_ORDER) {
             checkIfItsTheCurrentPlayer(sessionPlayer, session);
@@ -100,14 +100,31 @@ public class GameMoveHandler {
         switch (gameMoveTypeEnum) {
             case PRIVATE_BUY_CARD -> throw new IllegalArgumentException("Not like this");
             case MAP_GEN -> {
+                System.out.println("🗺️ [GameMoveHandler] === MAP GENERATION REQUEST ===");
+                System.out.println("🗺️ [GameMoveHandler] SessionPlayer: " + sessionPlayer.getName() + " (ID: " + sessionPlayer.getId() + ")");
+                System.out.println("🗺️ [GameMoveHandler] Is Host: " + Objects.equals(session.getHost().getId(), sessionPlayer.getUser().getId()));
+                System.out.println("🗺️ [GameMoveHandler] Map already generated: " + session.getMapGenerated());
+
                 if (session.getMapGenerated()) {
-                    return new MapGenerationDto(tileService.findBySessionId(sessionId).stream().map(mapper::mapTileToTileDto).toList());
-                } else if(!Objects.equals(session.getHost().getId(), sessionPlayer.getUser().getId())) {
-                    throw new IllegalArgumentException("You cannot generate a Map");
+                    System.out.println("🗺️ [GameMoveHandler] Map already generated, returning existing data");
+
+                    try {
+                        List<TileDto> existingTiles = tileService.findBySessionId(sessionId)
+                                .stream()
+                                .map(mapper::mapTileToTileDto)
+                                .toList();
+                        return new MapGenerationDto(existingTiles);
+                    } catch (Exception e) {
+                        System.out.println("🗺️ [GameMoveHandler] Error retrieving existing map: " + e.getMessage());
+                        throw new IllegalArgumentException("Failed to retrieve existing map data");
+                    }
                 }
 
-                MapGenerationDto mapGenerationDto = objectMapper.convertValue(gameMoveDto.getMoveData(), MapGenerationDto.class);
+                // Check if user is host (only hosts can generate new maps)
+                if (!Objects.equals(session.getHost().getId(), sessionPlayer.getUser().getId())) {
+                    System.out.println("🗺️ [GameMoveHandler] ❌ Non-host attempted to generate new map");
 
+<<<<<<< Updated upstream
                 List<Tile> list = mapGenerationDto.getTileDtos().stream().map(x -> mapper.mapTileDtoToTile(x, session)).toList();
                 generateCornersAndEdges(list);
 
@@ -128,6 +145,50 @@ public class GameMoveHandler {
 
                 return new StartGmeResponseDto(tileService.findBySessionId(sessionId).stream().map(mapper::mapTileToTileDto).toList(),
                         sessionService.getPlayersInTurnOrder(sessionId).stream().map(SessionPlayer::getName).toList());
+=======
+                    // For debugging, let's be more informative
+                    throw new IllegalArgumentException("Only the host can generate a new map. Use REQUEST_MAP to get existing map data.");
+                }
+
+                System.out.println("🗺️ [GameMoveHandler] ✅ Host generating new map...");
+
+                try {
+                    // Parse incoming map data
+                    MapGenerationDto mapGenerationDto = objectMapper.convertValue(gameMoveDto.getMoveData(), MapGenerationDto.class);
+                    System.out.println("🗺️ [GameMoveHandler] Received " + mapGenerationDto.getTileDtos().size() + " tiles from host");
+
+                    // Convert to tiles and save
+                    List<Tile> list = mapGenerationDto.getTileDtos().stream()
+                            .map(x -> mapper.mapTileDtoToTile(x, session))
+                            .toList();
+
+                    System.out.println("🗺️ [GameMoveHandler] Converting tiles and generating corners/edges...");
+                    generateCornersAndEdges(list);
+
+                    // Update session status
+                    session.setMapGenerated(true);
+                    session.setInSetup(true);
+                    sessionService.save(session);
+
+                    System.out.println("🗺️ [GameMoveHandler] Session updated - map generated: " + session.getMapGenerated());
+
+                    // Start session
+                    if (!sessionService.startSession(sessionId)) {
+                        throw new IllegalArgumentException("Session with id " + sessionId + " could not be started");
+                    }
+
+                    // Place robber
+                    placeRobber(sessionId);
+
+                    System.out.println("🗺️ [GameMoveHandler] ✅ Map generation complete!");
+                    return mapGenerationDto;
+
+                } catch (Exception e) {
+                    System.out.println("🗺️ [GameMoveHandler] ❌ Error during map generation: " + e.getMessage());
+                    e.printStackTrace();
+                    throw new IllegalArgumentException("Failed to generate map: " + e.getMessage());
+                }
+>>>>>>> Stashed changes
             }
             case BUY_CARD -> {
                 // checkIfSessionValid(session);  // Already commented out
@@ -165,7 +226,45 @@ public class GameMoveHandler {
                 }
             }
 
+            case REQUEST_MAP -> {
+                System.out.println("🗺️ [GameMoveHandler] === REQUEST MAP FROM NON-HOST ===");
+                System.out.println("🗺️ [GameMoveHandler] SessionPlayer: " + sessionPlayer.getName() + " (ID: " + sessionPlayer.getId() + ")");
+                System.out.println("🗺️ [GameMoveHandler] Session ID: " + sessionId);
+                System.out.println("🗺️ [GameMoveHandler] Map generated status: " + session.getMapGenerated());
 
+                // Check if map is already generated
+                if (session.getMapGenerated()) {
+                    System.out.println("🗺️ [GameMoveHandler] ✅ Map already exists, returning existing map data");
+
+                    try {
+                        // Get existing map data
+                        List<TileDto> existingTiles = tileService.findBySessionId(sessionId)
+                                .stream()
+                                .map(mapper::mapTileToTileDto)
+                                .toList();
+
+                        System.out.println("🗺️ [GameMoveHandler] Found " + existingTiles.size() + " tiles in session");
+
+                        if (existingTiles.isEmpty()) {
+                            System.out.println("🗺️ [GameMoveHandler] ⚠️ No tiles found despite map being marked as generated");
+                            throw new IllegalArgumentException("Map data not found despite being marked as generated");
+                        }
+
+                        MapGenerationDto existingMapData = new MapGenerationDto(existingTiles);
+                        System.out.println("🗺️ [GameMoveHandler] ✅ Returning " + existingTiles.size() + " tiles to requesting player: " + sessionPlayer.getName());
+
+                        return existingMapData;
+
+                    } catch (Exception e) {
+                        System.out.println("🗺️ [GameMoveHandler] ❌ Error retrieving existing map data: " + e.getMessage());
+                        e.printStackTrace();
+                        throw new IllegalArgumentException("Failed to retrieve existing map data: " + e.getMessage());
+                    }
+                } else {
+                    System.out.println("🗺️ [GameMoveHandler] ❌ Map not yet generated by host");
+                    throw new IllegalArgumentException("Map has not been generated yet. Please wait for the host to generate the map.");
+                }
+            }
 
             case PLACE_ROAD -> {
                 checkIfSessionValid(session);

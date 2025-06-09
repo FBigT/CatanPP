@@ -84,7 +84,7 @@ public class Mapper {
                 .z(tileDto.getZ())
                 .hasRobber(false)
                 .number(tileDto.getNumber())
-                .tileType(tileTypeService.findByEnumOrCreate(TileTypeEnum.valueOf(tileDto.getTileType())))
+                .tileType(tileTypeService.findByEnumOrCreate(TileTypeEnum.valueOfIgnoreCase(tileDto.getTileType())))
                 .session(session)
                 .tileCornerMaps(new ArrayList<>())
                 .tileEdgeMaps(new ArrayList<>())

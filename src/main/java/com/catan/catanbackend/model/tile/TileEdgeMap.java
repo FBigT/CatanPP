@@ -12,10 +12,11 @@ import lombok.*;
 @AllArgsConstructor
 @Builder
 @JsonIgnoreProperties({ "hibernateLazyInitializer", "handler" })
-@Table(name = "tile_edge_map",
-        uniqueConstraints = {
-                @UniqueConstraint(columnNames = {"tile_id", "edge_index"})
-        })
+@Table(name = "tile_edge_map"
+//        uniqueConstraints = {
+//                @UniqueConstraint(columnNames = {"tile_id", "edge_index"})
+//        }
+)
 public class TileEdgeMap {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
