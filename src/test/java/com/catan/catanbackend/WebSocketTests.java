@@ -18,7 +18,6 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
-import org.apache.juli.logging.Log;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -404,24 +403,16 @@ class WebSocketTests {
 
         Thread.sleep(500);
 
-        Map<String, Object> map = objectMapper.convertValue(new MapGenerationDto(tileDtos), new TypeReference<>() {
-        });
-        stompSession1.send(getStompHeaders(sendGameTopic, logInResponse1), new GameMoveDto(GameMoveTypeEnum.MAP_GEN.name(), map));
-
-        Thread.sleep(500);
-        stompSession1.send(getStompHeaders(sendGameTopic, logInResponse1), new GameMoveDto(GameMoveTypeEnum.START_GAME.name(), null));
+         generateMap(sendGameTopic, gameFuture1, gameFuture2);
 
         turnOffSetup();
 
-        //consume map gen
-        GameMoveDto receivedUser1 = gameFuture1.poll(5, TimeUnit.SECONDS);
-        GameMoveDto receivedUser2 = gameFuture2.poll(5, TimeUnit.SECONDS);
-
-        assertThat(receivedUser1).isNotNull().isEqualTo(receivedUser2);
+        GameMoveDto receivedUser1;
+        GameMoveDto receivedUser2;
 
         Thread.sleep(500);
 
-        map = objectMapper.convertValue(new PlaceStructureDto(0, 0, 3, StructureTypeEnum.SETTLEMENT.name()), new TypeReference<>() {
+        Map<String, Object> map = objectMapper.convertValue(new PlaceStructureDto(0, 0, 3, StructureTypeEnum.SETTLEMENT.name()), new TypeReference<>() {
         });
         stompSession1.send(getStompHeaders(sendGameTopic, logInResponse1), new GameMoveDto(GameMoveTypeEnum.PLACE_STRUCTURE.name(), map));
 
@@ -479,24 +470,17 @@ class WebSocketTests {
         int millis = 500;
         Thread.sleep(millis);
 
-        Map<String, Object> map = objectMapper.convertValue(new MapGenerationDto(tileDtos), new TypeReference<>() {
-        });
-        stompSession1.send(getStompHeaders(sendGameTopic, logInResponse1), new GameMoveDto(GameMoveTypeEnum.MAP_GEN.name(), map));
-
-        Thread.sleep(millis);
-        stompSession1.send(getStompHeaders(sendGameTopic, logInResponse1), new GameMoveDto(GameMoveTypeEnum.START_GAME.name(), null));
+        generateMap(sendGameTopic, gameFuture1, gameFuture2);
 
         turnOffSetup();
 
         //consume map gen
-        GameMoveDto receivedUser1 = gameFuture1.poll(5, TimeUnit.SECONDS);
-        GameMoveDto receivedUser2 = gameFuture2.poll(5, TimeUnit.SECONDS);
-
-        assertThat(receivedUser1).isNotNull().isEqualTo(receivedUser2);
+        GameMoveDto receivedUser1;
+        GameMoveDto receivedUser2;
 
         Thread.sleep(millis);
 
-        map = objectMapper.convertValue(new PlaceStructureDto(0, 0, 3, StructureTypeEnum.SETTLEMENT.name()), new TypeReference<>() {
+        Map<String, Object> map = objectMapper.convertValue(new PlaceStructureDto(0, 0, 3, StructureTypeEnum.SETTLEMENT.name()), new TypeReference<>() {
         });
         stompSession1.send(getStompHeaders(sendGameTopic, logInResponse1), new GameMoveDto(GameMoveTypeEnum.PLACE_STRUCTURE.name(), map));
 
@@ -566,20 +550,13 @@ class WebSocketTests {
 
         Thread.sleep(500);
 
-        Map<String, Object> map = objectMapper.convertValue(new MapGenerationDto(tileDtos), new TypeReference<>() {
-        });
-        stompSession1.send(getStompHeaders(sendGameTopic, logInResponse1), new GameMoveDto(GameMoveTypeEnum.MAP_GEN.name(), map));
+        generateMap(sendGameTopic, gameFuture1, gameFuture2);
 
-        Thread.sleep(500);
-        stompSession1.send(getStompHeaders(sendGameTopic, logInResponse1), new GameMoveDto(GameMoveTypeEnum.START_GAME.name(), null));
-        Thread.sleep(500);
         turnOffSetup();
 
         //consume map gen
-        GameMoveDto receivedUser1 = gameFuture1.poll(5, TimeUnit.SECONDS);
-        GameMoveDto receivedUser2 = gameFuture2.poll(5, TimeUnit.SECONDS);
-
-        assertThat(receivedUser1).isNotNull().isEqualTo(receivedUser2);
+        GameMoveDto receivedUser1;
+        GameMoveDto receivedUser2;
 
         Thread.sleep(500);
 
@@ -633,19 +610,12 @@ class WebSocketTests {
 
         Thread.sleep(500);
 
-        Map<String, Object> map = objectMapper.convertValue(new MapGenerationDto(tileDtos), new TypeReference<>() {});
-        stompSession1.send(getStompHeaders(sendGameTopic, logInResponse1), new GameMoveDto(GameMoveTypeEnum.MAP_GEN.name(), map));
+        generateMap(sendGameTopic, gameFuture1, gameFuture2);
 
-        Thread.sleep(500);
-        stompSession1.send(getStompHeaders(sendGameTopic, logInResponse1), new GameMoveDto(GameMoveTypeEnum.START_GAME.name(), null));
+        GameMoveDto publicReceive1;
+        GameMoveDto receivedUser2;
 
         turnOffSetup();
-
-        //consume map gen
-        GameMoveDto publicReceive1 = gameFuture1.poll(5, TimeUnit.SECONDS);
-        GameMoveDto receivedUser2 = gameFuture2.poll(5, TimeUnit.SECONDS);
-
-        assertThat(publicReceive1).isNotNull().isEqualTo(receivedUser2);
 
         Thread.sleep(500);
 
@@ -694,19 +664,9 @@ class WebSocketTests {
 
         Thread.sleep(500);
 
-        Map<String, Object> map = objectMapper.convertValue(new MapGenerationDto(tileDtos), new TypeReference<>() {});
-        stompSession1.send(getStompHeaders(sendGameTopic, logInResponse1), new GameMoveDto(GameMoveTypeEnum.MAP_GEN.name(), map));
+        generateMap(sendGameTopic, gameFuture1, gameFuture2);
 
-        Thread.sleep(500);
-        stompSession1.send(getStompHeaders(sendGameTopic, logInResponse1), new GameMoveDto(GameMoveTypeEnum.START_GAME.name(), null));
-
-        Thread.sleep(500);
         turnOffSetup();
-
-        GameMoveDto publicReceive1 = gameFuture1.poll(5, TimeUnit.SECONDS);
-        GameMoveDto receivedUser2 = gameFuture2.poll(5, TimeUnit.SECONDS);
-
-        assertThat(publicReceive1).isNotNull().isEqualTo(receivedUser2);
 
         Thread.sleep(500);
 
@@ -714,7 +674,7 @@ class WebSocketTests {
                 new ResourceGroup(0, 2, 2, 2, 2, 2, 2, 2, 0),
                 new ResourceGroup(2, 0, 0, 0, 0, 0, 0, 0, 0));
 
-        map = objectMapper.convertValue(tradeOfferDto, new TypeReference<>() {});
+        Map<String, Object> map = objectMapper.convertValue(tradeOfferDto, new TypeReference<>() {});
 
         stompSession1.send(getStompHeaders(sendGameTopic, logInResponse1), new GameMoveDto(GameMoveTypeEnum.TRADE_OFFER.name(), map));
 
@@ -789,24 +749,12 @@ class WebSocketTests {
 
         Thread.sleep(500);
 
-        //Generate map
-        Map<String, Object> map = objectMapper.convertValue(new MapGenerationDto(tileDtos), new TypeReference<>() {
-        });
-        stompSession1.send(getStompHeaders(sendGameTopic, logInResponse1), new GameMoveDto(GameMoveTypeEnum.MAP_GEN.name(), map));
+        generateMap(sendGameTopic, gameFuture1, gameFuture2);
 
-        Thread.sleep(500);
-
-        stompSession1.send(getStompHeaders(sendGameTopic, logInResponse1), new GameMoveDto(GameMoveTypeEnum.START_GAME.name(), null));
-
-        Thread.sleep(500);
+        GameMoveDto publicReceive1;
+        GameMoveDto receivedUser2;
 
         turnOffSetup();
-
-        //Consume map gen
-        GameMoveDto publicReceive1 = gameFuture1.poll(5, TimeUnit.SECONDS);
-        GameMoveDto receivedUser2 = gameFuture2.poll(5, TimeUnit.SECONDS);
-
-        assertThat(publicReceive1).isNotNull().isEqualTo(receivedUser2);
 
         Thread.sleep(500);
 
@@ -815,7 +763,6 @@ class WebSocketTests {
 
         Thread.sleep(500);
 
-        //Consume buy card
         publicReceive1 = gameFuture1.poll(5, TimeUnit.SECONDS);
         receivedUser2 = gameFuture2.poll(5, TimeUnit.SECONDS);
 
@@ -825,7 +772,7 @@ class WebSocketTests {
         PrivateBuyCardResponse privateBuyCardResponse = objectMapper.convertValue(secretReceive.getMoveData(), PrivateBuyCardResponse.class);
 
         //Place structure for roads later
-        map = objectMapper.convertValue(new PlaceStructureDto(0, 0, 3, StructureTypeEnum.SETTLEMENT.name()), new TypeReference<>() {
+        Map<String, Object> map = objectMapper.convertValue(new PlaceStructureDto(0, 0, 3, StructureTypeEnum.SETTLEMENT.name()), new TypeReference<>() {
         });
         stompSession1.send(getStompHeaders(sendGameTopic, logInResponse1), new GameMoveDto(GameMoveTypeEnum.PLACE_STRUCTURE.name(), map));
 
@@ -979,22 +926,17 @@ class WebSocketTests {
 
         Thread.sleep(500);
 
-        Map<String, Object> map = objectMapper.convertValue(new MapGenerationDto(tileDtos), new TypeReference<>() {});
-        stompSession1.send(getStompHeaders(sendGameTopic, logInResponse1), new GameMoveDto(GameMoveTypeEnum.MAP_GEN.name(), map));
-
-        Thread.sleep(500);
+        generateMap(sendGameTopic, gameFuture1, gameFuture2);
 
         turnOffSetup();
 
         //consume map gen
-        GameMoveDto receivedUser1 = gameFuture1.poll(5, TimeUnit.SECONDS);
-        GameMoveDto receivedUser2 = gameFuture2.poll(5, TimeUnit.SECONDS);
-
-        assertThat(receivedUser1).isNotNull().isEqualTo(receivedUser2);
+        GameMoveDto receivedUser1;
+        GameMoveDto receivedUser2;
 
         Thread.sleep(500);
 
-        map = objectMapper.convertValue(new PlaceStructureDto(0, 0, 3, StructureTypeEnum.SETTLEMENT.name()), new TypeReference<>() {});
+        Map<String, Object> map = objectMapper.convertValue(new PlaceStructureDto(0, 0, 3, StructureTypeEnum.SETTLEMENT.name()), new TypeReference<>() {});
         stompSession1.send(getStompHeaders(sendGameTopic, logInResponse1), new GameMoveDto(GameMoveTypeEnum.PLACE_STRUCTURE.name(), map));
 
         Thread.sleep(500);
@@ -1058,18 +1000,13 @@ class WebSocketTests {
 
         Thread.sleep(500);
 
-        Map<String, Object> map = objectMapper.convertValue(new MapGenerationDto(tileDtos), new TypeReference<>() {});
-        stompSession1.send(getStompHeaders(sendGameTopic, logInResponse1), new GameMoveDto(GameMoveTypeEnum.MAP_GEN.name(), map));
+        generateMap(sendGameTopic, gameFuture1, gameFuture2);
 
         turnOffSetup();
 
-        //consume map gen
-        GameMoveDto receivedUser1 = gameFuture1.poll(5, TimeUnit.SECONDS);
-        GameMoveDto receivedUser2 = gameFuture2.poll(5, TimeUnit.SECONDS);
-
         Thread.sleep(500);
 
-        map = objectMapper.convertValue(new PlaceStructureDto(0, 0, 3, StructureTypeEnum.SETTLEMENT.name()), new TypeReference<>() {});
+        Map<String, Object> map = objectMapper.convertValue(new PlaceStructureDto(0, 0, 3, StructureTypeEnum.SETTLEMENT.name()), new TypeReference<>() {});
         stompSession1.send(getStompHeaders(sendGameTopic, logInResponse1), new GameMoveDto(GameMoveTypeEnum.PLACE_STRUCTURE.name(), map));
         Thread.sleep(500);
         map = objectMapper.convertValue(new PlaceRoadDto(0, 0, 3), new TypeReference<>() {});
@@ -1125,21 +1062,15 @@ class WebSocketTests {
 
         Thread.sleep(500);
 
-        Map<String, Object> map = objectMapper.convertValue(new MapGenerationDto(tileDtos), new TypeReference<>() {});
-        stompSession1.send(getStompHeaders(sendGameTopic, logInResponse1), new GameMoveDto(GameMoveTypeEnum.MAP_GEN.name(), map));
+        generateMap(sendGameTopic, gameFuture1, gameFuture2);
 
-        Thread.sleep(500);
-
-        //consume map gen
-        GameMoveDto receivedUser1 = gameFuture1.poll(5, TimeUnit.SECONDS);
-        GameMoveDto receivedUser2 = gameFuture2.poll(5, TimeUnit.SECONDS);
-        stompSession1.send(getStompHeaders(sendGameTopic, logInResponse1), new GameMoveDto(GameMoveTypeEnum.START_GAME.name(), null));
+        GameMoveDto receivedUser1;
+        GameMoveDto receivedUser2;
 
         turnOffSetup();
 
         Thread.sleep(500);
 
-        assertThat(receivedUser1).isNotNull().isEqualTo(receivedUser2);
 
         stompSession1.send(getStompHeaders(sendGameTopic, logInResponse1), new GameMoveDto(GameMoveTypeEnum.DICE_ROLL.name(), null));
 
@@ -1397,5 +1328,25 @@ class WebSocketTests {
         assertThat(currentSessionPlayerByUserId).isPresent();
         session.setCurrentPlayer(currentSessionPlayerByUserId.get());
         sessionService.save(session);
+    }
+
+    private void generateMap(String sendGameTopic, BlockingQueue<GameMoveDto> gameFuture1, BlockingQueue<GameMoveDto> gameFuture2) throws InterruptedException {
+        Map<String, Object> map = objectMapper.convertValue(new MapGenerationDto(tileDtos), new TypeReference<>() {});
+        stompSession1.send(getStompHeaders(sendGameTopic, logInResponse1), new GameMoveDto(GameMoveTypeEnum.MAP_GEN.name(), map));
+
+        Thread.sleep(500);
+
+        GameMoveDto receivedUser1 = gameFuture1.poll(5, TimeUnit.SECONDS);
+        GameMoveDto receivedUser2 = gameFuture2.poll(5, TimeUnit.SECONDS);
+
+        assertThat(receivedUser1).isNotNull().isEqualTo(receivedUser2);
+
+        stompSession1.send(getStompHeaders(sendGameTopic, logInResponse1), new GameMoveDto(GameMoveTypeEnum.START_GAME.name(), null));
+
+        Thread.sleep(500);
+
+        receivedUser1 = gameFuture1.poll(5, TimeUnit.SECONDS);
+        receivedUser2 = gameFuture2.poll(5, TimeUnit.SECONDS);
+        assertThat(receivedUser1).isNotNull().isEqualTo(receivedUser2);
     }
 }

@@ -145,7 +145,7 @@ public class GameService {
 
                 List<Tile> tiles = new ArrayList<>(2);
                 for (PlaceRoadDto dto : placeRoadDtos) {
-                    Tile tile = tileService.findByXAndYAndSession(dto.getTileX(), dto.getTileY(), playerId)
+                    Tile tile = tileService.findByXAndYAndSession(dto.getTileX(), dto.getTileY(), devCard.getOwner().getSession().getId())
                             .orElseThrow(() -> new IllegalArgumentException("Tile not found"));
                     tiles.add(tile);
                 }
