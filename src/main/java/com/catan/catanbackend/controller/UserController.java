@@ -204,25 +204,24 @@ public class UserController {
         return new ResponseEntity<>(HttpStatus.NOT_FOUND);
     }
 
-    @DeleteMapping("/forget/{id}")
-    public ResponseEntity<Void> deleteUser(@PathVariable Long id, @RequestHeader (name="Authorization") String token){
-        if (!token.startsWith(BEARER)
-                || !Objects.equals(tokenService.getUserIdFromJwtToken(token.split(" ")[1]), id)) {
+    @DeleteMapping("/forget")
+    public ResponseEntity<Void> deleteUser(@RequestHeader (name="Authorization") String token){
+        if (!token.startsWith(BEARER)) {
             return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
         }
+        Long id = tokenService.getUserIdFromJwtToken(token.split(" ")[1]);
         refreshTokenService.deleteByUserId(id);
         userService.deleteUser(id);
 
         return new ResponseEntity<>(HttpStatus.OK);
     }
 
-    @DeleteMapping("/forget/anonymize/{id}")
-    public ResponseEntity<Void> anonymizeUser(@PathVariable Long id, @RequestHeader (name="Authorization") String token){
-        if (!token.startsWith(BEARER)
-                || !Objects.equals(tokenService.getUserIdFromJwtToken(token.split(" ")[1]), id)) {
+    @DeleteMapping("/forget/anonymize")
+    public ResponseEntity<Void> anonymizeUser(@RequestHeader (name="Authorization") String token){
+        if (!token.startsWith(BEARER)) {
             return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
         }
-        Optional<User> byId = userService.findById(id);
+        Optional<User> byId = userService.findById(tokenService.getUserIdFromJwtToken(token.split(" ")[1]));
         if (byId.isEmpty()){
             return new ResponseEntity<>(HttpStatus.NOT_FOUND);
         }
@@ -231,7 +230,7 @@ public class UserController {
         user.anonymize();
         userService.updateUser(user);
 
-        sessionPlayerService.findPlayersByUserId(id).forEach(player -> {
+        sessionPlayerService.findPlayersByUserId(tokenService.getUserIdFromJwtToken(token.split(" ")[1])).forEach(player -> {
            player.setName(user.getUsername());
            sessionPlayerService.updateSessionPlayer(player);
         });

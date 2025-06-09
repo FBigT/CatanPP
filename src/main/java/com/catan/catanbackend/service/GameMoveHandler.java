@@ -108,19 +108,26 @@ public class GameMoveHandler {
 
                 MapGenerationDto mapGenerationDto = objectMapper.convertValue(gameMoveDto.getMoveData(), MapGenerationDto.class);
 
-
                 List<Tile> list = mapGenerationDto.getTileDtos().stream().map(x -> mapper.mapTileDtoToTile(x, session)).toList();
                 generateCornersAndEdges(list);
 
                 session.setMapGenerated(true);
                 session.setInSetup(true);
                 sessionService.save(session);
+
+                placeRobber(sessionId);
+                return mapGenerationDto;
+            }
+            case START_GAME -> {
                 if(!sessionService.startSession(sessionId)){
                     throw new IllegalArgumentException("Session with id " + sessionId + " could not be started");
                 }
 
-                placeRobber(sessionId);
-                return mapGenerationDto;
+                session.setInSetup(true);
+                sessionService.save(session);
+
+                return new StartGmeResponseDto(tileService.findBySessionId(sessionId).stream().map(mapper::mapTileToTileDto).toList(),
+                        sessionService.getPlayersInTurnOrder(sessionId).stream().map(SessionPlayer::getName).toList());
             }
             case BUY_CARD -> {
                 // checkIfSessionValid(session);  // Already commented out
