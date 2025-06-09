@@ -33,10 +33,10 @@ public class HexTile : MonoBehaviour
         switch (resourceType)
         {
             case "wood": hexRenderer.material = woodMat; break;
-            case "brick": hexRenderer.material = brickMat; break;
+            case "claypit": hexRenderer.material = brickMat; break;
             case "wheat": hexRenderer.material = wheatMat; break;
-            case "sheep": hexRenderer.material = sheepMat; break;
-            case "ore": hexRenderer.material = oreMat; break;
+            case "pasture": hexRenderer.material = sheepMat; break;
+            case "mountain": hexRenderer.material = oreMat; break;
             case "desert": hexRenderer.material = desertMat; break;
         }
 
