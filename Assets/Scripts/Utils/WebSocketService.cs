@@ -161,6 +161,9 @@ namespace Assets.Scripts.Utils
                                 case GameMoveType.TURN_ORDER:
                                     TurnOrderResponse turnOrder = (TurnOrderResponse)gameMove.moveData;
                                     break;
+                                case GameMoveType.START_GAME:
+                                    StartGameResponse startGame = (StartGameResponse)gameMove.moveData;
+                                    break;
                                 case GameMoveType.MAP_GEN:
                                     {
                                         GenerateMapDto generateMapDto = (GenerateMapDto)gameMove.moveData;

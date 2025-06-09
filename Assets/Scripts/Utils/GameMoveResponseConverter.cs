@@ -72,6 +72,7 @@ namespace Assets.Scripts.Utils
                     GameMoveType.PLAY_CARD => DeserializeWithLogging<PlayCardResponseDto>(moveDataToken, serializer, "PLAY_CARD"),
                     GameMoveType.TRADE_OFFER => DeserializeWithLogging<TradeOfferMessage>(moveDataToken, serializer, "TRADE_OFFER"),
                     GameMoveType.TRADE_RESPONSE => DeserializeWithLogging<TradeResponseMessage>(moveDataToken, serializer, "TRADE_RESPONSE"),
+                    GameMoveType.START_GAME => DeserializeWithLogging<StartGameResponse>(moveDataToken, serializer, "START_GAME"),
                     GameMoveType.REQUEST_DEV_CARDS => DeserializeWithLogging<DevCardsListResponseDto>(moveDataToken, serializer, "REQUEST_DEV_CARDS"), // ← ADD THIS LINE
                     _ => throw new JsonSerializationException($"Unknown GameMoveType: {gameMoveType}"),
                 };

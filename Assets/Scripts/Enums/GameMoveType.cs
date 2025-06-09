@@ -22,6 +22,7 @@ namespace Assets.Scripts.Enums
         TRADE_RESPONSE,
         TRADE_EXECUTED,
         TURN_ORDER,
-        REQUEST_DEV_CARDS
+        REQUEST_DEV_CARDS,
+        START_GAME
     }
 }
