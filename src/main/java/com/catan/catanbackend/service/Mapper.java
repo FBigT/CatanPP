@@ -73,7 +73,8 @@ public class Mapper {
                 player.getBrick(),
                 player.getSilver(),
                 player.getGold(),
-                player.getCrystal()
+                player.getCrystal(),
+                player.getWheat()
         );
     }
 

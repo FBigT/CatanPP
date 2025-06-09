@@ -31,6 +31,8 @@ public class ResourceGroup implements Comparable<ResourceGroup>{
     Integer gold = 0;
     @Builder.Default
     Integer wood = 0;
+    @Builder.Default
+    Integer wheat = 0;
 
     public Boolean validate(){
         return brick >= 0 && crystal >= 0 && ore >= 0 && rice >= 0 && sheep >= 0 && silver >= 0 && gold >= 0 && wood >= 0;
@@ -74,6 +76,7 @@ public class ResourceGroup implements Comparable<ResourceGroup>{
             case SILVER -> silver;
             case GOLD -> gold;
             case WOOD -> wood;
+            case WHEAT -> wheat;
         };
     }
 
@@ -87,6 +90,7 @@ public class ResourceGroup implements Comparable<ResourceGroup>{
             case SILVER -> silver += amount;
             case GOLD -> gold += amount;
             case WOOD -> wood += amount;
+            case WHEAT -> wheat += amount;
         }
     }
 

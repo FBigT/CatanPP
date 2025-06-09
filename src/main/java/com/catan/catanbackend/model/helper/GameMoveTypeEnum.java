@@ -16,11 +16,7 @@ public enum GameMoveTypeEnum {
     TRADE_RESPONSE,
     TRADE_EXECUTED,
     TURN_ORDER,
-<<<<<<< Updated upstream
-    REQUEST_DEV_CARDS,  // ← ADD THIS LINE
-    START_GAME
-=======
     REQUEST_DEV_CARDS,
-    REQUEST_MAP
->>>>>>> Stashed changes
-    }
+    REQUEST_MAP,
+    START_GAME
+}

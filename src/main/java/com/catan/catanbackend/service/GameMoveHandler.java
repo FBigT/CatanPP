@@ -123,30 +123,7 @@ public class GameMoveHandler {
                 // Check if user is host (only hosts can generate new maps)
                 if (!Objects.equals(session.getHost().getId(), sessionPlayer.getUser().getId())) {
                     System.out.println("🗺️ [GameMoveHandler] ❌ Non-host attempted to generate new map");
-
-<<<<<<< Updated upstream
-                List<Tile> list = mapGenerationDto.getTileDtos().stream().map(x -> mapper.mapTileDtoToTile(x, session)).toList();
-                generateCornersAndEdges(list);
-
-                session.setMapGenerated(true);
-                session.setInSetup(true);
-                sessionService.save(session);
-
-                placeRobber(sessionId);
-                return mapGenerationDto;
-            }
-            case START_GAME -> {
-                if(!sessionService.startSession(sessionId)){
-                    throw new IllegalArgumentException("Session with id " + sessionId + " could not be started");
-                }
-
-                session.setInSetup(true);
-                sessionService.save(session);
-
-                return new StartGmeResponseDto(tileService.findBySessionId(sessionId).stream().map(mapper::mapTileToTileDto).toList(),
-                        sessionService.getPlayersInTurnOrder(sessionId).stream().map(SessionPlayer::getName).toList());
-=======
-                    // For debugging, let's be more informative
+// For debugging, let's be more informative
                     throw new IllegalArgumentException("Only the host can generate a new map. Use REQUEST_MAP to get existing map data.");
                 }
 
@@ -188,8 +165,20 @@ public class GameMoveHandler {
                     e.printStackTrace();
                     throw new IllegalArgumentException("Failed to generate map: " + e.getMessage());
                 }
->>>>>>> Stashed changes
             }
+
+            case START_GAME -> {
+                if (!sessionService.startSession(sessionId)) {
+                    throw new IllegalArgumentException("Session with id " + sessionId + " could not be started");
+                }
+
+                session.setInSetup(true);
+                sessionService.save(session);
+
+                return new StartGmeResponseDto(tileService.findBySessionId(sessionId).stream().map(mapper::mapTileToTileDto).toList(),
+                        sessionService.getPlayersInTurnOrder(sessionId).stream().map(SessionPlayer::getName).toList());
+            }
+
             case BUY_CARD -> {
                 // checkIfSessionValid(session);  // Already commented out
                 // checkIfSessionBlocked(sessionPlayer.getId());  // Comment this out too - dev cards don't need robber check

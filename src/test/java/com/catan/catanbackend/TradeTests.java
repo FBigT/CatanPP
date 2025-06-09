@@ -100,8 +100,8 @@ class TradeTests {
         dto.setSessionId(1L);
         dto.setFromUser(player1.getUserId().toString());
         dto.setToUser(player2.getUserId().toString());
-        dto.setOffered(new ResourceGroup(1, 0, 0, 0, 2, 0, 0, 3));
-        dto.setRequested(new ResourceGroup(0, 0, 2, 0, 0, 1, 1, 0));
+        dto.setOffered(new ResourceGroup(1, 0, 0, 0, 2, 0, 0, 3, 0));
+        dto.setRequested(new ResourceGroup(0, 0, 2, 0, 0, 1, 1, 0, 0));
 
         mockMvc.perform(post("/api/trade/player")
                         .header(HttpHeaders.AUTHORIZATION, player1.getFullToken())
@@ -117,8 +117,8 @@ class TradeTests {
         BankTradeDto dto = new BankTradeDto();
         dto.setSessionId(1L);
         dto.setFromUser(player.getUserId().toString());
-        dto.setOffered(new ResourceGroup(0, 4, 0, 0, 0, 0, 0, 0));
-        dto.setRequested(new ResourceGroup(0, 0, 0, 0, 0, 0, 1, 0));
+        dto.setOffered(new ResourceGroup(0, 4, 0, 0, 0, 0, 0, 0, 0));
+        dto.setRequested(new ResourceGroup(0, 0, 0, 0, 0, 0, 1, 0, 0));
         dto.setPortType("GENERIC");
         dto.setPortRatio(4);
 

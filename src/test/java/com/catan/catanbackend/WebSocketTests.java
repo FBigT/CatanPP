@@ -366,6 +366,7 @@ class WebSocketTests {
         GameMoveDto received1 = gameFuture1.get(5, TimeUnit.SECONDS);
 
         Thread.sleep(500);
+        stompSession1.send(getStompHeaders(sendGameTopic, logInResponse1), new GameMoveDto(GameMoveTypeEnum.START_GAME.name(), null));
 
         turnOffSetup();
 
@@ -408,6 +409,7 @@ class WebSocketTests {
         stompSession1.send(getStompHeaders(sendGameTopic, logInResponse1), new GameMoveDto(GameMoveTypeEnum.MAP_GEN.name(), map));
 
         Thread.sleep(500);
+        stompSession1.send(getStompHeaders(sendGameTopic, logInResponse1), new GameMoveDto(GameMoveTypeEnum.START_GAME.name(), null));
 
         turnOffSetup();
 
@@ -482,6 +484,7 @@ class WebSocketTests {
         stompSession1.send(getStompHeaders(sendGameTopic, logInResponse1), new GameMoveDto(GameMoveTypeEnum.MAP_GEN.name(), map));
 
         Thread.sleep(millis);
+        stompSession1.send(getStompHeaders(sendGameTopic, logInResponse1), new GameMoveDto(GameMoveTypeEnum.START_GAME.name(), null));
 
         turnOffSetup();
 
@@ -568,7 +571,8 @@ class WebSocketTests {
         stompSession1.send(getStompHeaders(sendGameTopic, logInResponse1), new GameMoveDto(GameMoveTypeEnum.MAP_GEN.name(), map));
 
         Thread.sleep(500);
-
+        stompSession1.send(getStompHeaders(sendGameTopic, logInResponse1), new GameMoveDto(GameMoveTypeEnum.START_GAME.name(), null));
+        Thread.sleep(500);
         turnOffSetup();
 
         //consume map gen
@@ -633,6 +637,7 @@ class WebSocketTests {
         stompSession1.send(getStompHeaders(sendGameTopic, logInResponse1), new GameMoveDto(GameMoveTypeEnum.MAP_GEN.name(), map));
 
         Thread.sleep(500);
+        stompSession1.send(getStompHeaders(sendGameTopic, logInResponse1), new GameMoveDto(GameMoveTypeEnum.START_GAME.name(), null));
 
         turnOffSetup();
 
@@ -693,7 +698,9 @@ class WebSocketTests {
         stompSession1.send(getStompHeaders(sendGameTopic, logInResponse1), new GameMoveDto(GameMoveTypeEnum.MAP_GEN.name(), map));
 
         Thread.sleep(500);
+        stompSession1.send(getStompHeaders(sendGameTopic, logInResponse1), new GameMoveDto(GameMoveTypeEnum.START_GAME.name(), null));
 
+        Thread.sleep(500);
         turnOffSetup();
 
         GameMoveDto publicReceive1 = gameFuture1.poll(5, TimeUnit.SECONDS);
@@ -704,8 +711,8 @@ class WebSocketTests {
         Thread.sleep(500);
 
         TradeOfferDto tradeOfferDto = new TradeOfferDto(user1.getUsername(), user2.getUsername(),
-                new ResourceGroup(0, 2, 2, 2, 2, 2, 2, 2),
-                new ResourceGroup(2, 0, 0, 0, 0, 0, 0, 0));
+                new ResourceGroup(0, 2, 2, 2, 2, 2, 2, 2, 0),
+                new ResourceGroup(2, 0, 0, 0, 0, 0, 0, 0, 0));
 
         map = objectMapper.convertValue(tradeOfferDto, new TypeReference<>() {});
 
@@ -786,6 +793,10 @@ class WebSocketTests {
         Map<String, Object> map = objectMapper.convertValue(new MapGenerationDto(tileDtos), new TypeReference<>() {
         });
         stompSession1.send(getStompHeaders(sendGameTopic, logInResponse1), new GameMoveDto(GameMoveTypeEnum.MAP_GEN.name(), map));
+
+        Thread.sleep(500);
+
+        stompSession1.send(getStompHeaders(sendGameTopic, logInResponse1), new GameMoveDto(GameMoveTypeEnum.START_GAME.name(), null));
 
         Thread.sleep(500);
 
@@ -877,7 +888,7 @@ class WebSocketTests {
                 assertThat(receivedUser2).isNotNull().isEqualTo(publicReceive1);
 
                 PlayCardResponseDto playCardResponseDto = objectMapper.convertValue(publicReceive1.getMoveData(), PlayCardResponseDto.class);
-                RobberMoveDto robberMoveDto = objectMapper.convertValue(playCardResponseDto.getMoveData(), RobberMoveDto.class);
+                RobberMoveResponseDto robberMoveDto = objectMapper.convertValue(playCardResponseDto.getMoveData(), RobberMoveResponseDto.class);
                 assertThat(robberMoveDto.getDestinationTileX()).isEqualTo(newTile.getX());
                 assertThat(robberMoveDto.getDestinationTileY()).isEqualTo(newTile.getY());
             }
@@ -1047,11 +1058,8 @@ class WebSocketTests {
 
         Thread.sleep(500);
 
-        Map<String, Object> map = objectMapper.convertValue(new MapGenerationDto(tileDtos), new TypeReference<>() {
-        });
+        Map<String, Object> map = objectMapper.convertValue(new MapGenerationDto(tileDtos), new TypeReference<>() {});
         stompSession1.send(getStompHeaders(sendGameTopic, logInResponse1), new GameMoveDto(GameMoveTypeEnum.MAP_GEN.name(), map));
-
-        Thread.sleep(500);
 
         turnOffSetup();
 
@@ -1125,6 +1133,7 @@ class WebSocketTests {
         //consume map gen
         GameMoveDto receivedUser1 = gameFuture1.poll(5, TimeUnit.SECONDS);
         GameMoveDto receivedUser2 = gameFuture2.poll(5, TimeUnit.SECONDS);
+        stompSession1.send(getStompHeaders(sendGameTopic, logInResponse1), new GameMoveDto(GameMoveTypeEnum.START_GAME.name(), null));
 
         turnOffSetup();
 

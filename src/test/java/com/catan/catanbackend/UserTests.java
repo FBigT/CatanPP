@@ -246,12 +246,12 @@ class UserTests {
                 .andExpect(status().isOk());
 
         //We cannot delete other user (jwt holder id has to match parameter id)
-        mockMvc.perform(delete("/api/users/forget/" + logInResponse.getUserId())
+        mockMvc.perform(delete("/api/users/forget")
                         .header(HttpHeaders.AUTHORIZATION, logInResponse.getFullToken()))
                 .andExpect(status().isOk());
 
         //Not found because we deleted our authenticated user
-        mockMvc.perform(get("/api/users/" + logInResponse.getUserId())
+        mockMvc.perform(get("/api/users" + logInResponse.getUserId())
                         .header(HttpHeaders.AUTHORIZATION, logInResponse.getFullToken()))
                 .andExpect(status().isUnauthorized());
     }

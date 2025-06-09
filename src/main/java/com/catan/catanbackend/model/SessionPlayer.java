@@ -126,6 +126,11 @@ public class SessionPlayer {
     @ColumnDefault("0")
     private Integer wood = 0;
 
+    @NotNull
+    @Column(name = "wheat", nullable = false)
+    @ColumnDefault("0")
+    private Integer wheat = 0;
+
     @Column(name = "turn_order")
     private Integer turnOrder;
 
@@ -174,7 +179,7 @@ public class SessionPlayer {
 
     @JsonIgnore
     public ResourceGroup resourcesToGroup(){
-        return new ResourceGroup(brick, crystal, ore, rice, sheep, silver, gold, wood);
+        return new ResourceGroup(brick, crystal, ore, rice, sheep, silver, gold, wood, wheat);
     }
 
     public void setResource(ResourceType resourceType, int amount) {
