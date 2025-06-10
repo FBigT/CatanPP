@@ -964,13 +964,6 @@ public class BoardGen : MonoBehaviour
         DevCardManager.Instance.LoadPlayerCards();
         DevCardManager.Instance.SetCardPlayable();
     }
-        public void GetEndTurn(EndTurnResponse t)
-        {
-            Debug.Log("[BoardGen] EndTurn received from WebSocket - handling end turn logic");
-
-            DevCardManager.Instance.LoadPlayerCards();
-            DevCardManager.Instance.SetCardPlayable();
-        }
 
         private async void HandleStructurePlaced(PurchaseType type, VertexPoint vo)
         {
