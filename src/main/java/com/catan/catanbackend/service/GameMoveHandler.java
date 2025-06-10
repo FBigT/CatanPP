@@ -334,6 +334,13 @@ public class GameMoveHandler {
                     throw new IllegalArgumentException("You cannot move the robber now");
                 }
             }
+            case PAY_DEBT -> {
+                ResourceGroup resourceGroup = objectMapper.convertValue(gameMoveDto.getMoveData(), ResourceGroup.class);
+                Optional<RobberDebtBlocker> debtByUserId = gameService.findDebtByUserId(sessionPlayer.getUser().getId());
+                if (debtByUserId.isPresent() && gameService.settleDebtByUserId(debtByUserId.get(), sessionPlayer.getUser().getId(), resourceGroup)) {
+                    return new PayDebtResponse(sessionPlayer.getName(), resourceGroup);
+                }
+            }
             case DICE_ROLL -> {
                 //checkIfSessionValid(session);
                 int result = diceRollService.rollDice();
