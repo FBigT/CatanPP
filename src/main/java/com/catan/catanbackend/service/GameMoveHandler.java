@@ -322,7 +322,7 @@ public class GameMoveHandler {
                 }
             }
             case DICE_ROLL -> {
-                checkIfSessionValid(session);
+                //checkIfSessionValid(session);
                 int result = diceRollService.rollDice();
                 //Find tiles with matching numbers
                 List<Tile> affectedTiles = tileService.findBySessionId(sessionId).stream().filter(x -> x.getNumber() == result).toList();
@@ -443,8 +443,8 @@ public class GameMoveHandler {
         }
 
         Long sessionId = session.getId();
-        checkIfSessionValid(session);
-        checkIfSessionBlocked(sessionId);
+        //checkIfSessionValid(session);
+        //checkIfSessionBlocked(sessionId);
 
         //Gets the next player
         Optional<SessionPlayer> nextPlayer = sessionService.getNextPlayer(sessionId);
