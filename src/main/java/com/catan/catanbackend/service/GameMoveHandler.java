@@ -317,8 +317,8 @@ public class GameMoveHandler {
                 return getEndTurnResponseDto(session, false, sessionPlayer);
             }
             case ROBBER_MOVE -> {
-                checkIfSessionValid(session);
-                checkIfSessionBlocked(sessionId);
+                //checkIfSessionValid(session);
+                //checkIfSessionBlocked(sessionId);
                 if (moveBlockerService.isSessionBlocked(sessionId) && moveBlockerService.isPlayerBlocked(sessionPlayer.getId())) {
                     RobberMoveDto robberMoveDto = objectMapper.convertValue(gameMoveDto.getMoveData(), RobberMoveDto.class);
 
