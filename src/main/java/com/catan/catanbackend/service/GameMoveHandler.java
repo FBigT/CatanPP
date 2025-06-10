@@ -337,6 +337,10 @@ public class GameMoveHandler {
             case DICE_ROLL -> {
                 //checkIfSessionValid(session);
                 int result = diceRollService.rollDice();
+                if (result == 7){
+                    gameService.activateRobber(sessionPlayer, true);
+                }
+
                 //Find tiles with matching numbers
                 List<Tile> affectedTiles = tileService.findBySessionId(sessionId).stream().filter(x -> x.getNumber() == result).toList();
                 Map<SessionPlayer, ResourceGroup> gainedResourceGroups = new HashMap<>();
