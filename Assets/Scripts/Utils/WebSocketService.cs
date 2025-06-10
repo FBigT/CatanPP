@@ -157,6 +157,9 @@ namespace Assets.Scripts.Utils
                                     var robberResponse = (RobberMoveResponse)gameMove.moveData;
                                     OnRobberMoved?.Invoke(robberResponse);
                                     break;
+                                case GameMoveType.PAY_DEBT:
+                                    PayDebtResponse payDebt = (PayDebtResponse)gameMove.moveData;
+                                    break;
                                 case GameMoveType.PLAY_CARD:
                                     PlayCardResponseDto playCardResponseDto = (PlayCardResponseDto)gameMove.moveData;
                                     OnPlayCardResponse?.Invoke(playCardResponseDto);

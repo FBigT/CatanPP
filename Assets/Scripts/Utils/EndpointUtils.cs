@@ -14,8 +14,8 @@ namespace Assets.Scripts.Utils
         public static string RegisterGuest => $"{Register}/guest";
         public static string Proflie => $"{Users}/profile";
         public static string Refresh => $"{Users}/refresh";
-        public static string Forget => $"{Users}/refresh";
-        public static string ForgetAnonymize => $"{Users}/anonymize";
+        public static string Forget => $"{Users}/forget";
+        public static string ForgetAnonymize => $"{Users}/forget/anonymize";
 
         public static string GetUserByUsername(string username) => $"{Users}/{username}";
         public static string GetUserById(long id) => $"{Users}/{id}";

@@ -14,6 +14,7 @@ namespace Assets.Scripts.GameMode.Trading.Models
         public int silver;
         public int gold;
         public int wood;
+        public int wheat;
 
         /// <summary>
         /// Creates a ResourceGroup from parallel lists of names and quantities.
@@ -33,6 +34,7 @@ namespace Assets.Scripts.GameMode.Trading.Models
                     case "silver": rg.silver = qty[i]; break;
                     case "gold": rg.gold = qty[i]; break;
                     case "wood": rg.wood = qty[i]; break;
+                    case "wheat": rg.wheat = qty[i]; break;
                 }
             }
             return rg;
@@ -52,7 +54,8 @@ namespace Assets.Scripts.GameMode.Trading.Models
                 { "sheep", sheep },
                 { "silver", silver },
                 { "gold", gold },
-                { "wood", wood }
+                { "wood", wood },
+                { "wheat", wheat }
             };
         }
     }

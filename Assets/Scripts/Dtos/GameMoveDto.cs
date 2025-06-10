@@ -2,6 +2,7 @@
 using Assets.Scripts.Dtos.GameMoveResponses;
 using Assets.Scripts.Dtos.GameMoves;
 using Assets.Scripts.Enums;
+using Assets.Scripts.GameMode.Trading.Models;
 using Assets.Scripts.Utils;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
@@ -73,6 +74,11 @@ namespace Assets.Scripts.Dtos
         {
             gameMoveType = GameMoveType.MAP_GEN;
             moveData = generateMapDto;
+        }
+
+        public GameMoveDto(ResourceGroup resourceGroup) {
+            gameMoveType = GameMoveType.PAY_DEBT;
+            moveData = resourceGroup;
         }
 
         [JsonConverter(typeof(StringEnumConverter))]

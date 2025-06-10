@@ -1,7 +1,10 @@
 using Assets.Scripts.User;
+using Assets.Scripts.Utils;
 using TMPro;
 using Unity.VisualScripting;
 using UnityEngine;
+using UnityEngine.SceneManagement;
+using UnityEngine.UI;
 
 public class ProfilePanel : MonoBehaviour
 {
@@ -16,9 +19,13 @@ public class ProfilePanel : MonoBehaviour
     public TMP_Text skinsUnlockedValue;
     public GameObject mainPanel;
 
+    public Button forgetButton;
+
     void Awake(){
         UserManager userManager = this.AddComponent<UserManager>();
         userManager.GetCurrentPlayerProfile(SetPlayerProfile, SetError);
+
+        forgetButton.onClick.AddListener(() => userManager.ForgetCurrentUser(OnForgetSuccess, SetError));
     }
 
     private void SetPlayerProfile(PlayerProfile playerProfile) { 
@@ -44,5 +51,10 @@ public class ProfilePanel : MonoBehaviour
             gameObject.SetActive(false);
             mainPanel.SetActive(true);
         }
+    }
+
+    private void OnForgetSuccess() {
+        LocalStorageService.ClearAll();
+        SceneManager.LoadScene("Login");
     }
 }

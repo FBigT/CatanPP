@@ -223,32 +223,6 @@ public class UserManager : MonoBehaviour
         }
     }
 
-    public void GetPlayerProfileByUsername(string username, Action<PlayerProfile> onSuccess, Action<string> onFail) {
-        StartCoroutine(GetPlayerProfileByUsernameRequest(username, onSuccess, onFail));
-    }
-
-    private IEnumerator GetPlayerProfileByUsernameRequest(string username, Action<PlayerProfile> onSuccess, Action<string> onFail) {
-        UnityWebRequest request = null;
-        yield return RequestService.ConstructSimpleWebRequest(EndpointUtils.GetPlayerPorfileByUsername(username), Methods.GET, true, null, result => request = result);
-
-        if (request == null)
-        {
-            yield break;
-        }
-
-        yield return request.SendWebRequest();
-
-        if (request.result == UnityWebRequest.Result.Success)
-        {
-            PlayerProfile playerProfile = JsonUtility.FromJson<PlayerProfile>(request.downloadHandler.text);
-            onSuccess?.Invoke(playerProfile);
-        }
-        else
-        {
-            onFail?.Invoke(request.error);
-        }
-    }
-
     public void GetCurrentPlayerProfile(Action<PlayerProfile> onSuccess, Action<string> onFail)
     {
         StartCoroutine(GetCurrentPlayerProfileRequest(onSuccess, onFail));
@@ -277,27 +251,26 @@ public class UserManager : MonoBehaviour
         }
     }
 
-    public void GetPlayerProfileById(long id, Action<PlayerProfile> onSuccess, Action<string> onFail)
+    public void ForgetCurrentUser(Action onSuccess, Action<string> onFail)
     {
-        StartCoroutine(GetPlayerProfileByIdRequest(id, onSuccess, onFail));
+        StartCoroutine(ForgetCurrentUserRequest(onSuccess, onFail));
     }
 
-    private IEnumerator GetPlayerProfileByIdRequest(long id, Action<PlayerProfile> onSuccess, Action<string> onFail)
+    private IEnumerator ForgetCurrentUserRequest(Action onSuccess, Action<string> onFail)
     {
         UnityWebRequest request = null;
-        yield return RequestService.ConstructSimpleWebRequest(EndpointUtils.GetPlayerPorfileById(id), Methods.GET, true, null, result => request = result);
+        yield return RequestService.ConstructSimpleWebRequest(EndpointUtils.ForgetAnonymize, Methods.DELETE, true, null, result => request = result);
 
         if (request == null)
         {
+            onFail?.Invoke("Failed to construct request");
             yield break;
         }
-
         yield return request.SendWebRequest();
-
+        Debug.Log(request.result);
         if (request.result == UnityWebRequest.Result.Success)
         {
-            PlayerProfile playerProfile = JsonUtility.FromJson<PlayerProfile>(request.downloadHandler.text);
-            onSuccess?.Invoke(playerProfile);
+            onSuccess?.Invoke();
         }
         else
         {

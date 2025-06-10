@@ -90,7 +90,14 @@ public class Login : MonoBehaviour
 
     private void SetErrorMessage(string error)
     {
-        errorMessage.text = error;
+        if (error.Contains("401"))
+        {
+            errorMessage.text = "Bad credentials";
+        }
+        else
+        {
+            errorMessage.text = error;
+        }
     }
 
     private void PrintError(string error)

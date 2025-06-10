@@ -24,6 +24,7 @@ namespace Assets.Scripts.Enums
         TURN_ORDER,
         REQUEST_DEV_CARDS,
         REQUEST_MAP,
-        START_GAME
+        START_GAME,
+        PAY_DEBT
     }
 }
