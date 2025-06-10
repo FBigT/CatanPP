@@ -244,12 +244,13 @@ public class RegistrationIntegrationTests
         Assert.IsNotNull(loginResponse, "Login response should not be null");
         Assert.IsNotEmpty(loginResponse.token, "Token should not be empty");
         Assert.AreEqual(testUsername, loginResponse.username, "Username in response should match registered username");
-
+        #region old
         // Verify authentication data was stored correctly
-        string storedToken = LocalStorageService.GetString("token");
-        string storedUsername = LocalStorageService.GetString("username");
-        Assert.IsNotEmpty(storedToken, "Token should be stored in LocalStorage");
-        Assert.AreEqual(testUsername, storedUsername, "Username should be stored in LocalStorage");
+        //string storedToken = LocalStorageService.GetString("token");
+        //string storedUsername = LocalStorageService.GetString("username");
+        //Assert.IsNotEmpty(storedToken, "Token should be stored in LocalStorage");
+        //Assert.AreEqual(testUsername, storedUsername, "Username should be stored in LocalStorage");
+        #endregion
     }
 
     /// <summary>

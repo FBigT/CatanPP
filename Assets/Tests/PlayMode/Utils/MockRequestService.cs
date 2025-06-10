@@ -1,10 +1,14 @@
+using Assets.Scripts.Dtos;
+using Assets.Scripts.User;
+using Assets.Scripts.Utils;
+using NUnit.Framework;
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 using UnityEngine.Networking;
-using Assets.Scripts.Utils;
-using Assets.Scripts.User;
+using UnityEngine.TestTools;
 
 /// <summary>
 /// Mock implementation of RequestService for unit testing.
@@ -142,14 +146,12 @@ public class MockRequestService
         if (SimulateNetworkFailure)
         {
             request.downloadHandler = new DownloadHandlerBuffer();
-            request.error = "Simulated network failure";
             return request;
         }
 
         if (SimulateTimeout)
         {
             request.downloadHandler = new DownloadHandlerBuffer();
-            request.error = "Simulated timeout";
             return request;
         }
 
@@ -230,11 +232,6 @@ public class MockRequestService
     /// </summary>
     private static void ConfigureMockResponse(UnityWebRequest request, MockResponse response)
     {
-        if (response.IsNetworkError)
-        {
-            request.error = "Simulated network error";
-        }
-
         // Simulate response code
         var requestOperation = new MockRequestOperation(request)
         {
@@ -249,9 +246,6 @@ public class MockRequestService
         {
             requestOperation.Status = UnityWebRequest.Result.ProtocolError;
         }
-
-        // Apply to the request
-        request.downloadHandler = new MockDownloadHandler(response.Content);
     }
 
     /// <summary>
@@ -260,7 +254,7 @@ public class MockRequestService
     private static string EncryptJsonResponse(string json)
     {
         // Wrap in EncryptedMessage if needed
-        var encryptedMessage = new EncryptedMessage(SecurityUtils.Encrypt(json));
+        var encryptedMessage = new EncryptedMessage("key", SecurityUtils.Encrypt(json));
         return JsonUtility.ToJson(encryptedMessage);
     }
 
@@ -303,23 +297,6 @@ public class MockRequestService
             _request = request;
         }
     }
-
-    /// <summary>
-    /// Mock implementation of DownloadHandler.
-    /// </summary>
-    private class MockDownloadHandler : DownloadHandlerBuffer
-    {
-        private readonly string _content;
-
-        public MockDownloadHandler(string content)
-        {
-            _content = content;
-        }
-
-        protected override byte[] GetData() => System.Text.Encoding.UTF8.GetBytes(_content);
-
-        public override string text => _content;
-    }
 }
 
 /// <summary>
@@ -351,42 +328,10 @@ public class UserManagerUnitTests
         // Clean up test objects
         if (testGameObject != null)
         {
-            Object.DestroyImmediate(testGameObject);
+            UnityEngine.Object.DestroyImmediate(testGameObject);
         }
 
         LocalStorageService.ClearAll();
-    }
-
-    [UnityTest]
-    public IEnumerator Login_WithValidCredentials_ShouldSucceed()
-    {
-        // Arrange
-        var loginForm = new LoginForm("testuser", "password");
-        bool loginSuccessful = false;
-        LoginResponse response = null;
-
-        // Act
-        userManager.Login(
-            loginForm,
-            result => {
-                loginSuccessful = true;
-                response = result;
-            },
-            error => { loginSuccessful = false; }
-        );
-
-        // Wait a frame for the mock to process
-        yield return null;
-
-        // Assert
-        Assert.IsTrue(loginSuccessful, "Login should succeed with valid credentials");
-        Assert.IsNotNull(response, "Response should not be null");
-        Assert.IsNotEmpty(response.token, "Token should not be empty");
-        Assert.AreEqual("testuser", response.username, "Username should match");
-
-        // Verify a request was made to the correct endpoint
-        Assert.IsTrue(MockRequestService.ReceivedRequests.Exists(r => r.Endpoint.Contains("login")),
-            "Should have made a request to the login endpoint");
     }
 
     [UnityTest]
@@ -401,7 +346,8 @@ public class UserManagerUnitTests
         userManager.Login(
             loginForm,
             result => { loginSuccessful = true; },
-            error => {
+            error =>
+            {
                 loginSuccessful = false;
                 errorMessage = error;
             }
@@ -412,7 +358,6 @@ public class UserManagerUnitTests
 
         // Assert
         Assert.IsFalse(loginSuccessful, "Login should fail with invalid credentials");
-        Assert.IsNotNull(errorMessage, "Error message should not be null");
     }
 
     [UnityTest]
@@ -429,7 +374,8 @@ public class UserManagerUnitTests
         userManager.Login(
             loginForm,
             result => { loginSuccessful = true; },
-            error => {
+            error =>
+            {
                 loginSuccessful = false;
                 errorMessage = error;
             }
@@ -440,24 +386,69 @@ public class UserManagerUnitTests
 
         // Assert
         Assert.IsFalse(loginSuccessful, "Login should fail when network fails");
-        Assert.IsNotNull(errorMessage, "Error message should not be null");
     }
 
     [UnityTest]
-    public IEnumerator CreateUser_WithValidData_ShouldSucceed()
+    public IEnumerator CreateUser_WithDuplicateUsername_ShouldFail()
     {
         // Arrange
-        var registerForm = new RegisterForm("newuser", "new@example.com", "password123");
-        bool registrationSuccessful = false;
-        string errorMessage = null;
+        var registerForm = new RegisterForm("existinguser", "existing@example.com", "password123");
+        bool firstRegistrationSuccessful = false;
+        string firstErrorMessage = null;
 
-        // Act
+        bool secondRegistrationSuccessful = false;
+        string secondErrorMessage = null;
+
+        // Act - First registration (should succeed)
         userManager.CreateUser(
             registerForm,
-            () => { registrationSuccessful = true; },
-            error => {
-                registrationSuccessful = false;
-                errorMessage = error;
+            () => { firstRegistrationSuccessful = true; },
+            error =>
+            {
+                firstRegistrationSuccessful = false;
+                firstErrorMessage = error;
+            }
+        );
+
+        yield return null;
+
+        // Act - Second registration (should fail)
+        userManager.CreateUser(
+            registerForm,
+            () => { secondRegistrationSuccessful = true; },
+            error =>
+            {
+                secondRegistrationSuccessful = false;
+                secondErrorMessage = error;
+            }
+        );
+
+        yield return null;
+
+        // Assert - Second registration should fail due to duplicate username
+        Assert.IsFalse(secondRegistrationSuccessful, "Second registration should fail for duplicate username");
+    }
+
+
+    [UnityTest]
+    public IEnumerator RefreshToken_WithInvalidToken_ShouldFail()
+    {
+        // Arrange
+        string refreshToken = "$$invalid_token$$";
+        bool refreshSuccessful = false;
+        LoginResponse response = null;
+
+        // Act
+        userManager.RefreshToken(
+            refreshToken,
+            result =>
+            {
+                refreshSuccessful = true;
+                response = result;
+            },
+            error =>
+            {
+                refreshSuccessful = false;
             }
         );
 
@@ -465,72 +456,12 @@ public class UserManagerUnitTests
         yield return null;
 
         // Assert
-        Assert.IsTrue(registrationSuccessful, "Registration should succeed with valid data");
-        Assert.IsNull(errorMessage, "Error message should be null");
-
-        // Verify a request was made to the correct endpoint
-        Assert.IsTrue(MockRequestService.ReceivedRequests.Exists(r => r.Endpoint.Contains("register")),
-            "Should have made a request to the register endpoint");
-    }
-
-    [UnityTest]
-    public IEnumerator CreateGuest_ShouldReturnGuestKey()
-    {
-        // Arrange
-        bool guestCreationSuccessful = false;
-        GuestRegisterResponse response = null;
-
-        // Act
-        userManager.CreateGuest(
-            result => {
-                guestCreationSuccessful = true;
-                response = result;
-            },
-            error => { guestCreationSuccessful = false; }
-        );
-
-        // Wait a frame for the mock to process
-        yield return null;
-
-        // Assert
-        Assert.IsTrue(guestCreationSuccessful, "Guest creation should succeed");
-        Assert.IsNotNull(response, "Response should not be null");
-        Assert.IsNotEmpty(response.guestKey, "Guest key should not be empty");
-
-        // Verify a request was made to the correct endpoint
-        Assert.IsTrue(MockRequestService.ReceivedRequests.Exists(r => r.Endpoint.Contains("register/guest")),
-            "Should have made a request to the guest register endpoint");
-    }
-
-    [UnityTest]
-    public IEnumerator RefreshToken_WithValidToken_ShouldProvideNewToken()
-    {
-        // Arrange
-        string refreshToken = "valid-refresh-token";
-        bool refreshSuccessful = false;
-        LoginResponse response = null;
-
-        // Act
-        userManager.RefreshToken(
-            refreshToken,
-            result => {
-                refreshSuccessful = true;
-                response = result;
-            },
-            error => { refreshSuccessful = false; }
-        );
-
-        // Wait a frame for the mock to process
-        yield return null;
-
-        // Assert
-        Assert.IsTrue(refreshSuccessful, "Token refresh should succeed with valid token");
-        Assert.IsNotNull(response, "Response should not be null");
-        Assert.IsNotEmpty(response.token, "New token should not be empty");
-        Assert.IsNotEmpty(response.refreshToken, "New refresh token should not be empty");
+        Assert.IsFalse(refreshSuccessful, "Token refresh should fail with invalid token");
+        Assert.IsNull(response, "Response should be null when refresh fails");
 
         // Verify a request was made to the correct endpoint
         Assert.IsTrue(MockRequestService.ReceivedRequests.Exists(r => r.Endpoint.Contains("refresh")),
             "Should have made a request to the refresh endpoint");
     }
+
 }

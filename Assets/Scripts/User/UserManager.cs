@@ -24,6 +24,18 @@ public class UserManager : MonoBehaviour
 
     public void Login(LoginForm loginForm, Action<LoginResponse> onSuccess, Action<string> onFail)
     {
+        if (string.IsNullOrWhiteSpace(loginForm.password))
+        {
+            onFail?.Invoke("Invalid password.");
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(loginForm.username))
+        {
+            onFail?.Invoke("Username invalid.");
+            return;
+        }
+
         StartCoroutine(LoginRequest(loginForm, onSuccess, onFail));
     }
 
@@ -56,6 +68,26 @@ public class UserManager : MonoBehaviour
     // Create a new user
     public void CreateUser(RegisterForm registerForm, Action onSuccess, Action<string> onFail)
     {
+        if (string.IsNullOrWhiteSpace(registerForm.email) ||
+            !registerForm.email.Contains("@") ||
+            !registerForm.email.Contains("."))
+        {
+            onFail?.Invoke("Invalid email address.");
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(registerForm.password))
+        {
+            onFail?.Invoke("Invalid password.");
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(registerForm.username))
+        {
+            onFail?.Invoke("Username invalid.");
+            return;
+        }
+
         StartCoroutine(CreateUserRequest(registerForm, onSuccess, onFail));
     }
 

@@ -1,4 +1,5 @@
 ﻿using System.Collections;
+using Assets.Scripts.User;
 using NUnit.Framework;
 using UnityEngine;
 using UnityEngine.TestTools;
@@ -88,9 +89,8 @@ public class AuthenticationIntegrationTests
         object loginResponse = null; // Use object to avoid type dependency
 
         // Act - Registration
-        // Adjust method signature based on your actual UserManager implementation
         userManager.CreateUser(
-            testUsername, testEmail, testPassword,
+            new RegisterForm(testUsername, testEmail, testPassword),
             () => registrationSuccessful = true,
             error => registrationError = error
         );
@@ -106,8 +106,9 @@ public class AuthenticationIntegrationTests
 
         // Act - Login
         userManager.Login(
-            testUsername, testPassword,
-            response => {
+            new LoginForm(testUsername, testPassword),
+            response =>
+            {
                 loginSuccessful = true;
                 loginResponse = response;
             },
@@ -135,7 +136,7 @@ public class AuthenticationIntegrationTests
 
         // Act
         userManager.Login(
-            invalidUsername, invalidPassword,
+            new LoginForm(invalidUsername, invalidPassword),
             response => loginSuccessful = true,
             error => loginError = error
         );
@@ -163,10 +164,34 @@ public class AuthenticationIntegrationTests
         string secondRegistrationError = "";
 
         // Act - First registration
+        // Fixing the method call to match the correct signature of CreateUser
         userManager.CreateUser(
-            duplicateUsername, $"{duplicateUsername}_first@test.com", password,
+            new RegisterForm(duplicateUsername, $"{duplicateUsername}_first@test.com", password),
             () => firstRegistrationSuccessful = true,
             error => firstRegistrationError = error
+        );
+
+        // Fixing the second method call to match the correct signature of CreateUser
+        userManager.CreateUser(
+            new RegisterForm(duplicateUsername, $"{duplicateUsername}_second@test.com", password),
+            () => secondRegistrationSuccessful = true,
+            error => secondRegistrationError = error
+        );
+        // Fixing the method calls to match the correct signature of CreateUser
+        userManager.CreateUser(
+            new RegisterForm(duplicateUsername, $"{duplicateUsername}_first@test.com", password),
+            () => firstRegistrationSuccessful = true,
+            error => firstRegistrationError = error
+        );
+
+        // Small delay
+        yield return new WaitForSeconds(1f);
+
+        // Act - Second registration with same username
+        userManager.CreateUser(
+            new RegisterForm(duplicateUsername, $"{duplicateUsername}_second@test.com", password),
+            () => secondRegistrationSuccessful = true,
+            error => secondRegistrationError = error
         );
 
         // Wait for first registration
@@ -178,8 +203,19 @@ public class AuthenticationIntegrationTests
         yield return new WaitForSeconds(1f);
 
         // Act - Second registration with same username
+        // Fixing the method calls to match the correct signature of CreateUser
         userManager.CreateUser(
-            duplicateUsername, $"{duplicateUsername}_second@test.com", password,
+            new RegisterForm(duplicateUsername, $"{duplicateUsername}_first@test.com", password),
+            () => firstRegistrationSuccessful = true,
+            error => firstRegistrationError = error
+        );
+
+        // Small delay
+        yield return new WaitForSeconds(1f);
+
+        // Act - Second registration with same username
+        userManager.CreateUser(
+            new RegisterForm(duplicateUsername, $"{duplicateUsername}_second@test.com", password),
             () => secondRegistrationSuccessful = true,
             error => secondRegistrationError = error
         );

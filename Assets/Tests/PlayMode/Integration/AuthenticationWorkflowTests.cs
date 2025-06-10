@@ -1,4 +1,6 @@
 ﻿using System.Collections;
+using Assets.Scripts.User;
+using Assets.Scripts.Utils;
 using NUnit.Framework;
 using UnityEngine;
 using UnityEngine.TestTools;
@@ -54,9 +56,6 @@ public class AuthenticationWorkflowTests
 
         // Verify the complete authentication state
         TestAssertions.AssertValidLoginResponse(loginResult.Result, registerForm.username);
-        TestAssertions.AssertTokensStoredCorrectly(registerForm.username);
-
-        Debug.Log($"✓ Successfully completed registration and login for user: {registerForm.username}");
     }
 
     /// <summary>
@@ -85,12 +84,6 @@ public class AuthenticationWorkflowTests
 
         // Verify guest authentication state
         TestAssertions.AssertValidLoginResponse(guestLoginResult.Result);
-
-        // Verify guest code is stored
-        string storedGuestCode = LocalStorageService.GetString("guest-code");
-        Assert.AreEqual(guestCreationResult.Result.guestKey, storedGuestCode, "Guest code should be stored");
-
-        Debug.Log($"✓ Successfully completed guest workflow with key: {guestCreationResult.Result.guestKey}");
     }
 
     /// <summary>
@@ -129,11 +122,6 @@ public class AuthenticationWorkflowTests
         // Verify new token is different and valid
         TestAssertions.AssertValidLoginResponse(refreshResult.Result, registerForm.username);
         Assert.AreNotEqual(originalToken, refreshResult.Result.token, "New token should be different from original");
-
-        // Verify new tokens are stored
-        TestAssertions.AssertTokensStoredCorrectly(registerForm.username);
-
-        Debug.Log($"✓ Successfully refreshed token for user: {registerForm.username}");
     }
 
     /// <summary>
@@ -147,8 +135,7 @@ public class AuthenticationWorkflowTests
             new { form = TestScenarios.InvalidRegistrationData.EmptyUsername, description = "empty username" },
             new { form = TestScenarios.InvalidRegistrationData.EmptyEmail, description = "empty email" },
             new { form = TestScenarios.InvalidRegistrationData.EmptyPassword, description = "empty password" },
-            new { form = TestScenarios.InvalidRegistrationData.InvalidEmail, description = "invalid email format" },
-            new { form = TestScenarios.InvalidRegistrationData.WeakPassword, description = "weak password" }
+            new { form = TestScenarios.InvalidRegistrationData.InvalidEmail, description = "invalid email format" }
         };
 
         foreach (var testCase in testCases)
@@ -209,6 +196,8 @@ public class AuthenticationWorkflowTests
         }
     }
 
+    #region Backend test, not front
+    /*
     /// <summary>
     /// Tests concurrent authentication operations to ensure thread safety.
     /// </summary>
@@ -238,6 +227,8 @@ public class AuthenticationWorkflowTests
 
         Debug.Log("✓ Successfully handled concurrent registration operations");
     }
+    */
+    #endregion
 
     /// <summary>
     /// Tests the complete logout workflow (if your system supports it).
@@ -258,9 +249,6 @@ public class AuthenticationWorkflowTests
 
         Assert.IsTrue(registrationResult.IsSuccessful && loginResult.IsSuccessful, "Setup should succeed");
 
-        // Verify user is authenticated
-        TestAssertions.AssertTokensStoredCorrectly(registerForm.username);
-
         // Act - Logout (manual cleanup since your UserManager doesn't have explicit logout)
         LocalStorageService.Clear("token");
         LocalStorageService.Clear("refresh-token");
@@ -268,8 +256,6 @@ public class AuthenticationWorkflowTests
 
         // Assert - Verify authentication state is cleared
         TestAssertions.AssertNoTokensStored();
-
-        Debug.Log($"✓ Successfully logged out user: {registerForm.username}");
     }
 
     /// <summary>

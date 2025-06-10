@@ -3,6 +3,7 @@ using System.Collections;
 using UnityEngine;
 using Assets.Scripts.User;
 using Assets.Scripts.Utils;
+using NUnit.Framework;
 
 /// <summary>
 /// Utility class for creating test data and common test operations.
