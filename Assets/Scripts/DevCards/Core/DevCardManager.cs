@@ -12,6 +12,7 @@ using System.Collections;
 using System.Text;
 using UnityEngine.Networking;
 using Assets.Scripts.GameMode.Trading;
+using CatanGame.DTOs;
 
 namespace Assets.Scripts.DevCards.Core
 {
@@ -23,14 +24,14 @@ namespace Assets.Scripts.DevCards.Core
         private int buyRequestsSent = 0;
         private int buyResponsesReceived = 0;
         [Header("Dev Cards")]
-        public List<DevCardDto> playerCards = new List<DevCardDto>();
+        public List<Models.DevCardDto> playerCards = new List<Models.DevCardDto>();
 
         [Header("Debug Settings")]
         public bool enableVerboseLogging = true;
         public bool enableEventDebugging = true;
 
         // Events for UI
-        public event Action<List<DevCardDto>> OnCardsUpdated;
+        public event Action<List<Models.DevCardDto>> OnCardsUpdated;
         public event Action<string> OnCardBought;
         public event Action<string> OnError;
 
@@ -287,7 +288,7 @@ namespace Assets.Scripts.DevCards.Core
             try
             {
 
-                
+
 
                 // Alternative without JsonHelper:
                 string jsonResponse = req.downloadHandler.text;
@@ -403,6 +404,7 @@ namespace Assets.Scripts.DevCards.Core
                 // ✅ ADD THIS MISSING SUBSCRIPTION:
                 WebSocketService.OnDevCardsListReceived += HandleDevCardsListReceived;
                 DebugLog("✅ Subscribed to OnDevCardsListReceived");
+
             }
             catch (Exception ex)
             {
@@ -568,7 +570,7 @@ namespace Assets.Scripts.DevCards.Core
                 DebugLog($"  🃏 {card.type} (ID: {card.id}, playable: {card.playable}, used: {card.used})");
             }
         }
-        public async void PlayDevCard(DevCardDto card, DevCardType type)
+        public async void PlayDevCard(Models.DevCardDto card, DevCardType type)
         {
             DebugLog($"=== PLAY DEV CARD ATTEMPT ===");
             DebugLog($"Playing dev card: {type} (ID: {card.id})");
@@ -582,16 +584,21 @@ namespace Assets.Scripts.DevCards.Core
             if (!card.playable)
             {
                 Debug.LogWarning($"⚠️ Card {type} is not playable (playable: {card.playable}, used: {card.used})");
+                return;
             }
 
             try
             {
-                var playCardDto = new PlayCardDto(type);
-                var gameMove = new GameMoveDto(playCardDto);
+                // Construct DevCardPlayDto as expected by backend
+                var playDto = new DevCardPlayDto
+                {
+                    id = card.id,
+                    cardPlayData = new Dictionary<string, object>() // Empty unless UI fills it
+                };
 
-                DebugLog($"📤 Sending PLAY_CARD via SendGameMove: {type}");
-                await WebSocketService.SendGameMove(gameMove);
-                DebugLog($"✅ Play card request sent successfully: {type}");
+                DebugLog($"📤 Sending PLAY_CARD via WebSocketService.SendPlayCard for card ID {card.id}");
+                await WebSocketService.SendPlayCard(playDto);
+                DebugLog("✅ Play card request sent successfully");
             }
             catch (Exception ex)
             {
@@ -599,6 +606,7 @@ namespace Assets.Scripts.DevCards.Core
                 OnError?.Invoke($"Failed to play {type} card");
             }
         }
+
 
         private void HandleBuyCardResponse(BuyCardResponseDto response)
         {
@@ -614,7 +622,7 @@ namespace Assets.Scripts.DevCards.Core
             DebugLog($"  Card Type: {privateBuyCard.devCardType}");
             DebugLog($"  Card ID: {privateBuyCard.cardId}");
 
-            var newCard = new DevCardDto
+            var newCard = new Models.DevCardDto
             {
                 id = privateBuyCard.cardId,
                 type = privateBuyCard.devCardType,
@@ -733,9 +741,9 @@ namespace Assets.Scripts.DevCards.Core
 
 
 
-        public List<DevCardDto> GetPlayerCards()
+        public List<Models.DevCardDto> GetPlayerCards()
         {
-            return new List<DevCardDto>(playerCards);
+            return new List<Models.DevCardDto>(playerCards);
         }
 
         private long GetSessionPlayerId()
@@ -784,7 +792,13 @@ namespace Assets.Scripts.DevCards.Core
                 Debug.Log($"[DevCardManager] {message}");
             }
         }
-
+        public void SetCardPlayable()
+        {
+            foreach (var item in playerCards)
+            {
+                item.playable = true;
+            }
+        }
         private void OnDestroy()
         {
             DebugLog("DevCardManager destroyed - unsubscribing from events");

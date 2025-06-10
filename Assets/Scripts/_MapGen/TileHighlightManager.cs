@@ -18,9 +18,13 @@ public class TileHighlightManager : MonoBehaviour
     void Update()
     {
         Vector3 mouseWorldPos = GetMouseWorldPosition();
-
+        
         foreach (var tile in tiles)
-        {
+        {   
+            if (tile == null)
+            {
+                return;
+            }
             float distance = Vector3.Distance(mouseWorldPos, tile.WorldPosition);
             float t = Mathf.Clamp01(1f - (distance / maxDistance));
             float targetLift = maxLift * t;

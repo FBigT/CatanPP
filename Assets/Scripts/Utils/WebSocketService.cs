@@ -3,6 +3,7 @@ using Assets.Scripts.Dtos.GameMoveResponses;
 using Assets.Scripts.Dtos.GameMoves;
 using Assets.Scripts.Enums;
 using Assets.Scripts.User;
+using CatanGame.DTOs;
 using NativeWebSocket;
 using Newtonsoft.Json;
 using System;
@@ -24,6 +25,7 @@ namespace Assets.Scripts.Utils
 
         public static event Action<TradeExecutedDto> OnTradeExecuted;
         public static event Action<DevCardsListResponseDto> OnDevCardsListReceived;
+        
 
         public static event Action<BuyCardResponseDto> OnBuyCardResponse;
         public static event Action<PrivateBuyCard> OnPrivateBuyCard;
@@ -340,12 +342,7 @@ namespace Assets.Scripts.Utils
         }
 
 
-        public static void SendPlayDevCard(PlayCardDto playCardDto)
-        {
-            var gameMove = new GameMoveDto(playCardDto);  // This constructor might need to be added
-            string json = JsonUtility.ToJson(gameMove);
-            SendMessage(json);
-        }
+        
 
         public static void DispatchMessageQueue()
         {
@@ -525,5 +522,28 @@ namespace Assets.Scripts.Utils
             string messageFrame = WebSocketEndpointsUtils.MessageFrame(WebSocketApplicationDestinations.Moves, sessionCode, dto);
             await webSocket.SendText(messageFrame);
         }
+        public static async Task SendPlayCard(DevCardPlayDto playDto)
+        {
+            if (!Connected) return;
+
+            try
+            {
+                var moveData = new GameMoveDto
+                {
+                    gameMoveType = GameMoveType.PLAY_CARD,
+                    moveData = playDto
+                };
+
+                await SendGameMove(moveData);
+                Debug.Log("[WebSocketService] PlayCard sent successfully");
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError($"[WebSocketService] Failed to send play card: {ex.Message}");
+            }
+        }
+
+
+
     }
 }

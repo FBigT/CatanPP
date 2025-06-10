@@ -10,6 +10,7 @@ using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 using UnityEngine.Networking;
+using Assets.Scripts.DevCards.Core;
 
 public class BoardGen : MonoBehaviour
 {
@@ -810,6 +811,9 @@ public class BoardGen : MonoBehaviour
     public void GetEndTurn(EndTurnResponse t)
     {
         Debug.Log("[BoardGen] EndTurn received from WebSocket - handling end turn logic");
+        
+        DevCardManager.Instance.LoadPlayerCards();
+        DevCardManager.Instance.SetCardPlayable();
     }
 
     private async void HandleStructurePlaced(PurchaseType type, VertexPoint vo)
