@@ -246,6 +246,7 @@ public class SessionService {
                 .toString()
                 .toUpperCase();
     }
+
     public List<Session> getAllSessionsByUser(Long userId) {
         return sessionPlayerService.findPlayersByUserId(userId)
                 .stream()
@@ -253,8 +254,6 @@ public class SessionService {
                 .distinct()
                 .toList();
     }
-
-
 
     public void deleteAllSessions() {
         sessionRepository.deleteAll();

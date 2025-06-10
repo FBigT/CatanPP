@@ -38,6 +38,7 @@ public class GameMoveHandler {
     private final Mapper mapper;
     private final RoadRepository roadRepository;
     private final StructureRepository structureRepository;
+    private final NotificationService notificationService;
     private final PlayerProfileService playerProfileService;
     private final TradeService tradeService;
     private final SimpMessagingTemplate messagingTemplate;
@@ -45,7 +46,7 @@ public class GameMoveHandler {
     private final SessionCodeRepository sessionCodeRepository;
 
 
-    public GameMoveHandler(PlacementService placementService, ObjectMapper objectMapper, TileService tileService, TileCornerRepository tileCornerRepository, TileEdgeRepository tileEdgeRepository, MoveBlockerService moveBlockerService, DiceRollService diceRollService, DevCardService devCardService, GameService gameService, ResourceService resourceService, SessionService sessionService, Mapper mapper, RoadRepository roadRepository, StructureRepository structureRepository, PlayerProfileService playerProfileService, TradeService tradeService, SimpMessagingTemplate messagingTemplate, TradeOfferRepository tradeOfferRepository, SessionCodeRepository sessionCodeRepository) {
+    public GameMoveHandler(PlacementService placementService, ObjectMapper objectMapper, TileService tileService, TileCornerRepository tileCornerRepository, TileEdgeRepository tileEdgeRepository, MoveBlockerService moveBlockerService, DiceRollService diceRollService, DevCardService devCardService, GameService gameService, ResourceService resourceService, SessionService sessionService, Mapper mapper, RoadRepository roadRepository, StructureRepository structureRepository, NotificationService notificationService, PlayerProfileService playerProfileService, TradeService tradeService, SimpMessagingTemplate messagingTemplate, TradeOfferRepository tradeOfferRepository, SessionCodeRepository sessionCodeRepository) {
         this.placementService = placementService;
         this.objectMapper = objectMapper;
         this.tileService = tileService;
@@ -60,6 +61,7 @@ public class GameMoveHandler {
         this.mapper = mapper;
         this.roadRepository = roadRepository;
         this.structureRepository = structureRepository;
+        this.notificationService = notificationService;
         this.playerProfileService = playerProfileService;
         this.tradeService      = tradeService;
         this.messagingTemplate = messagingTemplate;
@@ -97,6 +99,10 @@ public class GameMoveHandler {
             checkIfItsTheCurrentPlayer(sessionPlayer, session);
         }*/
 
+        final Optional<SessionCode> bySessionId = sessionCodeRepository.findBySessionId(sessionId);
+        if (bySessionId.isEmpty()) {
+            throw new IllegalArgumentException("Session with id " + sessionId + " not found");
+        }
         switch (gameMoveTypeEnum) {
             case PRIVATE_BUY_CARD -> throw new IllegalArgumentException("Not like this");
             case MAP_GEN -> {
@@ -316,7 +322,14 @@ public class GameMoveHandler {
                 if (moveBlockerService.isSessionBlocked(sessionId) && moveBlockerService.isPlayerBlocked(sessionPlayer.getId())) {
                     RobberMoveDto robberMoveDto = objectMapper.convertValue(gameMoveDto.getMoveData(), RobberMoveDto.class);
 
-                    return placementService.moveRobber(robberMoveDto, sessionPlayer);
+                    RobberMoveResponseDto robberMoveResponseDto = placementService.moveRobber(robberMoveDto, sessionPlayer);
+                    notificationService.sendChatMessage(bySessionId.get().getCode(),
+                            new ChatMessage("System",
+                                    new RawChatMessage(robberMoveResponseDto.getMoverName() +
+                                            " moved the robber and stole " +
+                                            robberMoveResponseDto.getResourceName() + " from " +
+                                            robberMoveResponseDto.getVictimName())));
+                    return robberMoveResponseDto;
                 } else {
                     throw new IllegalArgumentException("You cannot move the robber now");
                 }
@@ -349,7 +362,11 @@ public class GameMoveHandler {
                                 e -> (e.getKey()).getName(), // Extract field
                                 Map.Entry::getValue
                         ));
-                return new DiceResultDto(sessionPlayer.getName(), result, resultMap);
+                DiceResultDto diceResultDto = new DiceResultDto(sessionPlayer.getName(), result, resultMap);
+                notificationService.sendChatMessage(bySessionId.get().getCode(),
+                        new ChatMessage("System",
+                                 new RawChatMessage(diceResultDto.getUsername() + " rolled a " + diceResultDto.getRollResult())));
+                return diceResultDto;
             }
             case PLAY_CARD -> {
                 //checkIfSessionValid(session);
@@ -413,8 +430,7 @@ public class GameMoveHandler {
                     deniedMsg.setTimestamp(OffsetDateTime.now());
 
                     // Look up the six-character session code instead of using sessionId.toString():
-                    String sessionCode = sessionCodeRepository
-                            .findBySessionId(sessionId)
+                    String sessionCode = bySessionId
                             .orElseThrow(() -> new IllegalArgumentException("Session code not found"))
                             .getCode();
 

@@ -8,6 +8,7 @@ import jakarta.persistence.*;
 import lombok.*;
 
 import java.time.LocalDateTime;
+import java.util.UUID;
 
 @Entity
 @Data
@@ -44,7 +45,7 @@ public class User {
     private PlayerProfile playerProfile;
 
     public void anonymize() {
-        this.username = "anon_" + this.id;
+        this.username = "anon_" + UUID.randomUUID();
         this.passwordHash = null;
         this.email = null;
         this.isGuest = true;

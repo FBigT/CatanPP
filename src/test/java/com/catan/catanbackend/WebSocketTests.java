@@ -1136,7 +1136,7 @@ class WebSocketTests {
             }
         });
 
-        int millis = 1000;
+        int millis = 1500;
         int timeout = 15;
 
         Thread.sleep(millis);
