@@ -33,6 +33,11 @@ namespace Catan.UI
 
         public delegate void StructureBuiltHandler(PurchaseType type, VertexPoint vp);
         public static event StructureBuiltHandler OnStructureBuilt;
+        public delegate void RoadBuiltHandler(PurchaseType type, EdgePoint ep);
+        public static event RoadBuiltHandler OnRoadBuilt;
+
+        private bool uiButtonsEnabled = true;
+
 
         void Awake()
         {
@@ -146,8 +151,7 @@ namespace Catan.UI
 
                     EdgePoint.ShowPlacementHighlights = false;
 
-                    // change to on road built
-                    //OnStructureBuilt?.Invoke(currentPurchaseType, purchaseDict[currentPurchaseType].prefab);
+                    OnRoadBuilt?.Invoke(currentPurchaseType, ep);
                     return true;
 
                 case PurchaseType.Settlement:
@@ -184,5 +188,17 @@ namespace Catan.UI
             if (cursorController != null)
                 cursorController.SetCursorMode(CursorController3D.CursorMode.Idle, false);
         }
+
+        public void ToggleUIButtons(bool enable)
+        {
+            uiButtonsEnabled = enable;
+
+            foreach (var entry in purchaseEntries)
+            {
+                if (entry.button != null)
+                    entry.button.interactable = enable;
+            }
+        }
+
     }
 }

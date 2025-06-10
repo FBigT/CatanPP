@@ -27,7 +27,7 @@ public class BoardGen : MonoBehaviour
     public GameObject thiefPrefab;
     private GameObject thiefInstance;
     private HexTile currentThiefTile;
-    bool isGenerated = false;
+    public bool isGenerated = false;
     public float hexSize = 1f;
 
     private const int radius = 2;
@@ -107,6 +107,9 @@ public class BoardGen : MonoBehaviour
         WebSocketService.OnDiceResponse += GetDiceData;
         WebSocketService.OnEndTurn += GetEndTurn;
         PuchaseUIManager.OnStructureBuilt += HandleStructurePlaced;
+        WebSocketService.OnPlaceStructure += GetStructurePlacedConfirmation;
+        PuchaseUIManager.OnRoadBuilt += HandleRoadPlaced;
+        WebSocketService.OnPlaceRoad += GetRoadPlacedConfirmation;
     }
 
     private void Start()
@@ -511,8 +514,25 @@ public class BoardGen : MonoBehaviour
                         a.edgePoints.Add(ep);
                         b.edgePoints.Add(ep);
 
+                        List<HexTile> sharedTiles = new();
+
+                        foreach (HexTile tile in a.nearbyTiles)
+                        {
+                            if (tile != null && b.nearbyTiles.Contains(tile))
+                            {
+                                sharedTiles.Add(tile);
+                                if (sharedTiles.Count == 2) break;
+                            }
+                        }
+
+                        for (int k = 0; k < sharedTiles.Count; k++)
+                        {
+                            ep.adjacentTiles[k] = sharedTiles[k];
+                        }
+
                         createdEdges.Add((a, b));
                     }
+
                 }
             }
         }
@@ -642,6 +662,9 @@ public class BoardGen : MonoBehaviour
 
     public void ConstructBoardFromTiles(List<TileDto> tiles)
     {
+        if (isGenerated)
+            return;
+
         vertexMap.Clear();
 
         if (thiefInstance != null)
@@ -809,6 +832,10 @@ public class BoardGen : MonoBehaviour
         WebSocketService.OnDiceResponse -= GetDiceData;
         WebSocketService.OnEndTurn -= GetEndTurn;
         PuchaseUIManager.OnStructureBuilt -= HandleStructurePlaced;
+        WebSocketService.OnPlaceStructure -= GetStructurePlacedConfirmation;
+        PuchaseUIManager.OnRoadBuilt -= HandleRoadPlaced;
+        WebSocketService.OnPlaceRoad -= GetRoadPlacedConfirmation;
+
         Assets.Scripts.GameMode.Trading.TradingManager.OnPlayersLoaded -= HandlePlayersLoaded;
     }
 
@@ -924,12 +951,19 @@ public class BoardGen : MonoBehaviour
         }
     }
 
-        public async void EndTurn()
-        {
-            Debug.Log("[BoardGen] 🏁 EndTurn called - sending end turn request to WebSocket");
-            await WebSocketService.SendEndTurn();
-        }
+    public async void EndTurn()
+    {
+        Debug.Log("[BoardGen] 🏁 EndTurn called - sending end turn request to WebSocket");
+        await WebSocketService.SendEndTurn();
+    }
 
+    public void GetEndTurn(EndTurnResponse t)
+    {
+        Debug.Log("[BoardGen] EndTurn received from WebSocket - handling end turn logic");
+
+        DevCardManager.Instance.LoadPlayerCards();
+        DevCardManager.Instance.SetCardPlayable();
+    }
         public void GetEndTurn(EndTurnResponse t)
         {
             Debug.Log("[BoardGen] EndTurn received from WebSocket - handling end turn logic");
@@ -952,8 +986,20 @@ public class BoardGen : MonoBehaviour
             await WebSocketService.SendPlaceStructure(dto);
         }
 
-        public void GetStructurePlacedConfirmation(PlaceStructureDto dto)
-        {
-            Debug.Log($"[StructurePlacementSender] ✅ Server confirmed structure placed at ({dto.tileX}, {dto.tileY}) corner {dto.cornerIndex}");
-        }
-    } 
+    public void GetStructurePlacedConfirmation(PlaceStructureResponse dto)
+    {
+        Debug.Log($"[StructurePlacementSender] ✅ Server confirmed structure placed at ({dto.tileX}, {dto.tileY}) corner {dto.cornerIndex}");
+    }
+
+    private async void HandleRoadPlaced(PurchaseType type, EdgePoint ep)
+    {
+        var dto = new PlaceRoadDto(-99, -99, 1);
+
+        await WebSocketService.SendPlaceRoad(dto);
+    }
+
+    public void GetRoadPlacedConfirmation(PlaceRoadResponse dto)
+    {
+        Debug.LogError("road built");
+    }
+}

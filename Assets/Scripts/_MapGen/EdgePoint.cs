@@ -15,6 +15,8 @@ public class EdgePoint : MonoBehaviour
 
     public List<EdgePoint> connectedEdges = new();
 
+    public HexTile[] adjacentTiles = new HexTile[2];
+
     // Static flag set from UI (when road is being placed)
     public static bool ShowPlacementHighlights = false;
 
