@@ -1752,7 +1752,19 @@ MonoBehaviour:
   m_TargetGraphic: {fileID: 48572704}
   m_OnClick:
     m_PersistentCalls:
-      m_Calls: []
+      m_Calls:
+      - m_Target: {fileID: 2437408840732986695, guid: 4b5886587849b7e42aee9ff106de4fe4, type: 3}
+        m_TargetAssemblyTypeName: BoardGen, NewAssembly
+        m_MethodName: EndTurn
+        m_Mode: 1
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 0
+        m_CallState: 2
 --- !u!114 &48572704
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -15329,6 +15341,7 @@ Transform:
   - {fileID: 1667220013}
   - {fileID: 1755361855}
   - {fileID: 863903129}
+  - {fileID: 2120311858}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!114 &624581398
@@ -19032,7 +19045,19 @@ MonoBehaviour:
   m_TargetGraphic: {fileID: 778482493}
   m_OnClick:
     m_PersistentCalls:
-      m_Calls: []
+      m_Calls:
+      - m_Target: {fileID: 2437408840732986695, guid: 4b5886587849b7e42aee9ff106de4fe4, type: 3}
+        m_TargetAssemblyTypeName: BoardGen, NewAssembly
+        m_MethodName: RoleDice
+        m_Mode: 1
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 0
+        m_CallState: 2
 --- !u!114 &778482493
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -51722,7 +51747,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 7767528661798030020, guid: 57012f12d3fe8654f8b63c958455dc97, type: 3}
       propertyPath: m_LocalPosition.x
-      value: -18.178907
+      value: 17.09061
       objectReference: {fileID: 0}
     - target: {fileID: 7767528661798030020, guid: 57012f12d3fe8654f8b63c958455dc97, type: 3}
       propertyPath: m_LocalPosition.y
@@ -51730,7 +51755,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 7767528661798030020, guid: 57012f12d3fe8654f8b63c958455dc97, type: 3}
       propertyPath: m_LocalPosition.z
-      value: -17.398352
+      value: 35.521782
       objectReference: {fileID: 0}
     - target: {fileID: 7767528661798030020, guid: 57012f12d3fe8654f8b63c958455dc97, type: 3}
       propertyPath: m_LocalRotation.w
@@ -54355,6 +54380,63 @@ RectTransform:
   m_AnchoredPosition: {x: -7.5, y: -0.5}
   m_SizeDelta: {x: -35, y: -13}
   m_Pivot: {x: 0.5, y: 0.5}
+--- !u!1 &2120311857
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 2120311858}
+  - component: {fileID: 2120311859}
+  m_Layer: 0
+  m_Name: ResourceMapperUI
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &2120311858
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2120311857}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 624581397}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &2120311859
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2120311857}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fc474eaee728d894db175c8832a47444, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  bindings:
+  - resourceName: claypit
+    targetText: {fileID: 1814421431}
+  - resourceName: mountain
+    targetText: {fileID: 1085926068}
+  - resourceName: wheat
+    targetText: {fileID: 96379544}
+  - resourceName: pasture
+    targetText: {fileID: 1125070936}
+  - resourceName: wood
+    targetText: {fileID: 1265193694}
+  - resourceName: gold
+    targetText: {fileID: 2059511659}
 --- !u!1 &2125753587
 GameObject:
   m_ObjectHideFlags: 0

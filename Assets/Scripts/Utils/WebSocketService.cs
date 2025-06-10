@@ -29,7 +29,11 @@ namespace Assets.Scripts.Utils
         public static event Action<PrivateBuyCard> OnPrivateBuyCard;
         public static event Action<PlayCardResponseDto> OnPlayCardResponse;
 
+        public static event Action<DiceResultDto> OnDiceResponse;
+
         public static event Action<GenerateMapDto> OnMapGenerated;
+
+        public static event Action<EndTurnResponse> OnEndTurn;
 
         private static WebSocket webSocket;
         public static bool Connected { get; private set; } = false;
@@ -127,11 +131,17 @@ namespace Assets.Scripts.Utils
                                     UpgradeStructureResponse upgradeStructure = (UpgradeStructureResponse)gameMove.moveData;
                                     break;
                                 case GameMoveType.END_TURN:
-                                    EndTurnResponse endTurn = (EndTurnResponse)gameMove.moveData;
-                                    break;
+                                    {
+                                        EndTurnResponse endTurn = (EndTurnResponse)gameMove.moveData;
+                                        OnEndTurn?.Invoke((EndTurnResponse)gameMove.moveData);
+                                        break;
+                                    }
                                 case GameMoveType.DICE_ROLL:
-                                    DiceResultDto diceResult = (DiceResultDto)gameMove.moveData;
-                                    break;
+                                    {
+                                        DiceResultDto diceResult = (DiceResultDto)gameMove.moveData;
+                                        OnDiceResponse?.Invoke(diceResult);
+                                        break;
+                                    }
                                 case GameMoveType.ROBBER_MOVE:
                                     RobberMoveResponse robberMoveDto = (RobberMoveResponse)gameMove.moveData;
                                     break;
@@ -412,6 +422,45 @@ namespace Assets.Scripts.Utils
             }
         }
 
+        public static async Task SendDiceRoll()
+        {
+            if (!Connected)
+            {
+                Debug.LogWarning("Cannot send dice roll: WebSocket not connected.");
+                return;
+            }
 
+            try
+            {
+                var gameMove = new GameMoveDto(GameMoveType.DICE_ROLL);
+                Debug.Log("[WebSocketService] Sending DICE_ROLL move...");
+                await SendGameMove(gameMove);
+                Debug.Log("[WebSocketService] DICE_ROLL move sent successfully");
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError($"[WebSocketService] Failed to send dice roll: {ex.Message}");
+            }
+        }
+        public static async Task SendEndTurn()
+        {
+            if (!Connected)
+            {
+                Debug.LogWarning("end turn problem");
+                return;
+            }
+
+            try
+            {
+                var gameMove = new GameMoveDto(GameMoveType.END_TURN);
+                Debug.Log("[WebSocketService] Sending end move...");
+                await SendGameMove(gameMove);
+                Debug.Log("[WebSocketService] end move sent successfully");
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError($"[WebSocketService] Failed to send end roll: {ex.Message}");
+            }
+        }
     }
 }

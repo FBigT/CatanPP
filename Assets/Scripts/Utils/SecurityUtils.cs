@@ -3,9 +3,6 @@ using System;
 using System.Text;
 using System.Security.Cryptography;
 using UnityEngine;
-using Assets.Scripts.Dtos;
-using static UnityEditor.PlayerSettings;
-using static UnityEditor.IMGUI.Controls.PrimitiveBoundsHandle;
 
 namespace Assets.Scripts.Utils
 {
