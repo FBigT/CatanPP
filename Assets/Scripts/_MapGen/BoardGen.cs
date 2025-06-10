@@ -153,7 +153,7 @@ public class BoardGen : MonoBehaviour
         catch (Exception ex)
         {
             Debug.LogError($"Robber move failed: {ex.Message}");
-            
+
         }
 
         isRobberMoveInProgress = false;
@@ -205,7 +205,7 @@ public class BoardGen : MonoBehaviour
         var newTile = GetTileByCoords(response.destinationTileX, response.destinationTileY);
         MoveThiefTo(newTile);
 
-        
+
     }
 
 
@@ -235,6 +235,11 @@ public class BoardGen : MonoBehaviour
     }
     private void HandlePlayersLoaded(List<Assets.Scripts.GameMode.Trading.Models.SessionPlayerDto> players)
     {
+
+        if (isGenerated)
+        {
+            return;
+        }
         Debug.Log($"[BoardGen] TradingManager loaded {players.Count} players");
 
         string currentUsername = LocalStorageService.GetString("username");
@@ -727,6 +732,8 @@ public class BoardGen : MonoBehaviour
 
     private void ClearExistingBoard()
     {
+        if (isGenerated)
+            return;
         Debug.Log("🧹 Clearing any existing board elements...");
 
         // Clear existing tiles
@@ -789,7 +796,7 @@ public class BoardGen : MonoBehaviour
             Debug.LogError("[BoardGen] ❌ WebSocket connection timeout - cannot request map data. Retrying...");
             yield return new WaitForSeconds(2f);
             Debug.Log("[BoardGen] Restarting RequestMapFromBackend coroutine...");
-            StartCoroutine(RequestMapFromBackend());
+            //StartCoroutine(RequestMapFromBackend());
         }
         Debug.Log("[BoardGen] RequestMapFromBackend coroutine completed");
     }
@@ -839,7 +846,7 @@ public class BoardGen : MonoBehaviour
         catch (Exception ex)
         {
             Debug.LogError($"[BoardGen] ❌ Failed to request map data: {ex.Message}");
-            StartCoroutine(RetryMapRequest());
+            //StartCoroutine(RetryMapRequest());
         }
     }
 
@@ -882,10 +889,10 @@ public class BoardGen : MonoBehaviour
 
     public void GetDiceData(DiceResultDto diceResult)
     {
-<<<<<<< Updated upstream
-        Debug.Log($"[Dice Result] 🎲 {p.username} rolled a {p.rollResult}");
 
-        foreach (var entry in p.userResourcesGained)
+        Debug.Log($"[Dice Result] 🎲 {diceResult.username} rolled a {diceResult.rollResult}");
+
+        foreach (var entry in diceResult.userResourcesGained)
         {
             string user = entry.Key;
             ResourceGroup resources = entry.Value;
@@ -900,52 +907,53 @@ public class BoardGen : MonoBehaviour
                     Debug.Log($"  - {resource.Key}: {resource.Value}");
                 }
             }
-=======
-        Debug.Log($"[BoardGen] 🎲 Dice rolled: {diceResult.rollResult}");
-        _lastDiceTotal = diceResult.rollResult;
 
-        
+            Debug.Log($"[BoardGen] 🎲 Dice rolled: {diceResult.rollResult}");
+            _lastDiceTotal = diceResult.rollResult;
 
-        // Trigger robber move on 7
-        if (_lastDiceTotal == 7)
-        {
-            Debug.Log("[BoardGen] ⚠️ 7 rolled - initiating robber move");
-            InitiateRobberMove(true);
->>>>>>> Stashed changes
+
+
+            // Trigger robber move on 7
+            if (_lastDiceTotal == 7)
+            {
+                
+                Debug.Log("[BoardGen] ⚠️ 7 rolled - initiating robber move");
+                InitiateRobberMove(true);
+
+            }
         }
     }
 
+        public async void EndTurn()
+        {
+            Debug.Log("[BoardGen] 🏁 EndTurn called - sending end turn request to WebSocket");
+            await WebSocketService.SendEndTurn();
+        }
 
-    public async void EndTurn()
-    {
-       Debug.Log("[BoardGen] 🏁 EndTurn called - sending end turn request to WebSocket");
-        await WebSocketService.SendEndTurn();
-    }
+        public void GetEndTurn(EndTurnResponse t)
+        {
+            Debug.Log("[BoardGen] EndTurn received from WebSocket - handling end turn logic");
 
-    public void GetEndTurn(EndTurnResponse t)
-    {
-        Debug.Log("[BoardGen] EndTurn received from WebSocket - handling end turn logic");
-        
-        DevCardManager.Instance.LoadPlayerCards();
-        DevCardManager.Instance.SetCardPlayable();
-    }
+            DevCardManager.Instance.LoadPlayerCards();
+            DevCardManager.Instance.SetCardPlayable();
+        }
 
-    private async void HandleStructurePlaced(PurchaseType type, VertexPoint vo)
-    {
-        var tile = vo.nearbyTiles[0];
+        private async void HandleStructurePlaced(PurchaseType type, VertexPoint vo)
+        {
+            var tile = vo.nearbyTiles[0];
 
-        var dto = new PlaceStructureDto(
-            tile.Q,
-            tile.R,
-            vo.GetNeighborVertexIndex(tile),
-            vo.type
-        );
+            var dto = new PlaceStructureDto(
+                tile.Q,
+                tile.R,
+                vo.GetNeighborVertexIndex(tile),
+                vo.type
+            );
 
-        await WebSocketService.SendPlaceStructure(dto);
-    }
+            await WebSocketService.SendPlaceStructure(dto);
+        }
 
-    public void GetStructurePlacedConfirmation(PlaceStructureDto dto)
-    {
-        Debug.Log($"[StructurePlacementSender] ✅ Server confirmed structure placed at ({dto.tileX}, {dto.tileY}) corner {dto.cornerIndex}");
-    }
-}
+        public void GetStructurePlacedConfirmation(PlaceStructureDto dto)
+        {
+            Debug.Log($"[StructurePlacementSender] ✅ Server confirmed structure placed at ({dto.tileX}, {dto.tileY}) corner {dto.cornerIndex}");
+        }
+    } 
