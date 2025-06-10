@@ -8,6 +8,7 @@ using System.Linq;
 using System;
 using UnityEngine.Networking;
 using Assets.Scripts.Dtos.GameMoveResponses;
+using Assets.Scripts.DevCards.Core;
 
 public class BoardGen : MonoBehaviour
 {
@@ -788,5 +789,8 @@ public class BoardGen : MonoBehaviour
     public void GetEndTurn(EndTurnResponse t)
     {
         Debug.Log("[BoardGen] EndTurn received from WebSocket - handling end turn logic");
+        
+        DevCardManager.Instance.LoadPlayerCards();
+        DevCardManager.Instance.SetCardPlayable();
     }
 }
