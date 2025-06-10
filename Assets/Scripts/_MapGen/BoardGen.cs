@@ -1,13 +1,15 @@
-﻿using System.Collections;
-using System.Collections.Generic;
-using UnityEngine;
-using Assets.Scripts.Dtos;
-using Assets.Scripts.Enums;
-using Assets.Scripts.Utils;
-using System.Linq;
-using System;
-using UnityEngine.Networking;
+﻿using Assets.Scripts.Dtos;
 using Assets.Scripts.Dtos.GameMoveResponses;
+using Assets.Scripts.Enums;
+using Assets.Scripts.GameMode.Trading.Models;
+using Assets.Scripts.Utils;
+using Catan.UI;
+using System;
+using System.Collections;
+using System.Collections.Generic;
+using System.Linq;
+using UnityEngine;
+using UnityEngine.Networking;
 
 public class BoardGen : MonoBehaviour
 {
@@ -98,6 +100,7 @@ public class BoardGen : MonoBehaviour
 
         WebSocketService.OnDiceResponse += GetDiceData;
         WebSocketService.OnEndTurn += GetEndTurn;
+        PuchaseUIManager.OnStructureBuilt += HandleStructurePlaced;
     }
 
     private void Start()
@@ -702,6 +705,7 @@ public class BoardGen : MonoBehaviour
         WebSocketService.OnMapGenerated -= HandleMapReceived;
         WebSocketService.OnDiceResponse -= GetDiceData;
         WebSocketService.OnEndTurn -= GetEndTurn;
+        PuchaseUIManager.OnStructureBuilt -= HandleStructurePlaced;
         Assets.Scripts.GameMode.Trading.TradingManager.OnPlayersLoaded -= HandlePlayersLoaded;
     }
 
@@ -776,8 +780,26 @@ public class BoardGen : MonoBehaviour
 
     public void GetDiceData(DiceResultDto p)
     {
-        Debug.Log("resource ate my ass");
+        Debug.Log($"[Dice Result] 🎲 {p.username} rolled a {p.rollResult}");
+
+        foreach (var entry in p.userResourcesGained)
+        {
+            string user = entry.Key;
+            ResourceGroup resources = entry.Value;
+            var resourceDict = resources.GetResourceDictionary();
+
+            Debug.Log($"Resources gained by {user}:");
+
+            foreach (var resource in resourceDict)
+            {
+                if (resource.Value > 0)
+                {
+                    Debug.Log($"  - {resource.Key}: {resource.Value}");
+                }
+            }
+        }
     }
+
 
     public async void EndTurn()
     {
@@ -788,5 +810,24 @@ public class BoardGen : MonoBehaviour
     public void GetEndTurn(EndTurnResponse t)
     {
         Debug.Log("[BoardGen] EndTurn received from WebSocket - handling end turn logic");
+    }
+
+    private async void HandleStructurePlaced(PurchaseType type, VertexPoint vo)
+    {
+        var tile = vo.nearbyTiles[0];
+
+        var dto = new PlaceStructureDto(
+            tile.Q,
+            tile.R,
+            vo.GetNeighborVertexIndex(tile),
+            vo.type
+        );
+
+        await WebSocketService.SendPlaceStructure(dto);
+    }
+
+    public void GetStructurePlacedConfirmation(PlaceStructureDto dto)
+    {
+        Debug.Log($"[StructurePlacementSender] ✅ Server confirmed structure placed at ({dto.tileX}, {dto.tileY}) corner {dto.cornerIndex}");
     }
 }

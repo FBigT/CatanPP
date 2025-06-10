@@ -11,6 +11,8 @@ public class VertexPoint : MonoBehaviour
     public List<HexTile> nearbyTiles = new();
     public List<EdgePoint> edgePoints = new();
 
+    public StructureType type;
+
     private void Update()
     {
         OrientStructureToTileHeights();
@@ -18,6 +20,7 @@ public class VertexPoint : MonoBehaviour
 
     public void Build(StructureType structureType)
     {
+        type = structureType;
         owner = "debug"; //temp
 
         foreach (Transform child in transform)
@@ -65,4 +68,46 @@ public class VertexPoint : MonoBehaviour
 
         transform.up = normal;
     }
+
+    public int GetNeighborVertexIndex(HexTile tile)
+    {
+        if (nearbyTiles == null || nearbyTiles.Count == 0)
+            return -1;
+
+        if (tile == null)
+            return -1;
+
+        Vector3 center = tile.transform.position;
+
+        Vector3 toVertex = (transform.position - center).normalized;
+
+        Vector3[] referenceVectors = GetTileVertexDirections();
+
+        float marginDegrees = 10f;
+
+        for (int i = 0; i < referenceVectors.Length; i++)
+        {
+            float angle = Vector3.Angle(toVertex, referenceVectors[i]);
+            if (angle <= marginDegrees)
+                return i + 1;
+
+        }
+        return -1;
+    }
+
+    private Vector3[] GetTileVertexDirections()
+    {
+        Vector3[] directions = new Vector3[6];
+
+        float[] angles = new float[] { 30f, 90f, 150f, 210f, 270f, 330f };
+
+        for (int i = 0; i < 6; i++)
+        {
+            float rad = angles[i] * Mathf.Deg2Rad;
+            directions[i] = new Vector3(Mathf.Cos(rad), 0f, Mathf.Sin(rad)).normalized;
+        }
+
+        return directions;
+    }
+
 }

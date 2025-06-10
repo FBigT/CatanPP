@@ -1,4 +1,4 @@
-using Assets.Scripts.Enums;
+﻿using Assets.Scripts.Enums;
 using Catan.Managers;
 using System.Collections.Generic;
 using UnityEditor;
@@ -29,8 +29,24 @@ namespace Catan.UI
         private PurchaseType currentPurchaseType;
         private bool isPlacingStructure = false;
 
+        public static PuchaseUIManager Instance { get; private set; }
+
+        public delegate void StructureBuiltHandler(PurchaseType type, VertexPoint vp);
+        public static event StructureBuiltHandler OnStructureBuilt;
+
         void Awake()
         {
+            if (Instance == null)
+            {
+                Instance = this;
+                DontDestroyOnLoad(gameObject);
+            }
+            else
+            {
+                Destroy(gameObject);
+                return;
+            }
+
             purchaseDict = new Dictionary<PurchaseType, (Button, GameObject, KeyCode)>();
             foreach (var entry in purchaseEntries)
             {
@@ -42,7 +58,6 @@ namespace Catan.UI
 
                 purchaseDict[entry.type] = (entry.button, entry.prefab, entry.key);
                 entry.button.onClick.AddListener(() => TryPurchase(entry.type));
-                
             }
 
             if (cursorController == null)
@@ -61,7 +76,6 @@ namespace Catan.UI
 
             if (!purchaseManager.HasEnoughFor(type))
                 return;
-            
 
             if (!purchaseDict.TryGetValue(type, out var data))
             {
@@ -114,7 +128,6 @@ namespace Catan.UI
             }
         }
 
-
         bool TryPlaceStructure()
         {
             Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
@@ -132,6 +145,9 @@ namespace Catan.UI
                     }
 
                     EdgePoint.ShowPlacementHighlights = false;
+
+                    // change to on road built
+                    //OnStructureBuilt?.Invoke(currentPurchaseType, purchaseDict[currentPurchaseType].prefab);
                     return true;
 
                 case PurchaseType.Settlement:
@@ -151,6 +167,7 @@ namespace Catan.UI
                         return false;
                     }
 
+                    OnStructureBuilt?.Invoke(currentPurchaseType, vp);
                     return true;
             }
 

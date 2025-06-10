@@ -35,6 +35,9 @@ namespace Assets.Scripts.Utils
 
         public static event Action<EndTurnResponse> OnEndTurn;
 
+        public static event Action<PlaceRoadResponse> OnPlaceRoad;
+        public static event Action<PlaceStructureResponse> OnPlaceStructure;
+
         private static WebSocket webSocket;
         public static bool Connected { get; private set; } = false;
         private static string sessionCode;
@@ -118,11 +121,17 @@ namespace Assets.Scripts.Utils
                             switch (gameMoveType)
                             {
                                 case GameMoveType.PLACE_ROAD:
-                                    PlaceRoadResponse placeRoadResponse = (PlaceRoadResponse)gameMove.moveData;
-                                    break;
+                                    {
+                                        PlaceRoadResponse placeRoadResponse = (PlaceRoadResponse)gameMove.moveData;
+                                        OnPlaceRoad?.Invoke(placeRoadResponse);
+                                        break;
+                                    }
                                 case GameMoveType.PLACE_STRUCTURE:
-                                    PlaceStructureResponse placeStructureResponse = (PlaceStructureResponse)gameMove.moveData;
-                                    break;
+                                    {
+                                        PlaceStructureResponse placeStructureResponse = (PlaceStructureResponse)gameMove.moveData;
+                                        OnPlaceStructure?.Invoke(placeStructureResponse);
+                                        break;
+                                    }
                                 case GameMoveType.BUY_CARD:
                                     BuyCardResponseDto buyCardResponse = (BuyCardResponseDto)gameMove.moveData;
                                     OnBuyCardResponse?.Invoke(buyCardResponse);
@@ -461,6 +470,60 @@ namespace Assets.Scripts.Utils
             {
                 Debug.LogError($"[WebSocketService] Failed to send end roll: {ex.Message}");
             }
+        }
+
+        public static async Task SendStructure()
+        {
+            if (!Connected)
+            {
+                Debug.LogWarning("structure problem");
+                return;
+            }
+
+            try
+            {
+                var gameMove = new GameMoveDto(GameMoveType.PLACE_STRUCTURE);
+                Debug.Log("[WebSocketService] Sending place structure move...");
+                await SendGameMove(gameMove);
+                Debug.Log("[WebSocketService] place move sent successfully");
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError($"[WebSocketService] Failed to send end place: {ex.Message}");
+            }
+        }
+
+        public static async Task SendRoad()
+        {
+            if (!Connected)
+            {
+                Debug.LogWarning("road problem");
+                return;
+            }
+
+            try
+            {
+                var gameMove = new GameMoveDto(GameMoveType.PLACE_STRUCTURE);
+                Debug.Log("[WebSocketService] Sending place road move...");
+                await SendGameMove(gameMove);
+                Debug.Log("[WebSocketService] road move sent successfully");
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError($"[WebSocketService] Failed to send end road: {ex.Message}");
+            }
+        }
+
+        public static async Task SendPlaceStructure(PlaceStructureDto dto)
+        {
+            if (dto == null)
+            {
+                Debug.LogWarning("game move is null.");
+                return;
+            }
+
+            string messageFrame = WebSocketEndpointsUtils.MessageFrame(WebSocketApplicationDestinations.Moves, sessionCode, dto);
+            await webSocket.SendText(messageFrame);
         }
     }
 }

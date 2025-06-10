@@ -17368,14 +17368,14 @@ MonoBehaviour:
     button: {fileID: 762055108}
     prefab: {fileID: 2644415273911902033, guid: 5d586a69f027c6443b87d841f31466d5, type: 3}
     key: 49
-  - type: 3
-    button: {fileID: 241196085}
-    prefab: {fileID: 2037119556831705602, guid: 8c39b66210a31924e83443e6e78673d4, type: 3}
-    key: 51
   - type: 1
     button: {fileID: 36984083}
     prefab: {fileID: 2416815274884582457, guid: 6c37a2710815307438fd92b4a77fbebc, type: 3}
     key: 50
+  - type: 3
+    button: {fileID: 241196085}
+    prefab: {fileID: 2037119556831705602, guid: 8c39b66210a31924e83443e6e78673d4, type: 3}
+    key: 51
   purchaseManager: {fileID: 725621473}
   buildingLayerMask:
     serializedVersion: 2
@@ -51747,7 +51747,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 7767528661798030020, guid: 57012f12d3fe8654f8b63c958455dc97, type: 3}
       propertyPath: m_LocalPosition.x
-      value: 17.09061
+      value: 15.513981
       objectReference: {fileID: 0}
     - target: {fileID: 7767528661798030020, guid: 57012f12d3fe8654f8b63c958455dc97, type: 3}
       propertyPath: m_LocalPosition.y
@@ -51755,7 +51755,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 7767528661798030020, guid: 57012f12d3fe8654f8b63c958455dc97, type: 3}
       propertyPath: m_LocalPosition.z
-      value: 35.521782
+      value: 35.34352
       objectReference: {fileID: 0}
     - target: {fileID: 7767528661798030020, guid: 57012f12d3fe8654f8b63c958455dc97, type: 3}
       propertyPath: m_LocalRotation.w
