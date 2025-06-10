@@ -352,8 +352,8 @@ public class GameMoveHandler {
                 return new DiceResultDto(sessionPlayer.getName(), result, resultMap);
             }
             case PLAY_CARD -> {
-                checkIfSessionValid(session);
-                checkIfSessionBlocked(sessionId);
+                //checkIfSessionValid(session);
+                //checkIfSessionBlocked(sessionId);
                 DevCardPlayDto devCardPlayDto = objectMapper.convertValue(gameMoveDto.getMoveData(), DevCardPlayDto.class);
 
                 Optional<DevCard> devCard = devCardService.findDevCardById(devCardPlayDto.getId());
@@ -438,9 +438,9 @@ public class GameMoveHandler {
     }
 
     private EndTurnResponseDto getEndTurnResponseDto(Session session, Boolean manual, SessionPlayer sessionPlayer) {
-        if (!manual) {
+        /*?if (!manual) {
             checkForSetupOrdering(GameMoveTypeEnum.END_TURN, session, sessionPlayer);
-        }
+        }*/
 
         Long sessionId = session.getId();
         //checkIfSessionValid(session);
