@@ -11,14 +11,19 @@ using System.Linq;
 using UnityEngine;
 using UnityEngine.Networking;
 using Assets.Scripts.DevCards.Core;
+using Assets.Scripts.User;
+using System.Threading.Tasks;
+using Assets;
 
 public class BoardGen : MonoBehaviour
 {
     public static BoardGen Instance { get; private set; }
-
+    private int _lastDiceTotal;
     public GameObject hexTilePrefab;
     public GameObject edgePointPrefab;
-
+    private HexTile selectedRobberTile;
+    private bool isRobberMoveInProgress;
+    public bool IsRobberMoveActive() => isRobberMoveInProgress;
     public GameObject thiefPrefab;
     private GameObject thiefInstance;
     private HexTile currentThiefTile;
@@ -107,7 +112,7 @@ public class BoardGen : MonoBehaviour
     private void Start()
     {
         Debug.Log("[BoardGen] Start() called");
-
+        WebSocketService.OnRobberMoved += HandleRobberMoveResponse;
         // Subscribe to TradingManager's OnPlayersLoaded event (same as DevCardManager)
         Assets.Scripts.GameMode.Trading.TradingManager.OnPlayersLoaded += HandlePlayersLoaded;
         Debug.Log("[BoardGen] ✅ Subscribed to TradingManager.OnPlayersLoaded event");
@@ -115,6 +120,95 @@ public class BoardGen : MonoBehaviour
         // Initialize session data
         StartCoroutine(InitializeSessionData());
     }
+    public async void InitiateRobberMove(bool fromDiceRoll)
+    {
+        if (!isRobberMoveInProgress)
+        {
+            await RobberMoveSequence(fromDiceRoll);
+        }
+    }
+    private async Task RobberMoveSequence(bool fromDiceRoll)
+    {
+        isRobberMoveInProgress = true;
+        HighlightValidRobberTiles();
+
+        selectedRobberTile = null;
+        while (selectedRobberTile == null)
+        {
+            await Task.Yield();
+        }
+
+        var moveDto = new RobberMoveDto
+        {
+            originatingTileX = currentThiefTile.xCoord,
+            originatingTileY = currentThiefTile.yCoord,
+            destinationTileX = selectedRobberTile.xCoord,
+            destinationTileY = selectedRobberTile.yCoord
+        };
+
+        try
+        {
+            await WebSocketService.SendRobberMove(moveDto);
+        }
+        catch (Exception ex)
+        {
+            Debug.LogError($"Robber move failed: {ex.Message}");
+            
+        }
+
+        isRobberMoveInProgress = false;
+    }
+
+    // Add missing GetTileByCoords method
+    public HexTile GetTileByCoords(int x, int y)
+    {
+        return tileList.FirstOrDefault(t => t.xCoord == x && t.yCoord == y);
+    }
+
+    public void OnRobberTileSelected(HexTile tile)
+    {
+        if (IsValidRobberTile(tile))
+        {
+            selectedRobberTile = tile;
+            ClearHighlights();
+        }
+    }
+
+    private bool IsValidRobberTile(HexTile tile)
+    {
+        return tile != currentThiefTile &&
+               tile.resourceType != "desert" && // Match string comparison
+               !tile.isWater;
+    }
+
+    private void HighlightValidRobberTiles()
+    {
+        foreach (var tile in tileList)
+        {
+            if (IsValidRobberTile(tile))
+            {
+                tile.Highlight(Color.red);
+            }
+        }
+    }
+
+    private void ClearHighlights()
+    {
+        foreach (var tile in tileList)
+        {
+            tile.ClearHighlight();
+        }
+    }
+    // In BoardGen.cs
+    private void HandleRobberMoveResponse(RobberMoveResponse response)
+    {
+        var newTile = GetTileByCoords(response.destinationTileX, response.destinationTileY);
+        MoveThiefTo(newTile);
+
+        
+    }
+
+
     private IEnumerator InitializeSessionData()
     {
         Debug.Log("[BoardGen] 🔄 Initializing session data...");
@@ -533,6 +627,7 @@ public class BoardGen : MonoBehaviour
         thiefInstance.transform.SetParent(newTile.transform);
         thiefInstance.transform.localPosition = Vector3.up * 0.1f;
         currentThiefTile = newTile;
+        ClearHighlights();
     }
 
     public HexTile GetCurrentThiefTile()
@@ -775,12 +870,19 @@ public class BoardGen : MonoBehaviour
 
     public async void RoleDice()
     {
+        if (isRobberMoveInProgress)
+        {
+            Debug.LogWarning("[BoardGen] Cannot roll dice during robber move");
+            return;
+        }
+
         Debug.Log("[BoardGen] 🎲 RoleDice called - sending dice roll request to WebSocket");
         await WebSocketService.SendDiceRoll();
     }
 
-    public void GetDiceData(DiceResultDto p)
+    public void GetDiceData(DiceResultDto diceResult)
     {
+<<<<<<< Updated upstream
         Debug.Log($"[Dice Result] 🎲 {p.username} rolled a {p.rollResult}");
 
         foreach (var entry in p.userResourcesGained)
@@ -798,6 +900,18 @@ public class BoardGen : MonoBehaviour
                     Debug.Log($"  - {resource.Key}: {resource.Value}");
                 }
             }
+=======
+        Debug.Log($"[BoardGen] 🎲 Dice rolled: {diceResult.rollResult}");
+        _lastDiceTotal = diceResult.rollResult;
+
+        
+
+        // Trigger robber move on 7
+        if (_lastDiceTotal == 7)
+        {
+            Debug.Log("[BoardGen] ⚠️ 7 rolled - initiating robber move");
+            InitiateRobberMove(true);
+>>>>>>> Stashed changes
         }
     }
 

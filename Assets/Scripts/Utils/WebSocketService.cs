@@ -18,7 +18,7 @@ namespace Assets.Scripts.Utils
     public static class WebSocketService
     {
         public static event Action<ChatMessage> OnChatMessageReceived;
-        
+        public static event Action<RobberMoveResponse> OnRobberMoved;
         public static event Action<TradeOfferMessage> OnTradeOfferReceived;
         public static event Action<TradeResponseMessage> OnTradeResponseReceived;
         public static event Action  OnPlayerJoined;
@@ -154,7 +154,8 @@ namespace Assets.Scripts.Utils
                                         break;
                                     }
                                 case GameMoveType.ROBBER_MOVE:
-                                    RobberMoveResponse robberMoveDto = (RobberMoveResponse)gameMove.moveData;
+                                    var robberResponse = (RobberMoveResponse)gameMove.moveData;
+                                    OnRobberMoved?.Invoke(robberResponse);
                                     break;
                                 case GameMoveType.PLAY_CARD:
                                     PlayCardResponseDto playCardResponseDto = (PlayCardResponseDto)gameMove.moveData;
@@ -542,6 +543,19 @@ namespace Assets.Scripts.Utils
                 Debug.LogError($"[WebSocketService] Failed to send play card: {ex.Message}");
             }
         }
+        // Modify SendRobberMove to use direct serialization
+        public static async Task SendRobberMove(RobberMoveDto moveData)
+        {
+            var gameMove = new GameMoveDto(GameMoveType.ROBBER_MOVE)
+            {
+                moveData = moveData // Direct assignment
+            };
+
+            await SendGameMove(gameMove);
+        }
+
+
+
 
 
 
