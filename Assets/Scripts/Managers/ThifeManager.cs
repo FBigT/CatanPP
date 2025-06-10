@@ -1,16 +1,20 @@
-using UnityEngine;
+using Assets.Scripts.Dtos;
 using Assets.Scripts.Utils;
+using System;
+using System.Threading.Tasks;
+using UnityEngine;
 
 public class ThifeManager : Singleton<ThifeManager>
 {
-    public BoardGen BoardGen;
-
     private bool isPlacingThief = false;
-    private HexTile currentTile => BoardGen?.GetCurrentThiefTile();
-    private LineRenderer lineRenderer;
+    private bool isRobberMoveInProgress = false;
+    private HexTile selectedRobberTile;
+    private HexTile currentTile => BoardGen.Instance?.GetCurrentThiefTile();
 
     public Material dottedLineMaterial;
     public float yOffset = 0.2f;
+
+    private LineRenderer lineRenderer;
 
     protected override void Awake()
     {
@@ -26,44 +30,19 @@ public class ThifeManager : Singleton<ThifeManager>
         lineRenderer.positionCount = 2;
         lineRenderer.enabled = false;
 
-        // Set this if your material needs it
         lineRenderer.textureMode = LineTextureMode.Tile;
         lineRenderer.numCapVertices = 0;
     }
 
-    private void Start()
-    {
-        if (BoardGen == null)
-        {
-            BoardGen = FindObjectOfType<BoardGen>();
-            if (BoardGen == null)
-            {
-                Debug.LogError("BoardGen not found in the scene. Please ensure it is present.");
-            }
-        }
-    }
-
-    public void EnableThiefPlacement()
-    {
-        isPlacingThief = true;
-        lineRenderer.enabled = true;
-    }
-
     private void LateUpdate()
     {
-        if (!isPlacingThief)
-        {
-            lineRenderer.enabled = false;
-            return;
-        }
+        if (!isPlacingThief) return;
 
         UpdateThiefLine();
 
-        if (Input.GetMouseButtonDown(1)) // Right click to cancel
+        if (Input.GetMouseButtonDown(1)) // Right-click cancel
         {
-            isPlacingThief = false;
-            lineRenderer.enabled = false;
-            DebugMenu.Instance.AppendLog("Thief movement cancelled.");
+            CancelRobberPlacement();
         }
 
         if (Input.GetMouseButtonDown(0))
@@ -72,12 +51,81 @@ public class ThifeManager : Singleton<ThifeManager>
             if (Physics.Raycast(ray, out RaycastHit hit))
             {
                 HexTile tile = hit.collider.GetComponent<HexTile>();
-                if (tile != null)
+                if (tile != null && IsValidRobberTile(tile))
                 {
-                    MoveThief(tile);
+                    selectedRobberTile = tile;
                 }
             }
         }
+    }
+
+    public void EnableThiefPlacement()
+    {
+        if (!isRobberMoveInProgress)
+        {
+            _ = RobberMoveSequence();
+        }
+    }
+
+    private async Task RobberMoveSequence()
+    {
+        isRobberMoveInProgress = true;
+        isPlacingThief = true;
+        lineRenderer.enabled = true;
+
+        selectedRobberTile = null;
+        HighlightValidRobberTiles();
+
+        while (selectedRobberTile == null)
+        {
+            await Task.Yield();
+        }
+
+        var moveDto = new RobberMoveDto
+        {
+            originatingTileX = currentTile.xCoord,
+            originatingTileY = currentTile.yCoord,
+            destinationTileX = selectedRobberTile.xCoord,
+            destinationTileY = selectedRobberTile.yCoord
+        };
+
+        try
+        {
+            await WebSocketService.SendRobberMove(moveDto);
+        }
+        catch (Exception ex)
+        {
+            Debug.LogError($"Robber move failed: {ex.Message}");
+        }
+
+        MoveThief(selectedRobberTile);
+
+        isPlacingThief = false;
+        isRobberMoveInProgress = false;
+
+        ClearHighlights();
+    }
+
+    private void CancelRobberPlacement()
+    {
+        isPlacingThief = false;
+        isRobberMoveInProgress = false;
+        selectedRobberTile = null;
+        lineRenderer.enabled = false;
+        ClearHighlights();
+        DebugMenu.Instance.AppendLog("Thief movement cancelled.");
+    }
+
+    public void MoveThief(HexTile tile)
+    {
+        if (tile == null || tile == BoardGen.Instance.GetCurrentThiefTile()) return;
+
+        BoardGen.Instance.MoveThiefTo(tile);
+        lineRenderer.enabled = false;
+        isPlacingThief = false;
+        isRobberMoveInProgress = false;
+
+        DebugMenu.Instance.AppendLog($"Thief moved to ({tile.Q}, {tile.R})");
     }
 
     private void UpdateThiefLine()
@@ -98,17 +146,30 @@ public class ThifeManager : Singleton<ThifeManager>
     private Vector3 GetMouseProjectedPosition()
     {
         Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
-        if (Physics.Raycast(ray, out RaycastHit hit))
-            return hit.point + Vector3.up * yOffset;
-        return Vector3.zero;
+        return Physics.Raycast(ray, out RaycastHit hit)
+            ? hit.point + Vector3.up * yOffset
+            : Vector3.zero;
     }
 
-    public void MoveThief(HexTile tile)
+    private void HighlightValidRobberTiles()
     {
-        BoardGen.MoveThiefTo(tile);
-        isPlacingThief = false;
-        lineRenderer.enabled = false;
+        foreach (var tile in BoardGen.Instance.TileList)
+        {
+            if (IsValidRobberTile(tile))
+                tile.Highlight();
+        }
+    }
 
-        DebugMenu.Instance.AppendLog($"thief moved to ({tile.Q}, {tile.R})");
+    private void ClearHighlights()
+    {
+        foreach (var tile in BoardGen.Instance.TileList)
+            tile.ClearHighlight();
+    }
+
+    private bool IsValidRobberTile(HexTile tile)
+    {
+        return tile != BoardGen.Instance.GetCurrentThiefTile() &&
+               tile.resourceType != "desert" &&
+               !tile.isWater;
     }
 }

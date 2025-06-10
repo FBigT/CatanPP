@@ -39,6 +39,8 @@ public class BoardGen : MonoBehaviour
 
     private List<HexTile> tileList = new List<HexTile>();
 
+    public List<HexTile> TileList => tileList;
+
     private long cachedSessionId = -1;
     private long cachedSessionPlayerId = -1;
     private bool isHost = false;
@@ -50,26 +52,9 @@ public class BoardGen : MonoBehaviour
         PortType.Generic3To1, PortType.Ore2To1, PortType.Generic3To1
     };
 
-    Vector3 GetVertexPosition(Vector3 center, int cornerIndex, float radius)
-    {
-        float angle = Mathf.Deg2Rad * (60 * cornerIndex + 30);
-        float x = center.x + radius * Mathf.Cos(angle);
-        float z = center.z + radius * Mathf.Sin(angle);
-        return new Vector3(x, 0.1f, z);
-    }
 
-    void SpawnVertexIfNotExists(Vector3 position)
-    {
-        position = new Vector3(Mathf.Round(position.x * 10) / 10f, 0.1f, Mathf.Round(position.z * 10) / 10f);
 
-        if (vertexMap.ContainsKey(position)) return;
-
-        GameObject v = Instantiate(vertexPrefab, position, Quaternion.identity);
-
-        var vertexComp = v.GetComponent<VertexPoint>();
-        vertexMap[position] = vertexComp;
-    }
-
+    #region Hard data
     private static readonly string[] resources = {
         "wood", "wood", "wood", "wood",
         "claypit", "claypit", "claypit",
@@ -83,7 +68,9 @@ public class BoardGen : MonoBehaviour
         5, 2, 6, 3, 8, 10, 9, 12, 11, 4,
         8, 10, 9, 4, 5, 6, 3, 11
     };
+    #endregion
 
+    #region Unity Methods
     private void Awake()
     {
         Debug.Log("[BoardGen] Awake() started");
@@ -112,6 +99,20 @@ public class BoardGen : MonoBehaviour
         WebSocketService.OnPlaceRoad += GetRoadPlacedConfirmation;
     }
 
+    private void OnDestroy()
+    {
+        Debug.Log("[BoardGen] BoardGen destroyed - unsubscribing from events");
+        WebSocketService.OnMapGenerated -= HandleMapReceived;
+        WebSocketService.OnDiceResponse -= GetDiceData;
+        WebSocketService.OnEndTurn -= GetEndTurn;
+        PuchaseUIManager.OnStructureBuilt -= HandleStructurePlaced;
+        WebSocketService.OnPlaceStructure -= GetStructurePlacedConfirmation;
+        PuchaseUIManager.OnRoadBuilt -= HandleRoadPlaced;
+        WebSocketService.OnPlaceRoad -= GetRoadPlacedConfirmation;
+
+        Assets.Scripts.GameMode.Trading.TradingManager.OnPlayersLoaded -= HandlePlayersLoaded;
+    }
+
     private void Start()
     {
         Debug.Log("[BoardGen] Start() called");
@@ -123,95 +124,9 @@ public class BoardGen : MonoBehaviour
         // Initialize session data
         StartCoroutine(InitializeSessionData());
     }
-    public async void InitiateRobberMove(bool fromDiceRoll)
-    {
-        if (!isRobberMoveInProgress)
-        {
-            await RobberMoveSequence(fromDiceRoll);
-        }
-    }
-    private async Task RobberMoveSequence(bool fromDiceRoll)
-    {
-        isRobberMoveInProgress = true;
-        HighlightValidRobberTiles();
+    #endregion
 
-        selectedRobberTile = null;
-        while (selectedRobberTile == null)
-        {
-            await Task.Yield();
-        }
-
-        var moveDto = new RobberMoveDto
-        {
-            originatingTileX = currentThiefTile.xCoord,
-            originatingTileY = currentThiefTile.yCoord,
-            destinationTileX = selectedRobberTile.xCoord,
-            destinationTileY = selectedRobberTile.yCoord
-        };
-
-        try
-        {
-            await WebSocketService.SendRobberMove(moveDto);
-        }
-        catch (Exception ex)
-        {
-            Debug.LogError($"Robber move failed: {ex.Message}");
-
-        }
-
-        isRobberMoveInProgress = false;
-    }
-
-    // Add missing GetTileByCoords method
-    public HexTile GetTileByCoords(int x, int y)
-    {
-        return tileList.FirstOrDefault(t => t.xCoord == x && t.yCoord == y);
-    }
-
-    public void OnRobberTileSelected(HexTile tile)
-    {
-        if (IsValidRobberTile(tile))
-        {
-            selectedRobberTile = tile;
-            ClearHighlights();
-        }
-    }
-
-    private bool IsValidRobberTile(HexTile tile)
-    {
-        return tile != currentThiefTile &&
-               tile.resourceType != "desert" && // Match string comparison
-               !tile.isWater;
-    }
-
-    private void HighlightValidRobberTiles()
-    {
-        foreach (var tile in tileList)
-        {
-            if (IsValidRobberTile(tile))
-            {
-                tile.Highlight(Color.red);
-            }
-        }
-    }
-
-    private void ClearHighlights()
-    {
-        foreach (var tile in tileList)
-        {
-            tile.ClearHighlight();
-        }
-    }
-    // In BoardGen.cs
-    private void HandleRobberMoveResponse(RobberMoveResponse response)
-    {
-        var newTile = GetTileByCoords(response.destinationTileX, response.destinationTileY);
-        MoveThiefTo(newTile);
-
-
-    }
-
-
+    #region  Sesisons
     private IEnumerator InitializeSessionData()
     {
         Debug.Log("[BoardGen] 🔄 Initializing session data...");
@@ -227,14 +142,6 @@ public class BoardGen : MonoBehaviour
         {
             Debug.LogError("[BoardGen] ❌ Failed to get Session ID");
         }
-    }
-    public void GenerateAll()
-    {
-        GenerateBoard();
-        List<VertexPoint> allPoints = FindObjectsByType<VertexPoint>(FindObjectsSortMode.None).ToList();
-        GenerateEdgePoints(allPoints);
-        PlacePorts();
-        isGenerated = true;
     }
     private void HandlePlayersLoaded(List<Assets.Scripts.GameMode.Trading.Models.SessionPlayerDto> players)
     {
@@ -279,6 +186,8 @@ public class BoardGen : MonoBehaviour
             Debug.LogError($"[BoardGen] ❌ Could not find user '{currentUsername}' in players list");
         }
     }
+    #endregion
+
     #region Session Management (same pattern as DevCardManager)
 
     private IEnumerator EnsureValidToken()
@@ -381,6 +290,7 @@ public class BoardGen : MonoBehaviour
 
     #endregion
 
+    #region Triggers
     private void TriggerNonHostBehavior()
     {
         Debug.Log("[BoardGen] 🏘️ Non-host: Will request map data from backend via WebSocket...");
@@ -417,6 +327,18 @@ public class BoardGen : MonoBehaviour
             Debug.LogWarning("[BoardGen] ⚠️ BoardGenBackendClient not found, cannot send initial board data.");
         }
     }
+    #endregion
+
+    #region Map Gen Pipeline
+    public void GenerateAll()
+    {
+        GenerateBoard();
+        List<VertexPoint> allPoints = FindObjectsByType<VertexPoint>(FindObjectsSortMode.None).ToList();
+        GenerateEdgePoints(allPoints);
+        PlacePorts();
+        isGenerated = true;
+    }
+
     void GenerateBoard()
     {
         List<string> shuffledResources = new(resources);
@@ -472,7 +394,7 @@ public class BoardGen : MonoBehaviour
 
         foreach (var vertex in vertexMap.Values)
         {
-            foreach (var tile in FindObjectsOfType<HexTile>())
+            foreach (var tile in FindObjectsByType<HexTile>(FindObjectsSortMode.None))
             {
                 if (Vector3.Distance(tile.transform.position, vertex.Position) < hexSize + .1f)
                 {
@@ -543,7 +465,6 @@ public class BoardGen : MonoBehaviour
         Shuffle(portTypes);
         var portPairs = FindValidPortPairs();
 
-        // Order port edges based on angle around board center
         Vector3 center = CalculateBoardCenter();
         var sorted = portPairs.OrderBy(pair =>
         {
@@ -552,7 +473,6 @@ public class BoardGen : MonoBehaviour
             return Mathf.Atan2(dir.z, dir.x);
         }).ToList();
 
-        // Evenly spaced selection from the sorted list
         int count = Mathf.Min(portTypes.Count, sorted.Count);
         int spacing = sorted.Count / count;
 
@@ -562,7 +482,6 @@ public class BoardGen : MonoBehaviour
             var (a, b) = sorted[index];
             PortType type = portTypes[i];
 
-            // Step 1: Find the hex shared between vertex A and B
             List<HexTile> sharedHexes = a.nearbyTiles.Intersect(b.nearbyTiles).ToList();
             if (sharedHexes.Count == 0)
             {
@@ -572,14 +491,11 @@ public class BoardGen : MonoBehaviour
 
             Vector3 hexCenter = sharedHexes[0].transform.position;
 
-            // Step 2: Direction from hex to edge midpoint
             Vector3 midpoint = (a.Position + b.Position) / 2f;
             Vector3 outwardDirection = (midpoint - hexCenter).normalized;
 
-            // Step 3: Calculate port position off the coast
             Vector3 portPosition = midpoint + outwardDirection * hexSize;
 
-            // Step 4: Spawn and initialize the port
             GameObject portObj = Instantiate(portPrefab, portPosition, Quaternion.identity, transform);
             Port port = portObj.GetComponent<Port>();
             port.Initialize(type, a, b);
@@ -611,53 +527,6 @@ public class BoardGen : MonoBehaviour
         }
 
         return portPairs;
-    }
-
-    Vector3 CalculateBoardCenter()
-    {
-        Vector3 sum = Vector3.zero;
-        int count = 0;
-
-        foreach (var tile in FindObjectsByType<HexTile>(FindObjectsSortMode.None))
-        {
-            sum += tile.transform.position;
-            count++;
-        }
-
-        return count > 0 ? sum / count : Vector3.zero;
-    }
-
-    Vector3 HexToWorld(int q, int r)
-    {
-        float x = Mathf.Sqrt(3f) * (q + r / 2f);
-        float z = 1.5f * r;
-        return new Vector3(x * hexSize, 0, z * hexSize);
-    }
-
-    void Shuffle<T>(List<T> list)
-    {
-        for (int i = 0; i < list.Count; i++)
-        {
-            int rand = UnityEngine.Random.Range(i, list.Count);
-
-            (list[i], list[rand]) = (list[rand], list[i]);
-        }
-    }
-
-    public void MoveThiefTo(HexTile newTile)
-    {
-        if (thiefInstance == null || newTile == currentThiefTile)
-            return;
-
-        thiefInstance.transform.SetParent(newTile.transform);
-        thiefInstance.transform.localPosition = Vector3.up * 0.1f;
-        currentThiefTile = newTile;
-        ClearHighlights();
-    }
-
-    public HexTile GetCurrentThiefTile()
-    {
-        return currentThiefTile;
     }
 
     public void ConstructBoardFromTiles(List<TileDto> tiles)
@@ -718,40 +587,6 @@ public class BoardGen : MonoBehaviour
 
         Debug.Log("Board constructed from TileDto list.");
     }
-    private void SubscribeToMapEvents()
-    {
-        Debug.Log("[BoardGen] 🔌 Subscribing to map generation events...");
-        try
-        {
-            WebSocketService.OnMapGenerated += HandleMapReceived;
-            Debug.Log("[BoardGen] ✅ Subscribed to OnMapGenerated event");
-        }
-        catch (Exception ex)
-        {
-            Debug.LogError($"[BoardGen] ❌ Failed to subscribe to map events: {ex.Message}");
-        }
-    }
-
-
-
-    private void HandleMapReceived(GenerateMapDto mapData)
-    {
-        Debug.Log("[BoardGen] === MAP DATA RECEIVED FROM BACKEND ===");
-        Debug.Log($"[BoardGen] 📥 Received map with {mapData.tileDtos.Count} tiles");
-        try
-        {
-            Debug.Log("[BoardGen] Clearing existing board elements...");
-            ClearExistingBoard();
-            Debug.Log("[BoardGen] Constructing board from received tile data...");
-            ConstructBoardFromTiles(mapData.tileDtos);
-            Debug.Log("[BoardGen] ✅ Board successfully constructed from backend map data");
-        }
-        catch (Exception ex)
-        {
-            Debug.LogError($"[BoardGen] ❌ Failed to construct board from map data: {ex.Message}");
-        }
-    }
-
 
     private void ClearExistingBoard()
     {
@@ -759,40 +594,106 @@ public class BoardGen : MonoBehaviour
             return;
         Debug.Log("🧹 Clearing any existing board elements...");
 
-        // Clear existing tiles
-        var existingTiles = FindObjectsOfType<HexTile>();
+        var existingTiles = FindObjectsByType<HexTile>(FindObjectsSortMode.None);
         foreach (var tile in existingTiles)
         {
             if (tile != null)
                 Destroy(tile.gameObject);
         }
 
-        // Clear existing vertices
-        var existingVertices = FindObjectsOfType<VertexPoint>();
+        var existingVertices = FindObjectsByType<VertexPoint>(FindObjectsSortMode.None);
         foreach (var vertex in existingVertices)
         {
             if (vertex != null)
                 Destroy(vertex.gameObject);
         }
 
-        // Clear existing edges
-        var existingEdges = FindObjectsOfType<EdgePoint>();
+        var existingEdges = FindObjectsByType<EdgePoint>(FindObjectsSortMode.None);
         foreach (var edge in existingEdges)
         {
             if (edge != null)
                 Destroy(edge.gameObject);
         }
 
-        // Clear vertex map
         vertexMap.Clear();
 
         Debug.Log("✅ Existing board elements cleared");
     }
+    #endregion
+
+    #region Helper Functions
+    public HexTile GetTileByCoords(int x, int y)
+    {
+        return tileList.FirstOrDefault(t => t.xCoord == x && t.yCoord == y);
+    }
+
+    Vector3 GetVertexPosition(Vector3 center, int cornerIndex, float radius)
+    {
+        float angle = Mathf.Deg2Rad * (60 * cornerIndex + 30);
+        float x = center.x + radius * Mathf.Cos(angle);
+        float z = center.z + radius * Mathf.Sin(angle);
+        return new Vector3(x, 0.1f, z);
+    }
+
+    void SpawnVertexIfNotExists(Vector3 position)
+    {
+        position = new Vector3(Mathf.Round(position.x * 10) / 10f, 0.1f, Mathf.Round(position.z * 10) / 10f);
+
+        if (vertexMap.ContainsKey(position)) return;
+
+        GameObject v = Instantiate(vertexPrefab, position, Quaternion.identity);
+
+        var vertexComp = v.GetComponent<VertexPoint>();
+        vertexMap[position] = vertexComp;
+    }
+
+    Vector3 CalculateBoardCenter()
+    {
+        Vector3 sum = Vector3.zero;
+        int count = 0;
+
+        foreach (var tile in FindObjectsByType<HexTile>(FindObjectsSortMode.None))
+        {
+            sum += tile.transform.position;
+            count++;
+        }
+
+        return count > 0 ? sum / count : Vector3.zero;
+    }
+
+    Vector3 HexToWorld(int q, int r)
+    {
+        float x = Mathf.Sqrt(3f) * (q + r / 2f);
+        float z = 1.5f * r;
+        return new Vector3(x * hexSize, 0, z * hexSize);
+    }
+
+    void Shuffle<T>(List<T> list)
+    {
+        for (int i = 0; i < list.Count; i++)
+        {
+            int rand = UnityEngine.Random.Range(i, list.Count);
+
+            (list[i], list[rand]) = (list[rand], list[i]);
+        }
+    }
+    #endregion
+
+    #region Map
+    private void SubscribeToMapEvents()
+    {
+        try
+        {
+            WebSocketService.OnMapGenerated += HandleMapReceived;
+        }
+        catch (Exception ex)
+        {
+            Debug.LogError($"[BoardGen] ❌ Failed to subscribe to map events: {ex.Message}");
+        }
+    }
 
     private IEnumerator RequestMapFromBackend()
     {
-        Debug.Log("[BoardGen] ⏳ RequestMapFromBackend coroutine started");
-        Debug.Log("[BoardGen] Waiting for WebSocket connection to be established...");
         Debug.Log($"[BoardGen] Current WebSocket connected state: {WebSocketService.Connected}");
 
         float timeout = 15f;
@@ -802,10 +703,6 @@ public class BoardGen : MonoBehaviour
         {
             yield return new WaitForSeconds(0.1f);
             elapsed += 0.1f;
-            if (elapsed % 1f < 0.1f) // Log every second
-            {
-                Debug.Log($"[BoardGen] Waiting for WebSocket... Elapsed: {elapsed}s, Connected: {WebSocketService.Connected}");
-            }
         }
 
         if (WebSocketService.Connected)
@@ -818,65 +715,57 @@ public class BoardGen : MonoBehaviour
         {
             Debug.LogError("[BoardGen] ❌ WebSocket connection timeout - cannot request map data. Retrying...");
             yield return new WaitForSeconds(2f);
-            Debug.Log("[BoardGen] Restarting RequestMapFromBackend coroutine...");
-            //StartCoroutine(RequestMapFromBackend());
+            StartCoroutine(RequestMapFromBackend());
         }
         Debug.Log("[BoardGen] RequestMapFromBackend coroutine completed");
     }
-
-
-    private void OnDestroy()
+    private void HandleMapReceived(GenerateMapDto mapData)
     {
-        Debug.Log("[BoardGen] BoardGen destroyed - unsubscribing from events");
-        WebSocketService.OnMapGenerated -= HandleMapReceived;
-        WebSocketService.OnDiceResponse -= GetDiceData;
-        WebSocketService.OnEndTurn -= GetEndTurn;
-        PuchaseUIManager.OnStructureBuilt -= HandleStructurePlaced;
-        WebSocketService.OnPlaceStructure -= GetStructurePlacedConfirmation;
-        PuchaseUIManager.OnRoadBuilt -= HandleRoadPlaced;
-        WebSocketService.OnPlaceRoad -= GetRoadPlacedConfirmation;
+        if (isGenerated)
+            return;
 
-        Assets.Scripts.GameMode.Trading.TradingManager.OnPlayersLoaded -= HandlePlayersLoaded;
+        Debug.Log("[BoardGen] === MAP DATA RECEIVED FROM BACKEND ===");
+        try
+        {
+            Debug.Log("[BoardGen] Clearing existing board elements...");
+            ClearExistingBoard();
+            ConstructBoardFromTiles(mapData.tileDtos);
+        }
+        catch (Exception ex)
+        {
+            Debug.LogError($"[BoardGen] ❌ Failed to construct board from map data: {ex.Message}");
+        }
     }
 
-    private void RequestMapData()
+    private async void RequestMapData()
     {
         Debug.Log("[BoardGen] RequestMapData called");
 
         if (!playersLoaded)
-        {
-            Debug.LogWarning("[BoardGen] ⚠️ Players not loaded yet, deferring map request");
             return;
-        }
+        
 
         if (!WebSocketService.Connected)
-        {
-            Debug.LogError("[BoardGen] ❌ WebSocket not connected - cannot request map data");
             return;
-        }
+        
 
-        if (cachedSessionPlayerId <= 0)
-        {
-            Debug.LogError("[BoardGen] ❌ Invalid SessionPlayer ID - cannot request map data");
+        if (cachedSessionPlayerId <= 0) 
             return;
-        }
+        
 
         try
         {
             Debug.Log("[BoardGen] Creating REQUEST_MAP GameMoveDto...");
             var gameMove = new GameMoveDto(GameMoveType.REQUEST_MAP);
-            Debug.Log($"[BoardGen] 🎯 GameMove type: {gameMove.gameMoveType}");
-            Debug.Log("[BoardGen] 📤 Sending REQUEST_MAP via WebSocket...");
-            WebSocketService.SendGameMove(gameMove);
+            await WebSocketService.SendGameMove(gameMove);
             Debug.Log("[BoardGen] ✅ Map request sent successfully");
         }
         catch (Exception ex)
         {
             Debug.LogError($"[BoardGen] ❌ Failed to request map data: {ex.Message}");
-            //StartCoroutine(RetryMapRequest());
+            StartCoroutine(RetryMapRequest());
         }
     }
-
 
     private IEnumerator RetryMapRequest()
     {
@@ -884,6 +773,8 @@ public class BoardGen : MonoBehaviour
         yield return new WaitForSeconds(3f);
         RequestMapData();
     }
+    #endregion
+
     #region Supporting DTOs
     [System.Serializable]
     public class SessionDto
@@ -902,6 +793,58 @@ public class BoardGen : MonoBehaviour
     }
     #endregion
 
+    #region Turn
+    public async void EndTurn()
+    {
+        Debug.Log("[BoardGen] 🏁 EndTurn called - sending end turn request to WebSocket");
+        await WebSocketService.SendEndTurn();
+    }
+
+    public void GetEndTurn(EndTurnResponse t)
+    {
+        Debug.Log("[BoardGen] EndTurn received from WebSocket - handling end turn logic");
+
+        DevCardManager.Instance.LoadPlayerCards();
+        DevCardManager.Instance.SetCardPlayable();
+    }
+    #endregion
+
+    #region Structure
+    private async void HandleStructurePlaced(PurchaseType type, VertexPoint vo)
+    {
+        var tile = vo.nearbyTiles[0];
+
+        var dto = new PlaceStructureDto(
+            tile.Q,
+            tile.R,
+            vo.GetNeighborVertexIndex(tile),
+            vo.type
+        );
+
+        await WebSocketService.SendPlaceStructure(dto);
+    }
+
+    public void GetStructurePlacedConfirmation(PlaceStructureResponse dto)
+    {
+        Debug.Log($"[StructurePlacementSender] ✅ Server confirmed structure placed at ({dto.tileX}, {dto.tileY}) corner {dto.cornerIndex}");
+    }
+    #endregion
+
+    #region Road
+    private async void HandleRoadPlaced(PurchaseType type, EdgePoint ep)
+    {
+        var dto = new PlaceRoadDto(-99, -99, 1);
+
+        await WebSocketService.SendPlaceRoad(dto);
+    }
+
+    public void GetRoadPlacedConfirmation(PlaceRoadResponse dto)
+    {
+        Debug.LogError("road built");
+    }
+    #endregion
+
+    #region Dice
     public async void RoleDice()
     {
         if (isRobberMoveInProgress)
@@ -916,9 +859,8 @@ public class BoardGen : MonoBehaviour
 
     public void GetDiceData(DiceResultDto diceResult)
     {
-
         Debug.Log($"[Dice Result] 🎲 {diceResult.username} rolled a {diceResult.rollResult}");
-
+ 
         foreach (var entry in diceResult.userResourcesGained)
         {
             string user = entry.Key;
@@ -937,62 +879,37 @@ public class BoardGen : MonoBehaviour
 
             Debug.Log($"[BoardGen] 🎲 Dice rolled: {diceResult.rollResult}");
             _lastDiceTotal = diceResult.rollResult;
-
-
-
-            // Trigger robber move on 7
-            if (_lastDiceTotal == 7)
-            {
-                
-                Debug.Log("[BoardGen] ⚠️ 7 rolled - initiating robber move");
-                InitiateRobberMove(true);
-
-            }
         }
-    }
 
-    public async void EndTurn()
-    {
-        Debug.Log("[BoardGen] 🏁 EndTurn called - sending end turn request to WebSocket");
-        await WebSocketService.SendEndTurn();
-    }
-
-    public void GetEndTurn(EndTurnResponse t)
-    {
-        Debug.Log("[BoardGen] EndTurn received from WebSocket - handling end turn logic");
-
-        DevCardManager.Instance.LoadPlayerCards();
-        DevCardManager.Instance.SetCardPlayable();
-    }
-
-        private async void HandleStructurePlaced(PurchaseType type, VertexPoint vo)
+        if (diceResult.rollResult == 7)
         {
-            var tile = vo.nearbyTiles[0];
-
-            var dto = new PlaceStructureDto(
-                tile.Q,
-                tile.R,
-                vo.GetNeighborVertexIndex(tile),
-                vo.type
-            );
-
-            await WebSocketService.SendPlaceStructure(dto);
+            Debug.Log("[BoardGen] ⚠️ 7 rolled - initiating robber move");
+            ThifeManager.Instance.EnableThiefPlacement();
         }
+    }
+    #endregion
 
-    public void GetStructurePlacedConfirmation(PlaceStructureResponse dto)
+    #region Robber
+    public void MoveThiefTo(HexTile newTile)
     {
-        Debug.Log($"[StructurePlacementSender] ✅ Server confirmed structure placed at ({dto.tileX}, {dto.tileY}) corner {dto.cornerIndex}");
+        if (thiefInstance == null || newTile == currentThiefTile)
+            return;
+
+        thiefInstance.transform.SetParent(newTile.transform);
+        thiefInstance.transform.localPosition = Vector3.up * 0.1f;
+        currentThiefTile = newTile;
     }
 
-    private async void HandleRoadPlaced(PurchaseType type, EdgePoint ep)
+    public HexTile GetCurrentThiefTile()
     {
-        var dto = new PlaceRoadDto(-99, -99, 1);
-
-        await WebSocketService.SendPlaceRoad(dto);
+        return currentThiefTile;
     }
 
-    public void GetRoadPlacedConfirmation(PlaceRoadResponse dto)
+    private void HandleRobberMoveResponse(RobberMoveResponse response)
     {
-        Debug.LogError("road built");
+        var newTile = GetTileByCoords(response.destinationTileX, response.destinationTileY);
+        MoveThiefTo(newTile);
     }
+
+    #endregion
 }

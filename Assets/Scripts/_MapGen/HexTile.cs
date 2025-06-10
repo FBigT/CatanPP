@@ -1,5 +1,6 @@
 using TMPro;
 using UnityEditor;
+using UnityEditor.SpeedTree.Importer;
 using UnityEngine;
 
 public class HexTile : MonoBehaviour
@@ -14,9 +15,15 @@ public class HexTile : MonoBehaviour
 
     public int Q;
     public int R;
-    public int xCoord => Q;  // Map Q to xCoord
-    public int yCoord => R;  // Map R to yCoord
+    public int xCoord => Q;
+    public int yCoord => R;
+
     public bool isWater;
+
+    [Header("Highlighting")]
+    public Material highlightMaterial;
+    private Material originalMaterial;
+
     public void Initialize(string resource, int number, int q, int r)
     {
         resourceType = resource;
@@ -26,27 +33,21 @@ public class HexTile : MonoBehaviour
         R = r;
 
         UpdateVisuals();
-    }
-    [Header("Highlighting")]
-    public Material highlightMaterial;
-    private Material originalMaterial;
 
-    // Add these methods
-    public void Highlight(Color color)
+        if (hexRenderer != null)
+            originalMaterial = hexRenderer.material;
+    }
+
+    public void Highlight()
     {
         if (hexRenderer != null)
-        {
-            originalMaterial = hexRenderer.material;
-            hexRenderer.material = highlightMaterial;
-        }
+            hexRenderer.materials = new Material[] { originalMaterial, highlightMaterial };
     }
 
     public void ClearHighlight()
     {
         if (hexRenderer != null && originalMaterial != null)
-        {
-            hexRenderer.material = originalMaterial;
-        }
+            hexRenderer.materials = new Material[] { originalMaterial };
     }
     void UpdateVisuals()
     {
@@ -65,13 +66,4 @@ public class HexTile : MonoBehaviour
         if (numberText != null)
             numberText.text = (numberToken > 0) ? numberToken.ToString() : "";
     }
-    // In HexTile.cs
-    private void OnMouseDown()
-    {
-        if (BoardGen.Instance.IsRobberMoveActive())
-        {
-            BoardGen.Instance.OnRobberTileSelected(this);
-        }
-    }
-
 }

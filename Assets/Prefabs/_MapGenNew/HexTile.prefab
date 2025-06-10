@@ -322,6 +322,10 @@ MonoBehaviour:
   sheepMat: {fileID: 2100000, guid: 50ca78945215d884697f47de52f5105e, type: 2}
   oreMat: {fileID: 2100000, guid: 4e944591d35beca4c882bfebb8ca3c52, type: 2}
   desertMat: {fileID: 2100000, guid: 3af59de40119bc04d84e7175d3d28c76, type: 2}
+  Q: 0
+  R: 0
+  isWater: 0
+  highlightMaterial: {fileID: 2100000, guid: cf121e605e5c8084c8756ad7a05d8f59, type: 2}
 --- !u!114 &625551151190205730
 MonoBehaviour:
   m_ObjectHideFlags: 0
