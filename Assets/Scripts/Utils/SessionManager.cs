@@ -95,7 +95,8 @@ namespace Assets.Scripts.Utils
                 if (BoardGen.Instance != null)
                 {
                     Debug.Log("[SessionManager] 🔄 Triggering host board generation (GenerateAll)");
-                    BoardGen.Instance.GenerateAll();
+                    if(!BoardGen.Instance.isGenerated)
+                        BoardGen.Instance.GenerateAll();
                 }
                 else
                 {

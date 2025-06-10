@@ -251,6 +251,7 @@ namespace Assets.Scripts.Utils
                                 OnPrivateBuyCard?.Invoke(privateBuyCard);
                             }
                         }
+                        //hre is player data u dumb fuck
                         else if (destination != null && destination.Contains(WebSocketBrokerDestinations.Players.Value)){
                             JoinSessionNotification joinSessionNotification =
                                 JsonConvert.DeserializeObject<JoinSessionNotification>(jsonBody);
@@ -490,7 +491,7 @@ namespace Assets.Scripts.Utils
             }
         }
 
-        public static async Task SendRoad()
+        public static async Task SendPlaceRoad(PlaceRoadDto d)
         {
             if (!Connected)
             {
@@ -500,7 +501,7 @@ namespace Assets.Scripts.Utils
 
             try
             {
-                var gameMove = new GameMoveDto(GameMoveType.PLACE_STRUCTURE);
+                var gameMove = new GameMoveDto(d);
                 Debug.Log("[WebSocketService] Sending place road move...");
                 await SendGameMove(gameMove);
                 Debug.Log("[WebSocketService] road move sent successfully");
@@ -513,13 +514,21 @@ namespace Assets.Scripts.Utils
 
         public static async Task SendPlaceStructure(PlaceStructureDto dto)
         {
+            if (!Connected)
+            {
+                Debug.LogWarning("connect prob");
+                return;
+            }
+
             if (dto == null)
             {
                 Debug.LogWarning("game move is null.");
                 return;
             }
 
-            string messageFrame = WebSocketEndpointsUtils.MessageFrame(WebSocketApplicationDestinations.Moves, sessionCode, dto);
+            GameMoveDto d = new GameMoveDto(dto);
+
+            string messageFrame = WebSocketEndpointsUtils.MessageFrame(WebSocketApplicationDestinations.Moves, sessionCode, d);
             await webSocket.SendText(messageFrame);
         }
         public static async Task SendPlayCard(DevCardPlayDto playDto)
