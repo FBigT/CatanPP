@@ -71,9 +71,7 @@ public class SessionPlayerService {
         if (count == 0){
             return Optional.empty();
         }
-        if (count > 1){
-            throw new RuntimeException("Too many session for this player");
-        }
+
         return sessionPlayers.stream().filter(SessionPlayer::getActive).findFirst();
     }
 
