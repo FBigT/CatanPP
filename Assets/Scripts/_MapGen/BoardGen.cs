@@ -682,6 +682,21 @@ public class BoardGen : MonoBehaviour
             (list[i], list[rand]) = (list[rand], list[i]);
         }
     }
+
+    private Vector3[] GetTileEdgeDirections()
+    {
+        Vector3[] directions = new Vector3[6];
+        float[] angles = { 0f, 60f, 120f, 180f, 240f, 300f };
+
+        for (int i = 0; i < 6; i++)
+        {
+            float rad = angles[i] * Mathf.Deg2Rad;
+            directions[i] = new Vector3(Mathf.Cos(rad), 0f, Mathf.Sin(rad)).normalized;
+        }
+
+        return directions;
+    }
+
     #endregion
 
     #region End Turn
@@ -895,8 +910,49 @@ public class BoardGen : MonoBehaviour
 
     public void GetRoadPlacedConfirmation(PlaceRoadResponse dto)
     {
-        Debug.LogError("road built");
+        Debug.Log($"[RoadPlacement] ✅ Server confirmed road placed at tile ({dto.tileX}, {dto.tileY}) edge {dto.edgeIndex}");
+
+        // Step 1: Get the tile
+        HexTile tile = GetTileByCoords(dto.tileX, dto.tileY);
+        if (tile == null)
+        {
+            Debug.LogError($"[RoadPlacement] ❌ Tile not found at ({dto.tileX}, {dto.tileY})");
+            return;
+        }
+
+        // Step 2: Get edge direction vector from index (0–5)
+        Vector3[] edgeDirections = GetTileEdgeDirections();
+        Vector3 direction = edgeDirections[dto.edgeIndex % 6];
+
+        // Step 3: Estimate world position of the edge center
+        Vector3 edgeWorldPos = tile.transform.position + direction * (hexSize * 0.5f);
+
+        // Step 4: Find the closest EdgePoint to the estimated position
+        EdgePoint closest = null;
+        float closestDist = float.MaxValue;
+        float searchRadius = 0.2f;
+
+        foreach (EdgePoint ep in FindObjectsByType<EdgePoint>(FindObjectsSortMode.None))
+        {
+            float dist = Vector3.Distance(ep.transform.position, edgeWorldPos);
+            if (dist < closestDist && dist <= searchRadius)
+            {
+                closest = ep;
+                closestDist = dist;
+            }
+        }
+
+        // Step 5: Build the road
+        if (closest != null)
+        {
+            closest.Build(dto.username);
+        }
+        else
+        {
+            Debug.LogError($"[RoadPlacement] ❌ No EdgePoint found near tile ({dto.tileX}, {dto.tileY}) edge {dto.edgeIndex}");
+        }
     }
+
     #endregion
 
     #region Dice
