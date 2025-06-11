@@ -65,17 +65,19 @@ public class Mapper {
     }
 
     public ResourceGroup mapSessionPlayerToResource(SessionPlayer player) {
-        return new ResourceGroup(
-                player.getWood(),
-                player.getSheep(),
-                player.getOre(),
-                player.getRice(),
-                player.getBrick(),
-                player.getSilver(),
-                player.getGold(),
-                player.getCrystal(),
-                player.getWheat()
-        );
+        ResourceGroup resourceGroup = new ResourceGroup();
+
+        resourceGroup.setBrick(player.getBrick());
+        resourceGroup.setCrystal(player.getCrystal());
+        resourceGroup.setOre(player.getOre());
+        resourceGroup.setRice(player.getRice());
+        resourceGroup.setSheep(player.getSheep());
+        resourceGroup.setSilver(player.getSilver());
+        resourceGroup.setGold(player.getGold());
+        resourceGroup.setWood(player.getWood());
+        resourceGroup.setWheat(player.getWheat());
+
+        return resourceGroup;
     }
 
     public Tile mapTileDtoToTile(TileDto tileDto, Session session) {

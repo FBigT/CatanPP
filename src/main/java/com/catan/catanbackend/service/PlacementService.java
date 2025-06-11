@@ -72,7 +72,7 @@ public class PlacementService {
 
         if (!ignoreCost) {
             // 4. Check Resource Cost for Settlement: (1 Brick, 1 Lumber, 1 Wool, 1 Grain)
-            if (sp.getBrick() < 1 || sp.getWood() < 1 || sp.getSheep() < 1 || sp.getRice() < 1) {
+            if (sp.getBrick() < 1 || sp.getWood() < 1 || sp.getSheep() < 1 || sp.getWheat() < 1) {
                 throw new IllegalArgumentException("Not enough resources to buy a settlement");
             }
 
@@ -80,7 +80,7 @@ public class PlacementService {
             sp.setBrick(sp.getBrick() - 1);
             sp.setWood(sp.getWood() - 1);
             sp.setSheep(sp.getSheep() - 1);
-            sp.setRice(sp.getRice() - 1);
+            sp.setWheat(sp.getWheat() - 1);
             sp.setPlayerScore(sp.getPlayerScore() + 1);
         }
         sp.setSettlementsPlaced(sp.getSettlementsPlaced() + 1);
@@ -193,12 +193,12 @@ public class PlacementService {
         }
 
         // 5. Check City cost: (2 Grain, 3 Ore)
-        if (sp.getRice() < 2 || sp.getOre() < 3) {
+        if (sp.getWheat() < 2 || sp.getOre() < 3) {
             throw new IllegalArgumentException("Not enough resources to upgrade to city");
         }
 
         // 6. Deduct city cost
-        sp.setRice(sp.getRice() - 2);
+        sp.setWheat(sp.getWheat() - 2);
         sp.setOre(sp.getOre() - 3);
         sp.setPlayerScore(sp.getPlayerScore() + 1);
         sessionPlayerService.updateSessionPlayer(sp);

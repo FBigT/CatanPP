@@ -36,6 +36,7 @@ public class SessionPlayerService {
         player.setSilver(10);
         player.setGold(10);
         player.setWood(10);
+        player.setWheat(10);
     }
 
     public SessionPlayer updateSessionPlayer(SessionPlayer sessionPlayer) {
@@ -71,7 +72,6 @@ public class SessionPlayerService {
         if (count == 0){
             return Optional.empty();
         }
-
         return sessionPlayers.stream().filter(SessionPlayer::getActive).findFirst();
     }
 

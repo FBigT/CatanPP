@@ -73,7 +73,7 @@ public class DevCardService {
                 .orElseThrow(() -> new IllegalArgumentException("Not in a session"));
         // cost: 1 ore, 1 grain, 1 sheep
         ResourceGroup cost = new ResourceGroup();
-        cost.setOre(1); cost.setRice(1); cost.setSheep(1);
+        cost.setOre(1); cost.setWheat(1); cost.setSheep(1);
 
         boolean paid = resourceService.subtractResources(me, cost);
         if (!paid) throw new IllegalArgumentException("Insufficient resources for Dev Card");

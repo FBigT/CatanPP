@@ -320,7 +320,9 @@ public class GameMoveHandler {
                 return new UpgradeStructureResponseDto(upgradeStructureDto.getTileX(), upgradeStructureDto.getTileY(), upgradeStructureDto.getCornerIndex(), sessionPlayer.getName());
             }
             case END_TURN -> {
-                return getEndTurnResponseDto(session, false, sessionPlayer);
+                EndTurnResponseDto endTurnResponseDto = getEndTurnResponseDto(session, false, sessionPlayer);
+                notificationService.sendChatMessage( bySessionId.get().getCode(), new ChatMessage("System",  new RawChatMessage("Current turn: " + endTurnResponseDto.getTurnNumber())));
+                return endTurnResponseDto;
             }
             case ROBBER_MOVE -> {
                 //checkIfSessionValid(session);
@@ -329,12 +331,20 @@ public class GameMoveHandler {
                     RobberMoveDto robberMoveDto = objectMapper.convertValue(gameMoveDto.getMoveData(), RobberMoveDto.class);
 
                     RobberMoveResponseDto robberMoveResponseDto = placementService.moveRobber(robberMoveDto, sessionPlayer);
-                    notificationService.sendChatMessage(bySessionId.get().getCode(),
-                            new ChatMessage("System",
-                                    new RawChatMessage(robberMoveResponseDto.getMoverName() +
-                                            " moved the robber and stole " +
-                                            robberMoveResponseDto.getResourceName() + " from " +
-                                            robberMoveResponseDto.getVictimName())));
+                    if (robberMoveResponseDto.getResourceName() != null) {
+                        notificationService.sendChatMessage(bySessionId.get().getCode(),
+                                new ChatMessage("System",
+                                        new RawChatMessage(robberMoveResponseDto.getMoverName() +
+                                                " moved the robber to " + robberMoveResponseDto.getDestinationTileX() + ", " + robberMoveResponseDto.getDestinationTileY() + " and stole " +
+                                                robberMoveResponseDto.getResourceName() + " from " +
+                                                robberMoveResponseDto.getVictimName())));
+                    } else {
+                        notificationService.sendChatMessage(bySessionId.get().getCode(),
+                                new ChatMessage("System",
+                                        new RawChatMessage(robberMoveResponseDto.getMoverName() +
+                                                " moved the robber to " + robberMoveResponseDto.getDestinationTileX() + ", " + robberMoveResponseDto.getDestinationTileY())));
+                    }
+
 
                     List<RobberMoveBlocker> bySessionPlayerSessionId = robberMoveBlockerRepository.findBySessionPlayerSessionId(sessionId);
                     bySessionPlayerSessionId.stream().filter(x -> x.getSessionPlayer().getId().equals(sessionPlayer.getId())).findFirst().ifPresent(x -> {

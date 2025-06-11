@@ -96,7 +96,7 @@ public class TradeService {
         return p.getBrick()   >= need.getBrick()
                 && p.getCrystal() >= need.getCrystal()
                 && p.getOre()     >= need.getOre()
-                && p.getRice()    >= need.getRice()
+                && p.getWheat()    >= need.getWheat()
                 && p.getSheep()   >= need.getSheep()
                 && p.getSilver()  >= need.getSilver()
                 && p.getGold()    >= need.getGold()
@@ -108,7 +108,7 @@ public class TradeService {
         p.setBrick(   p.getBrick()   + sign * delta.getBrick());
         p.setCrystal( p.getCrystal() + sign * delta.getCrystal());
         p.setOre(     p.getOre()     + sign * delta.getOre());
-        p.setRice(    p.getRice()    + sign * delta.getRice());
+        p.setWheat(    p.getWheat()    + sign * delta.getWheat());
         p.setSheep(   p.getSheep()   + sign * delta.getSheep());
         p.setSilver(  p.getSilver()  + sign * delta.getSilver());
         p.setGold(    p.getGold()    + sign * delta.getGold());
@@ -132,8 +132,8 @@ public class TradeService {
             case "ore":
                 if (offered.getOre().equals(total)) return defaultRatio;
                 break;
-            case "rice":
-                if (offered.getRice().equals(total)) return defaultRatio;
+            case "wheat":
+                if (offered.getWheat().equals(total)) return defaultRatio;
                 break;
             case "sheep":
                 if (offered.getSheep().equals(total)) return defaultRatio;

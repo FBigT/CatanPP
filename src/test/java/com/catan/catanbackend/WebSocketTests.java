@@ -695,8 +695,8 @@ class WebSocketTests {
         Thread.sleep(500);
 
         TradeOfferDto tradeOfferDto = new TradeOfferDto(user1.getUsername(), user2.getUsername(),
-                new ResourceGroup(0, 2, 2, 2, 2, 2, 2, 2, 0),
-                new ResourceGroup(2, 0, 0, 0, 0, 0, 0, 0, 0));
+                new ResourceGroup(0, 2, 2, 2, 2, 2, 2, 2),
+                new ResourceGroup(2, 0, 0, 0, 0, 0, 0, 0));
 
         Map<String, Object> map = objectMapper.convertValue(tradeOfferDto, new TypeReference<>() {});
 
@@ -1189,7 +1189,7 @@ class WebSocketTests {
         assertThat(robberMoveBlockerRepository.findAll()).isEmpty();
         assertThat(blockerRepository.findAll()).hasSize(2);
 
-        ResourceGroup resourceGroup = new ResourceGroup(5, 5, 5, 5, 5, 5, 5, 5, 5);
+        ResourceGroup resourceGroup = new ResourceGroup(5, 5, 5, 5, 5, 5, 5, 5);
 
         map = objectMapper.convertValue(resourceGroup, new TypeReference<>() {});
         stompSession1.send(getStompHeaders(sendGameTopic, logInResponse1), new GameMoveDto(GameMoveTypeEnum.PAY_DEBT.name(), map));

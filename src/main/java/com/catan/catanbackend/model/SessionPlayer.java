@@ -192,6 +192,7 @@ public class SessionPlayer {
             case SILVER -> silver = amount;
             case GOLD -> gold = amount;
             case WOOD -> wood = amount;
+            case WHEAT -> wheat = amount;
         }
     }
 }
