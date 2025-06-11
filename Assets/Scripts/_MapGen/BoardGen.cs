@@ -51,7 +51,7 @@ public class BoardGen : MonoBehaviour
     };
 
     public List<Button> buttonsToToggle = new List<Button>();
-
+    private static string USERNAME;
 
     #region Hard data
     private static readonly string[] resources = {
@@ -73,6 +73,7 @@ public class BoardGen : MonoBehaviour
     private void Awake()
     {
         Application.targetFrameRate = 120;
+        USERNAME = LocalStorageService.GetString("username");
 
         blockPanel.gameObject.SetActive(true);
         Debug.Log("[BoardGen] Awake() started");
@@ -91,6 +92,7 @@ public class BoardGen : MonoBehaviour
         WebSocketService.OnVictoryTriggered += HandleVictory;
         WebSocketService.OnMapGenerated += HandleMapReceived;
         WebSocketService.OnDiceResponse += GetDiceData;
+        WebSocketService.OnGameStart += GetStartGame;
         WebSocketService.OnEndTurn += GetEndTurn;
 
         PuchaseUIManager.OnStructureBuilt += HandleStructurePlaced;
@@ -122,6 +124,7 @@ public class BoardGen : MonoBehaviour
 
         PuchaseUIManager.OnStructureUpgrade -= HandleStructureUpgrade;
         WebSocketService.OnUpgradeStructure -= GetStructureUpgradeConfirmation;
+        WebSocketService.OnGameStart -= GetStartGame;
 
         WebSocketService.OnRobberMoved -= HandleRobberMoveResponse;
         Assets.Scripts.GameMode.Trading.TradingManager.OnPlayersLoaded -= HandlePlayersLoaded;
@@ -160,7 +163,7 @@ public class BoardGen : MonoBehaviour
         }
         Debug.Log($"[BoardGen] TradingManager loaded {players.Count} players");
 
-        string currentUsername = LocalStorageService.GetString("username");
+        string currentUsername = USERNAME;
         var myPlayer = players.FirstOrDefault(p => p.username == currentUsername);
 
         if (myPlayer != null)
@@ -835,6 +838,7 @@ public class BoardGen : MonoBehaviour
     public async void EndTurn()
     {
         Debug.Log("[BoardGen] 🏁 EndTurn called - sending end turn request to WebSocket");
+        SetButtonsActive(false);
         await WebSocketService.SendEndTurn();
     }
 
@@ -843,6 +847,41 @@ public class BoardGen : MonoBehaviour
         //DoSetupPhase();
 
         Debug.Log("[BoardGen] EndTurn received from WebSocket - handling end turn logic");
+
+        if (t.currentPlayerName == USERNAME)
+        {
+            SetButtonsActive(true);
+        }
+        else 
+        {
+            SetButtonsActive(false);
+        }
+
+        DevCardManager.Instance.LoadPlayerCards();
+        DevCardManager.Instance.SetCardPlayable();
+    }
+
+    #endregion
+
+    #region StartGame
+
+    public void GetStartGame(StartGameResponse t)
+    {
+        //DoSetupPhase();
+
+        Debug.Log("[BoardGen] STARTGAME received from WebSocket - handling end turn logic " + USERNAME);
+        for (int i = 0; i < t.turnOrder.Count; i++) {
+            Debug.Log(t.turnOrder.ElementAt(i));
+        }
+        PlayerPanelUIManager.Instance.InitializePlayers(t.turnOrder);
+        if (t.turnOrder.First() == USERNAME)
+        {
+            Debug.Log("YOU ARE UP");
+            SetButtonsActive(true);
+        } else {
+            Debug.Log("WAIT YOUR TURN");
+            SetButtonsActive(false);
+        }
 
         DevCardManager.Instance.LoadPlayerCards();
         DevCardManager.Instance.SetCardPlayable();

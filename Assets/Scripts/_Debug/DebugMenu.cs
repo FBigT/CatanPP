@@ -16,6 +16,7 @@ public class DebugMenu : Singleton<DebugMenu>, IPointerDownHandler, IDragHandler
     public Button addAllResourcesButton;
     public Button clearLogButton;
     public Button addOneResourceButton;
+    public Button btnStart;
     public TMP_Text statusText;
     public Button showVictorySceneButton;
     [Header("Settings")]
@@ -40,6 +41,11 @@ public class DebugMenu : Singleton<DebugMenu>, IPointerDownHandler, IDragHandler
         {
             // Your resource logic here
             AppendLog("+1 to all resources");
+        });
+
+        btnStart.onClick.AddListener(() =>
+        {
+            WebSocketService.SendStartGame();
         });
 
         addOneResourceButton.onClick.AddListener(() =>
