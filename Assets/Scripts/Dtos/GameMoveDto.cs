@@ -23,6 +23,7 @@ namespace Assets.Scripts.Dtos
                 gameMoveType != GameMoveType.BUY_CARD &&
                 gameMoveType != GameMoveType.TURN_ORDER &&
                 gameMoveType != GameMoveType.REQUEST_MAP &&
+                gameMoveType != GameMoveType.START_GAME &&
                 gameMoveType != GameMoveType.REQUEST_DEV_CARDS)
                 throw new ArgumentException("Passed game move type requires additional data");
             this.gameMoveType = gameMoveType;

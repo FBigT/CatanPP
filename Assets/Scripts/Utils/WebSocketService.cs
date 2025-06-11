@@ -36,6 +36,7 @@ namespace Assets.Scripts.Utils
         public static event Action<PlayCardResponseDto> OnPlayCardResponse;
 
         public static event Action<DiceResultDto> OnDiceResponse;
+        public static event Action<StartGameResponse> OnGameStart;
 
         public static event Action<GenerateMapDto> OnMapGenerated;
 
@@ -200,6 +201,7 @@ namespace Assets.Scripts.Utils
                                     break;
                                 case GameMoveType.START_GAME:
                                     StartGameResponse startGame = (StartGameResponse)gameMove.moveData;
+                                    OnGameStart?.Invoke(startGame);
                                     break;
                                 case GameMoveType.MAP_GEN:
                                     {
@@ -467,6 +469,28 @@ namespace Assets.Scripts.Utils
                 Debug.LogError($"[WebSocketService] Failed to send dice roll: {ex.Message}");
             }
         }
+
+        public static async Task SendStartGame()
+        {
+            if (!Connected)
+            {
+                Debug.LogWarning("Cannot send start game: WebSocket not connected.");
+                return;
+            }
+
+            try
+            {
+                var gameMove = new GameMoveDto(GameMoveType.START_GAME);
+                Debug.Log("[WebSocketService] Sending START_GAME move...");
+                await SendGameMove(gameMove);
+                Debug.Log("[WebSocketService] START_GAME move sent successfully");
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError($"[WebSocketService] Failed to send start game: {ex.Message}");
+            }
+        }
+
         public static async Task SendEndTurn()
         {
             if (!Connected)
