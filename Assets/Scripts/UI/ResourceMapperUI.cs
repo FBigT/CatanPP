@@ -5,6 +5,7 @@ using UnityEngine;
 
 public class ResourceMapperUI : MonoBehaviour
 {
+    public static ResourceMapperUI Instance;
     [Serializable]
     public class ResourceTextBinding
     {
@@ -15,7 +16,18 @@ public class ResourceMapperUI : MonoBehaviour
     public List<ResourceTextBinding> bindings;
 
     private Dictionary<string, int> resourceValues = new Dictionary<string, int>();
-
+    private void Awake()
+    {
+        if (Instance == null)
+        {
+            Instance = this;
+            DontDestroyOnLoad(gameObject);
+        }
+        else
+        {
+            Destroy(gameObject);
+        }
+    }
     void Start()
     {
         UpdateTextFields();

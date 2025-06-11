@@ -12,6 +12,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Unity.VisualScripting;
 using UnityEditor;
 using UnityEngine;
 using UnityEngine.Networking;
@@ -882,6 +883,7 @@ public class BoardGen : MonoBehaviour
         }
 
         Debug.LogError($"[StructurePlacement] ❌ No VertexPoint found at corner {dto.cornerIndex} on tile ({dto.tileX}, {dto.tileY})");
+        RefreshUI();
     }
 
     #endregion
@@ -951,6 +953,7 @@ public class BoardGen : MonoBehaviour
         {
             Debug.LogError($"[RoadPlacement] ❌ No EdgePoint found near tile ({dto.tileX}, {dto.tileY}) edge {dto.edgeIndex}");
         }
+        RefreshUI();
     }
 
     #endregion
@@ -966,13 +969,14 @@ public class BoardGen : MonoBehaviour
 
         Debug.Log("[BoardGen] 🎲 RoleDice called - sending dice roll request to WebSocket");
         await WebSocketService.SendDiceRoll();
+        RefreshUI();
     }
 
     public void GetDiceData(DiceResultDto diceResult)
     {
         Debug.Log($"[Dice Result] 🎲 {diceResult.username} rolled a {diceResult.rollResult}");
 
-        foreach (var entry in diceResult.userResourcesGained)
+        /*foreach (var entry in diceResult.userResourcesGained)
         {
             string user = entry.Key;
             ResourceGroup resources = entry.Value;
@@ -991,17 +995,20 @@ public class BoardGen : MonoBehaviour
             Debug.Log($"[BoardGen] 🎲 Dice rolled: {diceResult.rollResult}");
             _lastDiceTotal = diceResult.rollResult;
         }
-
+        */
         if (diceResult.rollResult == 7)
         {
             Debug.Log("[BoardGen] ⚠️ 7 rolled - initiating robber move");
             ThifeManager.Instance.EnableThiefPlacement();
         }
+        RefreshUI();  
     }
-    #endregion
+    
 
-    #region Robber
-    public void MoveThiefTo(HexTile newTile)
+        #endregion
+
+        #region Robber
+        public void MoveThiefTo(HexTile newTile)
     {
         if (thiefInstance == null || newTile == currentThiefTile)
             return;
@@ -1020,6 +1027,7 @@ public class BoardGen : MonoBehaviour
     {
         var newTile = GetTileByCoords(response.destinationTileX, response.destinationTileY);
         MoveThiefTo(newTile);
+        RefreshUI();
     }
 
     #endregion
@@ -1070,7 +1078,93 @@ public class BoardGen : MonoBehaviour
         }
     }
     #endregion
+
+
+    #region RefreshUI
+
+    public void RefreshUI()
+    {
+        StartCoroutine(FetchAndUpdateResources());
+    }
+    [Serializable]
+    public class ResourceGroup
+    {
+        // Match your backend ResourceGroup structure exactly
+        public int wood;
+        public int mountain;
+        public int gold;
+        public int wheat;
+        public int claypit;
+        public int pasture;
+        // Add other resource fields as needed based on your backend model
+    }
+    private IEnumerator FetchAndUpdateResources()
+    {
+        UnityWebRequest resourceRequest = null;
+
+        // Use RequestService instead of EndpointUtils
+        yield return StartCoroutine(RequestService.ConstructSimpleWebRequest(
+            EndpointUtils.GetResources,  // This gives you the full URL: "http://localhost:8080/api/game/resources"
+            Methods.GET,
+            true,                        // requiresAuthorization = true for JWT
+            null,                        // jsonBody = null for GET request
+            (request) => {
+                resourceRequest = request;
+            }
+        ));
+
+        // Handle the response
+        if (resourceRequest != null && resourceRequest.result == UnityWebRequest.Result.Success)
+        {
+            try
+            {
+                string jsonResponse = resourceRequest.downloadHandler.text;
+                Debug.Log($"Received resource data: {jsonResponse}");
+
+                ResourceGroup resources = JsonUtility.FromJson<ResourceGroup>(jsonResponse);
+                UpdateResourcesInUI(resources);
+            }
+            catch (Exception e)
+            {
+                Debug.LogError($"Failed to parse resources: {e.Message}");
+            }
+        }
+        else
+        {
+            string errorMessage = resourceRequest?.error ?? "Request is null";
+            long responseCode = resourceRequest?.responseCode ?? 0;
+            Debug.LogError($"Failed to fetch resources. Error: {errorMessage}, Status Code: {responseCode}");
+        }
+    }
+
+    private void UpdateResourcesInUI(ResourceGroup resources)
+    {
+        if (ResourceMapperUI.Instance == null)
+        {
+            Debug.LogError("ResourceMapperUI.Instance is null!");
+            return;
+        }
+
+        // Update each resource type based on your ResourceGroup structure
+        ResourceMapperUI.Instance.SetResourceValue("wood", resources.wood);
+        ResourceMapperUI.Instance.SetResourceValue("mountain", resources.mountain);
+        ResourceMapperUI.Instance.SetResourceValue("gold", resources.gold);
+        ResourceMapperUI.Instance.SetResourceValue("pasture", resources.pasture);
+        ResourceMapperUI.Instance.SetResourceValue("claypit", resources.claypit);
+        ResourceMapperUI.Instance.SetResourceValue("wheat", resources.wheat);
+
+        Debug.Log("Resource UI updated successfully");
+    }
+
+
+    #endregion
+
+
 }
+
+
+
+
 
 #if UNITY_EDITOR
 

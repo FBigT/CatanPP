@@ -605,6 +605,7 @@ namespace Assets.Scripts.DevCards.Core
                 Debug.LogError($"❌ Failed to play card: {ex.Message}");
                 OnError?.Invoke($"Failed to play {type} card");
             }
+            BoardGen.Instance.RefreshUI();
         }
 
 
@@ -614,6 +615,7 @@ namespace Assets.Scripts.DevCards.Core
             DebugLog($"  Player: {response.username}");
             DebugLog($"  Total cards: {response.numberOfCards}");
             LoadPlayerCards();
+            BoardGen.Instance.RefreshUI();
         }
 
         private void HandlePrivateBuyCard(PrivateBuyCard privateBuyCard)
@@ -655,6 +657,7 @@ namespace Assets.Scripts.DevCards.Core
             {
                 DebugLog($"⚠️ Could not find matching card to mark as used: {response.devCardType}");
             }
+            BoardGen.Instance.RefreshUI();
         }
 
         public void LoadPlayerCards()
