@@ -1,4 +1,6 @@
 using Assets.Scripts.Enums;
+using Catan.GameMode;
+using Unity.VisualScripting;
 using UnityEngine;
 
 public class StructureManager : MonoBehaviour
@@ -87,6 +89,8 @@ public class StructureManager : MonoBehaviour
         }
 
         ep.Build(player);
+        ep.AddComponent<PlayerMarker>();
+        ep.GetComponent<PlayerMarker>().SetColorForThisStructure(Color.cyan);
         return true;
     }
 }

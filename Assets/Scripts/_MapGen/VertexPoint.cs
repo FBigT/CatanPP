@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 using Assets.Scripts.Enums;
-using System; // <-- Import the enum
+using Catan.GameMode;
 
 public class VertexPoint : MonoBehaviour
 {
@@ -21,7 +21,26 @@ public class VertexPoint : MonoBehaviour
     public void Build(StructureType structureType)
     {
         type = structureType;
-        owner = "debug"; //temp
+        owner = "debug";
+
+        foreach (Transform child in transform)
+        {
+            child.gameObject.SetActive(child.name.ToUpper() == structureType.ToString());
+
+            var a = child.gameObject.GetComponent<PlayerMarker>();
+            if (a != null)
+            {
+                a.SetColorForThisStructure(Color.cyan);
+            }
+        }
+
+        Debug.Log($"Built: {structureType} at {name}");
+    }
+
+    public void Build(StructureType structureType, object player)
+    {
+        type = structureType;
+        owner = (string)player;
 
         foreach (Transform child in transform)
         {
