@@ -1,6 +1,6 @@
+using System.Collections.Generic;
 using TMPro;
 using UnityEditor;
-using UnityEditor.SpeedTree.Importer;
 using UnityEngine;
 
 public class HexTile : MonoBehaviour
@@ -19,6 +19,7 @@ public class HexTile : MonoBehaviour
     public int yCoord => R;
 
     public bool isWater;
+    public List<VertexPoint> VertexPoints = new();
 
     [Header("Highlighting")]
     public Material highlightMaterial;

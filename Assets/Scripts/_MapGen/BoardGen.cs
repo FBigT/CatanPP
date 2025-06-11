@@ -73,6 +73,8 @@ public class BoardGen : MonoBehaviour
     #region Unity Methods
     private void Awake()
     {
+        Application.targetFrameRate = 120;
+
         blockPanel.gameObject.SetActive(true);
         Debug.Log("[BoardGen] Awake() started");
         if (Instance == null)
@@ -395,6 +397,7 @@ public class BoardGen : MonoBehaviour
                 if (Vector3.Distance(tile.transform.position, vertex.Position) < hexSize + .1f)
                 {
                     vertex.nearbyTiles.Add(tile);
+                    tile.VertexPoints.Add(vertex);
                 }
             }
         }
@@ -819,7 +822,28 @@ public class BoardGen : MonoBehaviour
     public void GetStructurePlacedConfirmation(PlaceStructureResponse dto)
     {
         Debug.Log($"[StructurePlacementSender] ✅ Server confirmed structure placed at ({dto.tileX}, {dto.tileY}) corner {dto.cornerIndex}");
+
+        HexTile tile = GetTileByCoords(dto.tileX, dto.tileY);
+        if (tile == null)
+        {
+            Debug.LogError($"[StructurePlacement] ❌ Tile not found at ({dto.tileX}, {dto.tileY})");
+            return;
+        }
+
+        foreach (var vp in tile.VertexPoints)
+        {
+            int index = vp.GetNeighborVertexIndex(tile);
+            if (index == dto.cornerIndex)
+            {
+                vp.owner = dto.username;
+                vp.Build(dto.structureType);
+                return;
+            }
+        }
+
+        Debug.LogError($"[StructurePlacement] ❌ No VertexPoint found at corner {dto.cornerIndex} on tile ({dto.tileX}, {dto.tileY})");
     }
+
     #endregion
 
     #region Road

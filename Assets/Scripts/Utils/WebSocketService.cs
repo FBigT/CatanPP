@@ -558,10 +558,7 @@ namespace Assets.Scripts.Utils
         // Modify SendRobberMove to use direct serialization
         public static async Task SendRobberMove(RobberMoveDto moveData)
         {
-            var gameMove = new GameMoveDto(GameMoveType.ROBBER_MOVE)
-            {
-                moveData = moveData // Direct assignment
-            };
+            var gameMove = new GameMoveDto(moveData);
 
             await SendGameMove(gameMove);
         }
