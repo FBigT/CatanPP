@@ -615,7 +615,7 @@ namespace Assets.Scripts.DevCards.Core
             DebugLog($"  Player: {response.username}");
             DebugLog($"  Total cards: {response.numberOfCards}");
             LoadPlayerCards();
-            BoardGen.Instance.RefreshUI();
+            
         }
 
         private void HandlePrivateBuyCard(PrivateBuyCard privateBuyCard)
@@ -687,6 +687,7 @@ namespace Assets.Scripts.DevCards.Core
 
                 // Send via WebSocket (no StartCoroutine needed)
                 SendRequestDevCards(gameMove);
+                BoardGen.Instance.RefreshUI();
             }
             catch (Exception ex)
             {
