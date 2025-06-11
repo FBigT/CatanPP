@@ -10,6 +10,7 @@ using System;
 using System.Collections.Generic;
 using System.Text;
 using System.Threading.Tasks;
+using UnityEditor.Overlays;
 using UnityEngine;
 
 
@@ -21,11 +22,11 @@ namespace Assets.Scripts.Utils
         public static event Action<RobberMoveResponse> OnRobberMoved;
         public static event Action<TradeOfferMessage> OnTradeOfferReceived;
         public static event Action<TradeResponseMessage> OnTradeResponseReceived;
-        public static event Action  OnPlayerJoined;
+        public static event Action OnPlayerJoined;
 
         public static event Action<TradeExecutedDto> OnTradeExecuted;
         public static event Action<DevCardsListResponseDto> OnDevCardsListReceived;
-        
+
 
         public static event Action<BuyCardResponseDto> OnBuyCardResponse;
         public static event Action<PrivateBuyCard> OnPrivateBuyCard;
@@ -39,6 +40,7 @@ namespace Assets.Scripts.Utils
 
         public static event Action<PlaceRoadResponse> OnPlaceRoad;
         public static event Action<PlaceStructureResponse> OnPlaceStructure;
+        public static event Action<UpgradeStructureResponse> OnUpgradeStructure;
 
         private static WebSocket webSocket;
         public static bool Connected { get; private set; } = false;
@@ -51,11 +53,13 @@ namespace Assets.Scripts.Utils
 
             webSocket = new WebSocket(WebSocketEndpointsUtils.BaseWebSocketUrl);
 
-            webSocket.OnOpen += () => {
+            webSocket.OnOpen += () =>
+            {
                 _ = SendConnectFrame();
             };
 
-            webSocket.OnError += (e) => {
+            webSocket.OnError += (e) =>
+            {
                 Debug.LogError($"Error: {e}");
             };
 
@@ -111,7 +115,8 @@ namespace Assets.Scripts.Utils
                             Debug.Log(jsonBody);
                             ChatMessage chatMsg = JsonUtility.FromJson<ChatMessage>(jsonBody);
                             OnChatMessageReceived?.Invoke(chatMsg);
-                        } else if (destination != null && destination.Contains(WebSocketBrokerDestinations.Moves.Value))
+                        }
+                        else if (destination != null && destination.Contains(WebSocketBrokerDestinations.Moves.Value))
                         {
                             //GameMoveResponseDto gameMove = JsonConvert.DeserializeObject<GameMoveResponseDto>(jsonBody);
                             //GameMoveType gameMoveType = gameMove.GameMoveType;
@@ -139,8 +144,11 @@ namespace Assets.Scripts.Utils
                                     OnBuyCardResponse?.Invoke(buyCardResponse);
                                     break;
                                 case GameMoveType.UPGRADE_STRUCTURE:
-                                    UpgradeStructureResponse upgradeStructure = (UpgradeStructureResponse)gameMove.moveData;
-                                    break;
+                                    {
+                                        UpgradeStructureResponse upgradeStructure = (UpgradeStructureResponse)gameMove.moveData;
+                                        OnUpgradeStructure?.Invoke(upgradeStructure);
+                                        break;
+                                    }
                                 case GameMoveType.END_TURN:
                                     {
                                         EndTurnResponse endTurn = (EndTurnResponse)gameMove.moveData;
@@ -242,7 +250,8 @@ namespace Assets.Scripts.Utils
                                     DevCardsListResponseDto devCardsResponse = (DevCardsListResponseDto)gameMove.moveData;
                                     OnDevCardsListReceived?.Invoke(devCardsResponse);
                                     break;
-                            };
+                            }
+                            ;
                         }
                         else if (destination != null && destination.Contains(WebSocketBrokerDestinations.Private.Value))
                         {
@@ -256,7 +265,8 @@ namespace Assets.Scripts.Utils
                             }
                         }
                         //hre is player data u dumb fuck
-                        else if (destination != null && destination.Contains(WebSocketBrokerDestinations.Players.Value)){
+                        else if (destination != null && destination.Contains(WebSocketBrokerDestinations.Players.Value))
+                        {
                             JoinSessionNotification joinSessionNotification =
                                 JsonConvert.DeserializeObject<JoinSessionNotification>(jsonBody);
                             OnPlayerJoined?.Invoke();
@@ -347,7 +357,7 @@ namespace Assets.Scripts.Utils
         }
 
 
-        
+
 
         public static void DispatchMessageQueue()
         {
@@ -563,10 +573,11 @@ namespace Assets.Scripts.Utils
             await SendGameMove(gameMove);
         }
 
+        public static async Task SendUpgradeStructure(UpgradeStructureDto dto)
+        {
+            var gameMove = new GameMoveDto(dto);
 
-
-
-
-
+            await SendGameMove(gameMove);
+        }
     }
 }

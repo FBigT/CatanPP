@@ -98,10 +98,15 @@ public class BoardGen : MonoBehaviour
         WebSocketService.OnMapGenerated += HandleMapReceived;
         WebSocketService.OnDiceResponse += GetDiceData;
         WebSocketService.OnEndTurn += GetEndTurn;
+
         PuchaseUIManager.OnStructureBuilt += HandleStructurePlaced;
         WebSocketService.OnPlaceStructure += GetStructurePlacedConfirmation;
+
         PuchaseUIManager.OnRoadBuilt += HandleRoadPlaced;
         WebSocketService.OnPlaceRoad += GetRoadPlacedConfirmation;
+
+        PuchaseUIManager.OnStructureUpgrade -= HandleStructureUpgrade;
+        WebSocketService.OnUpgradeStructure -= GetStructureUpgradeConfirmation;
 
         WebSocketService.OnRobberMoved += HandleRobberMoveResponse;
         Assets.Scripts.GameMode.Trading.TradingManager.OnPlayersLoaded += HandlePlayersLoaded;
@@ -113,10 +118,15 @@ public class BoardGen : MonoBehaviour
         WebSocketService.OnMapGenerated -= HandleMapReceived;
         WebSocketService.OnDiceResponse -= GetDiceData;
         WebSocketService.OnEndTurn -= GetEndTurn;
+
         PuchaseUIManager.OnStructureBuilt -= HandleStructurePlaced;
         WebSocketService.OnPlaceStructure -= GetStructurePlacedConfirmation;
+
         PuchaseUIManager.OnRoadBuilt -= HandleRoadPlaced;
         WebSocketService.OnPlaceRoad -= GetRoadPlacedConfirmation;
+
+        PuchaseUIManager.OnStructureUpgrade -= HandleStructureUpgrade;
+        WebSocketService.OnUpgradeStructure -= GetStructureUpgradeConfirmation;
 
         WebSocketService.OnRobberMoved -= HandleRobberMoveResponse;
         Assets.Scripts.GameMode.Trading.TradingManager.OnPlayersLoaded -= HandlePlayersLoaded;
@@ -835,7 +845,7 @@ public class BoardGen : MonoBehaviour
 
     public void GetEndTurn(EndTurnResponse t)
     {
-        DoSetupPhase();
+        //DoSetupPhase();
 
         Debug.Log("[BoardGen] EndTurn received from WebSocket - handling end turn logic");
 
@@ -958,6 +968,54 @@ public class BoardGen : MonoBehaviour
 
     #endregion
 
+    #region Structure Upgrade
+    private async void HandleStructureUpgrade(PurchaseType type, VertexPoint vp)
+    {
+        var tile = vp.nearbyTiles[0];
+
+        var dto = new UpgradeStructureDto(
+            tile.Q,
+            tile.R,
+            vp.GetNeighborVertexIndex(tile)
+        );
+
+        await WebSocketService.SendUpgradeStructure(dto);
+    }
+
+    public void GetStructureUpgradeConfirmation(UpgradeStructureResponse dto)
+    {
+        Debug.Log($"[StructureUpgrade] ✅ Server confirmed upgrade at ({dto.tileX}, {dto.tileY}) corner {dto.cornerIndex}");
+
+        HexTile tile = GetTileByCoords(dto.tileX, dto.tileY);
+        if (tile == null)
+        {
+            Debug.LogError($"[StructureUpgrade] ❌ Tile not found at ({dto.tileX}, {dto.tileY})");
+            return;
+        }
+
+        foreach (var vp in tile.VertexPoints)
+        {
+            int index = vp.GetNeighborVertexIndex(tile);
+            if (index == dto.cornerIndex)
+            {
+                if (!dto.username.Equals(vp.owner))
+                {
+                    Debug.LogWarning($"[StructureUpgrade] ⚠️ Owner mismatch at ({dto.tileX}, {dto.tileY})");
+                }
+
+                vp.type = StructureType.CITY; // Promote to City
+                vp.Build(StructureType.CITY);
+
+                return;
+            }
+        }
+
+        Debug.LogError($"[StructureUpgrade] ❌ No VertexPoint found at corner {dto.cornerIndex} on tile ({dto.tileX}, {dto.tileY})");
+        RefreshUI();
+    }
+
+    #endregion
+
     #region Dice
     public async void RoleDice()
     {
@@ -1001,14 +1059,14 @@ public class BoardGen : MonoBehaviour
             Debug.Log("[BoardGen] ⚠️ 7 rolled - initiating robber move");
             ThifeManager.Instance.EnableThiefPlacement();
         }
-        RefreshUI();  
+        RefreshUI();
     }
-    
 
-        #endregion
 
-        #region Robber
-        public void MoveThiefTo(HexTile newTile)
+    #endregion
+
+    #region Robber
+    public void MoveThiefTo(HexTile newTile)
     {
         if (thiefInstance == null || newTile == currentThiefTile)
             return;
@@ -1031,54 +1089,6 @@ public class BoardGen : MonoBehaviour
     }
 
     #endregion
-
-    #region Setup phase
-    public bool setupPhaseActive = true;
-    public int tempPlayerIndex = 0;
-    public int tempForwardAndBackwardCount = 0;
-    public int tempMaxPlayers = 3;
-
-    public void DoSetupPhase()
-    {
-        //init setup, chage to implementation, this is only local for testing
-        if (setupPhaseActive)
-        {
-            // If still placing in setup
-            if (tempForwardAndBackwardCount < 2)
-            {
-                if (tempForwardAndBackwardCount % 2 == 0) // Forward
-                {
-                    if (tempPlayerIndex < tempMaxPlayers)
-                    {
-                        PlayerPanelUIManager.Instance.StepForward();
-                        tempPlayerIndex++;
-                    }
-                    else
-                    {
-                        tempPlayerIndex = tempMaxPlayers - 1;
-                        tempForwardAndBackwardCount++;
-                    }
-                }
-                else // Backward
-                {
-                    if (tempPlayerIndex > 0)
-                    {
-                        PlayerPanelUIManager.Instance.StepBackward();
-                        tempPlayerIndex--;
-                    }
-                    else
-                    {
-                        tempPlayerIndex = 0;
-                        tempForwardAndBackwardCount++;
-                        setupPhaseActive = false;
-                        Debug.Log("[Setup] Setup phase complete.");
-                    }
-                }
-            }
-        }
-    }
-    #endregion
-
 
     #region RefreshUI
 
@@ -1108,7 +1118,8 @@ public class BoardGen : MonoBehaviour
             Methods.GET,
             true,                        // requiresAuthorization = true for JWT
             null,                        // jsonBody = null for GET request
-            (request) => {
+            (request) =>
+            {
                 resourceRequest = request;
             }
         ));

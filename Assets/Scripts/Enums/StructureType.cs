@@ -8,6 +8,7 @@ namespace Assets.Scripts.Enums
     {
         SETTLEMENT,
         CITY,
-        ROAD
+        ROAD,
+        NONE
     }
 }

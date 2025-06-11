@@ -33,11 +33,14 @@ namespace Catan.UI
 
         public delegate void StructureBuiltHandler(PurchaseType type, VertexPoint vp);
         public static event StructureBuiltHandler OnStructureBuilt;
+
         public delegate void RoadBuiltHandler(PurchaseType type, EdgePoint ep);
         public static event RoadBuiltHandler OnRoadBuilt;
 
-        private bool uiButtonsEnabled = true;
+        public delegate void StructureUpgradeHandler(PurchaseType type, VertexPoint vp);
+        public static event StructureUpgradeHandler OnStructureUpgrade;
 
+        private bool uiButtonsEnabled = true;
 
         void Awake()
         {
@@ -166,12 +169,44 @@ namespace Catan.UI
                     }
 
                     StructureType targetStructure = currentPurchaseType == PurchaseType.City ? StructureType.CITY : StructureType.SETTLEMENT;
-                    if (!StructureManager.Instance.TryPlaceStructure(vp, targetStructure))
+
+                    bool hasAdjacentVertex = false;
+                    float expectedDistance = BoardGen.Instance.hexSize;
+
+                    foreach (var tile in vp.nearbyTiles)
                     {
+                        foreach (var neighbor in tile.VertexPoints)
+                        {
+                            if (neighbor == vp) continue;
+
+                            float dist = Vector3.Distance(vp.transform.position, neighbor.transform.position);
+                            if (Mathf.Abs(dist - expectedDistance) <= 0.05f)
+                            {
+                                if (neighbor.type != StructureType.NONE)
+                                {
+                                    hasAdjacentVertex = true;
+                                    break;
+                                }
+                            }
+                        }
+
+                        if (hasAdjacentVertex) break;
+                    }
+
+                    if (hasAdjacentVertex)
+                    {
+                        Debug.LogWarning("[Settlement] ❌ Cannot place settlement: adjacent vertex is already occupied.");
                         return false;
                     }
 
-                    OnStructureBuilt?.Invoke(currentPurchaseType, vp);
+                    if (!StructureManager.Instance.TryPlaceStructure(vp, targetStructure))
+                        return false;
+
+                    if (currentPurchaseType == PurchaseType.City)
+                        OnStructureUpgrade?.Invoke(currentPurchaseType, vp);
+                    else
+                        OnStructureBuilt?.Invoke(currentPurchaseType, vp);
+
                     return true;
             }
 
@@ -199,6 +234,5 @@ namespace Catan.UI
                     entry.button.interactable = enable;
             }
         }
-
     }
 }

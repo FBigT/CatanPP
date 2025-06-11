@@ -11,7 +11,7 @@ public class VertexPoint : MonoBehaviour
     public List<HexTile> nearbyTiles = new();
     public List<EdgePoint> edgePoints = new();
 
-    public StructureType type;
+    public StructureType type = StructureType.NONE;
 
     private void Update()
     {
