@@ -14,6 +14,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Unity.VisualScripting;
 using UnityEditor;
+using UnityEditor.PackageManager.Requests;
 using UnityEngine;
 using UnityEngine.Networking;
 using UnityEngine.UI;
@@ -1091,11 +1092,11 @@ public class BoardGen : MonoBehaviour
     {
         // Match your backend ResourceGroup structure exactly
         public int wood;
-        public int mountain;
+        public int ore;
         public int gold;
         public int wheat;
-        public int claypit;
-        public int pasture;
+        public int brick;
+        public int sheep;
         // Add other resource fields as needed based on your backend model
     }
     private IEnumerator FetchAndUpdateResources()
@@ -1103,16 +1104,16 @@ public class BoardGen : MonoBehaviour
         UnityWebRequest resourceRequest = null;
 
         // Use RequestService instead of EndpointUtils
-        yield return StartCoroutine(RequestService.ConstructSimpleWebRequest(
-            EndpointUtils.GetResources,  // This gives you the full URL: "http://localhost:8080/api/game/resources"
+        yield return RequestService.ConstructSimpleWebRequest(
+            EndpointUtils.GetResources+"/"+ LocalStorageService.GetString("session-code"),  // This gives you the full URL: "http://localhost:8080/api/game/resources"
             Methods.GET,
             true,                        // requiresAuthorization = true for JWT
             null,                        // jsonBody = null for GET request
             (request) => {
                 resourceRequest = request;
             }
-        ));
-
+        );
+        yield return resourceRequest.SendWebRequest();
         // Handle the response
         if (resourceRequest != null && resourceRequest.result == UnityWebRequest.Result.Success)
         {
@@ -1147,10 +1148,10 @@ public class BoardGen : MonoBehaviour
 
         // Update each resource type based on your ResourceGroup structure
         ResourceMapperUI.Instance.SetResourceValue("wood", resources.wood);
-        ResourceMapperUI.Instance.SetResourceValue("mountain", resources.mountain);
+        ResourceMapperUI.Instance.SetResourceValue("mountain", resources.ore);
         ResourceMapperUI.Instance.SetResourceValue("gold", resources.gold);
-        ResourceMapperUI.Instance.SetResourceValue("pasture", resources.pasture);
-        ResourceMapperUI.Instance.SetResourceValue("claypit", resources.claypit);
+        ResourceMapperUI.Instance.SetResourceValue("pasture", resources.sheep);
+        ResourceMapperUI.Instance.SetResourceValue("claypit", resources.brick);
         ResourceMapperUI.Instance.SetResourceValue("wheat", resources.wheat);
 
         Debug.Log("Resource UI updated successfully");

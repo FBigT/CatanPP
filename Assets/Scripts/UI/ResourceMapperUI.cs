@@ -1,56 +1,56 @@
-using System;
-using System.Collections.Generic;
-using TMPro;
-using UnityEngine;
+    using System;
+    using System.Collections.Generic;
+    using TMPro;
+    using UnityEngine;
 
-public class ResourceMapperUI : MonoBehaviour
-{
-    public static ResourceMapperUI Instance;
-    [Serializable]
-    public class ResourceTextBinding
+    public class ResourceMapperUI : MonoBehaviour
     {
-        public string resourceName;
-        public TextMeshProUGUI targetText;
-    }
-
-    public List<ResourceTextBinding> bindings;
-
-    private Dictionary<string, int> resourceValues = new Dictionary<string, int>();
-    private void Awake()
-    {
-        if (Instance == null)
+        public static ResourceMapperUI Instance;
+        [Serializable]
+        public class ResourceTextBinding
         {
-            Instance = this;
-            DontDestroyOnLoad(gameObject);
+            public string resourceName;
+            public TextMeshProUGUI targetText;
         }
-        else
-        {
-            Destroy(gameObject);
-        }
-    }
-    void Start()
-    {
-        UpdateTextFields();
-    }
 
-    public void UpdateTextFields()
-    {
-        foreach (var binding in bindings)
+        public List<ResourceTextBinding> bindings;
+
+        private Dictionary<string, int> resourceValues = new Dictionary<string, int>();
+        private void Awake()
         {
-            if (binding.targetText != null && resourceValues.TryGetValue(binding.resourceName, out int value))
+            if (Instance == null)
             {
-                binding.targetText.text = value.ToString();
+                Instance = this;
+                DontDestroyOnLoad(gameObject);
             }
-            else if (binding.targetText != null)
+            else
             {
-                binding.targetText.text = "0";
+                Destroy(gameObject);
             }
         }
-    }
+        void Start()
+        {
+            UpdateTextFields();
+        }
 
-    public void SetResourceValue(string name, int value)
-    {
-        resourceValues[name] = value;
-        UpdateTextFields();
+        public void UpdateTextFields()
+        {
+            foreach (var binding in bindings)
+            {
+                if (binding.targetText != null && resourceValues.TryGetValue(binding.resourceName, out int value))
+                {
+                    binding.targetText.text = value.ToString();
+                }
+                else if (binding.targetText != null)
+                {
+                    binding.targetText.text = "0";
+                }
+            }
+        }
+
+        public void SetResourceValue(string name, int value)
+        {
+            resourceValues[name] = value;
+            UpdateTextFields();
+        }
     }
-}
