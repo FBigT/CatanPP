@@ -82,4 +82,37 @@ public class EdgePoint : MonoBehaviour
         SetHighlightVisible(false); // Hide visual once built
         RoadGenerator.AlignRoad(this.gameObject, pointA.transform.position, pointB.transform.position, roadMaterial);
     }
+
+    public int GetEdgeIndexRelativeToTile(HexTile tile, EdgePoint edge)
+    {
+        Vector3 center = tile.transform.position;
+        Vector3 toMidpoint = ((edge.pointA.Position + edge.pointB.Position) * 0.5f) - center;
+        Vector3[] edgeDirections = GetHexEdgeDirections();
+
+        float marginDegrees = 10f;
+
+        for (int i = 0; i < edgeDirections.Length; i++)
+        {
+            float angle = Vector3.Angle(toMidpoint.normalized, edgeDirections[i]);
+            if (angle <= marginDegrees)
+                return i;
+        }
+
+        return -1;
+    }
+
+    private Vector3[] GetHexEdgeDirections()
+    {
+        Vector3[] directions = new Vector3[6];
+        float[] angles = new float[] { 0f, 60f, 120f, 180f, 240f, 300f };
+
+        for (int i = 0; i < 6; i++)
+        {
+            float rad = angles[i] * Mathf.Deg2Rad;
+            directions[i] = new Vector3(Mathf.Cos(rad), 0f, Mathf.Sin(rad)).normalized;
+        }
+
+        return directions;
+    }
+
 }

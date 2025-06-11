@@ -1,19 +1,22 @@
-﻿using Assets.Scripts.Dtos;
+﻿using Assets;
+using Assets.Scripts.DevCards.Core;
+using Assets.Scripts.Dtos;
 using Assets.Scripts.Dtos.GameMoveResponses;
 using Assets.Scripts.Enums;
 using Assets.Scripts.GameMode.Trading.Models;
+using Assets.Scripts.User;
 using Assets.Scripts.Utils;
 using Catan.UI;
 using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
+using UnityEditor;
 using UnityEngine;
 using UnityEngine.Networking;
-using Assets.Scripts.DevCards.Core;
-using Assets.Scripts.User;
-using System.Threading.Tasks;
-using Assets;
+using UnityEngine.UI;
+using static UnityEngine.GraphicsBuffer;
 
 public class BoardGen : MonoBehaviour
 {
@@ -52,6 +55,7 @@ public class BoardGen : MonoBehaviour
         PortType.Generic3To1, PortType.Ore2To1, PortType.Generic3To1
     };
 
+    public List<Button> buttonsToToggle = new List<Button>();
 
 
     #region Hard data
@@ -621,6 +625,8 @@ public class BoardGen : MonoBehaviour
     #endregion
 
     #region Helper Functions
+
+    #region Map
     public HexTile GetTileByCoords(int x, int y)
     {
         return tileList.FirstOrDefault(t => t.xCoord == x && t.yCoord == y);
@@ -676,6 +682,25 @@ public class BoardGen : MonoBehaviour
             (list[i], list[rand]) = (list[rand], list[i]);
         }
     }
+    #endregion
+
+    #region End Turn
+
+    public void SetButtonsActive(bool isActive)
+    {
+        if (isActive)
+            foreach (var button in buttonsToToggle)
+            {
+                button.interactable = true;
+            }
+        else
+            foreach (var button in buttonsToToggle)
+            {
+                button.interactable = false;
+            }
+    }
+    #endregion
+
     #endregion
 
     #region Map
@@ -849,10 +874,24 @@ public class BoardGen : MonoBehaviour
     #region Road
     private async void HandleRoadPlaced(PurchaseType type, EdgePoint ep)
     {
-        var dto = new PlaceRoadDto(-99, -99, 1);
+        var tile = ep.adjacentTiles[0]; // use one of the adjacent tiles
+        if (tile == null)
+        {
+            Debug.LogError("[HandleRoadPlaced] No valid tile found for this edge.");
+            return;
+        }
 
+        int edgeIndex = ep.GetEdgeIndexRelativeToTile(tile, ep);
+        if (edgeIndex == -1)
+        {
+            Debug.LogError("[HandleRoadPlaced] Failed to compute valid edge index.");
+            return;
+        }
+
+        var dto = new PlaceRoadDto(tile.Q, tile.R, edgeIndex);
         await WebSocketService.SendPlaceRoad(dto);
     }
+
 
     public void GetRoadPlacedConfirmation(PlaceRoadResponse dto)
     {
@@ -976,3 +1015,27 @@ public class BoardGen : MonoBehaviour
     }
     #endregion
 }
+
+#if UNITY_EDITOR
+
+[CustomEditor(typeof(BoardGen))]
+public class BoardGenEditor : Editor
+{
+    bool toggle = false;
+    public override void OnInspectorGUI()
+    {
+        DrawDefaultInspector();
+
+        BoardGen boardGen = (BoardGen)target;
+
+        GUILayout.Space(10);
+
+        if (GUILayout.Button("Test: Toggle buttons"))
+        {
+            boardGen.SetButtonsActive(toggle);
+            toggle = !toggle;
+        }
+    }
+}
+
+#endif
