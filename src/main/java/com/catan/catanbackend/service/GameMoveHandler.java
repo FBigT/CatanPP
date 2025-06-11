@@ -109,6 +109,7 @@ public class GameMoveHandler {
         if (bySessionId.isEmpty()) {
             throw new IllegalArgumentException("Session with id " + sessionId + " not found");
         }
+        Session finalSession = session;
         switch (gameMoveTypeEnum) {
             case PRIVATE_BUY_CARD -> throw new IllegalArgumentException("Not like this");
             case MAP_GEN -> {
@@ -148,7 +149,7 @@ public class GameMoveHandler {
 
                     // Convert to tiles and save
                     List<Tile> list = mapGenerationDto.getTileDtos().stream()
-                            .map(x -> mapper.mapTileDtoToTile(x, session))
+                            .map(x -> mapper.mapTileDtoToTile(x, finalSession))
                             .toList();
 
                     System.out.println("🗺️ [GameMoveHandler] Converting tiles and generating corners/edges...");
@@ -183,9 +184,6 @@ public class GameMoveHandler {
                 if (!sessionService.startSession(sessionId)) {
                     throw new IllegalArgumentException("Session with id " + sessionId + " could not be started");
                 }
-
-                session.setInSetup(true);
-                sessionService.save(session);
 
                 return new StartGameResponseDto(tileService.findBySessionId(sessionId).stream().map(mapper::mapTileToTileDto).toList(),
                         sessionService.getPlayersInTurnOrder(sessionId).stream().map(SessionPlayer::getName).toList());
@@ -321,7 +319,7 @@ public class GameMoveHandler {
             }
             case END_TURN -> {
                 EndTurnResponseDto endTurnResponseDto = getEndTurnResponseDto(session, false, sessionPlayer);
-                notificationService.sendChatMessage( bySessionId.get().getCode(), new ChatMessage("System",  new RawChatMessage( sessionPlayer.getName()+ "ended their turn. Current turn: " + endTurnResponseDto.getTurnNumber())));
+                notificationService.sendChatMessage( bySessionId.get().getCode(), new ChatMessage("System",  new RawChatMessage( sessionPlayer.getName()+ " ended their turn. Current turn: " + endTurnResponseDto.getTurnNumber())));
                 return endTurnResponseDto;
             }
             case ROBBER_MOVE -> {

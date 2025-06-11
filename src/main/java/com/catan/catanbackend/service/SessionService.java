@@ -81,6 +81,9 @@ public class SessionService {
             sessionPlayerService.saveSessionPlayer(players.get(i));
         }
         session.get().setActive(true);
+
+        //promijeni ako budete koristili normalni setup
+        session.get().setInSetup(false);
         save(session.get());
 
         return true;
