@@ -3,6 +3,10 @@ using UnityEngine.UI;
 using Assets.Scripts.Utils;
 using UnityEngine.EventSystems;
 using TMPro;
+using Assets.Scripts.Dtos.GameMoveResponses;
+using Assets.Scripts.Dtos;
+using System.Collections.Generic;
+using UnityEngine.SceneManagement;
 
 public class DebugMenu : Singleton<DebugMenu>, IPointerDownHandler, IDragHandler
 {
@@ -13,7 +17,7 @@ public class DebugMenu : Singleton<DebugMenu>, IPointerDownHandler, IDragHandler
     public Button clearLogButton;
     public Button addOneResourceButton;
     public TMP_Text statusText;
-
+    public Button showVictorySceneButton;
     [Header("Settings")]
     public KeyCode toggleKey = KeyCode.F12;
 
@@ -43,6 +47,7 @@ public class DebugMenu : Singleton<DebugMenu>, IPointerDownHandler, IDragHandler
             // Your one resource logic here
             AppendLog("+1 to all resources");
         });
+        showVictorySceneButton.onClick.AddListener(ShowVictorySceneManually);
 
         clearLogButton.onClick.AddListener(() =>
         {
@@ -64,7 +69,22 @@ public class DebugMenu : Singleton<DebugMenu>, IPointerDownHandler, IDragHandler
     {
         statusText.text += $"{log}\n";
     }
+    public void ShowVictorySceneManually()
+    {
+        // Create dummy data for testing
+        var testVictory = new VictoryDto
+        {
+            players = new List<PlayerScoreDto>
+        {
+            new PlayerScoreDto { username = "Alice", score = 10 },
+            new PlayerScoreDto { username = "Bob", score = 8 },
+            new PlayerScoreDto { username = "Charlie", score = 6 }
+        }
+        };
 
+        VictoryDataHolder.VictoryData = testVictory;
+        SceneManager.LoadScene("VictoryScene"); // Use your actual scene name
+    }
     public void OnPointerDown(PointerEventData eventData)
     {
         RectTransformUtility.ScreenPointToLocalPointInRectangle(panelRectTransform, eventData.position, eventData.pressEventCamera, out pointerOffset);

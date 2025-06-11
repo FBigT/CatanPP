@@ -26,8 +26,9 @@ namespace Assets.Scripts.Utils
         public static event Action<TradeExecutedDto> OnTradeExecuted;
         public static event Action<DevCardsListResponseDto> OnDevCardsListReceived;
         
-
+        
         public static event Action<BuyCardResponseDto> OnBuyCardResponse;
+        public static event Action<VictoryDto> OnVictoryTriggered;
         public static event Action<PrivateBuyCard> OnPrivateBuyCard;
         public static event Action<PlayCardResponseDto> OnPlayCardResponse;
 
@@ -182,6 +183,7 @@ namespace Assets.Scripts.Utils
                                     break;
                                 case GameMoveType.VICTORY:
                                     VictoryDto victoryDto = (VictoryDto)gameMove.moveData;
+                                    OnVictoryTriggered?.Invoke(victoryDto);
                                     break;
                                 case GameMoveType.TURN_ORDER:
                                     TurnOrderResponse turnOrder = (TurnOrderResponse)gameMove.moveData;

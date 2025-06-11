@@ -95,7 +95,7 @@ public class BoardGen : MonoBehaviour
             Destroy(gameObject);
             return;
         }
-
+        WebSocketService.OnVictoryTriggered += HandleVictory;
         WebSocketService.OnMapGenerated += HandleMapReceived;
         WebSocketService.OnDiceResponse += GetDiceData;
         WebSocketService.OnEndTurn += GetEndTurn;
@@ -109,7 +109,7 @@ public class BoardGen : MonoBehaviour
     }
 
     private void OnDestroy()
-    {
+    {   
         Debug.Log("[BoardGen] BoardGen destroyed - unsubscribing from events");
         WebSocketService.OnMapGenerated -= HandleMapReceived;
         WebSocketService.OnDiceResponse -= GetDiceData;
@@ -118,6 +118,7 @@ public class BoardGen : MonoBehaviour
         WebSocketService.OnPlaceStructure -= GetStructurePlacedConfirmation;
         PuchaseUIManager.OnRoadBuilt -= HandleRoadPlaced;
         WebSocketService.OnPlaceRoad -= GetRoadPlacedConfirmation;
+        WebSocketService.OnVictoryTriggered -= HandleVictory;
 
         WebSocketService.OnRobberMoved -= HandleRobberMoveResponse;
         Assets.Scripts.GameMode.Trading.TradingManager.OnPlayersLoaded -= HandlePlayersLoaded;
@@ -1105,7 +1106,7 @@ public class BoardGen : MonoBehaviour
 
         // Use RequestService instead of EndpointUtils
         yield return RequestService.ConstructSimpleWebRequest(
-            EndpointUtils.GetResources+"/"+ LocalStorageService.GetString("session-code"),  // This gives you the full URL: "http://localhost:8080/api/game/resources"
+            EndpointUtils.GetResources+"/"+ LocalStorageService.GetString("session-code"),  
             Methods.GET,
             true,                        // requiresAuthorization = true for JWT
             null,                        // jsonBody = null for GET request
@@ -1159,7 +1160,13 @@ public class BoardGen : MonoBehaviour
 
 
     #endregion
-
+    #region victory
+    private void HandleVictory(VictoryDto victory)
+    {
+        VictoryDataHolder.VictoryData = victory;
+        UnityEngine.SceneManagement.SceneManager.LoadScene("VictoryScene");
+    }
+    #endregion
 
 }
 
