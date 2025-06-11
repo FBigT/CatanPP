@@ -18,10 +18,14 @@ import com.catan.catanbackend.model.tile.Tile;
 import com.catan.catanbackend.repository.RobberBlockerRepository;
 import com.catan.catanbackend.repository.RobberMoveBlockerRepository;
 import com.catan.catanbackend.repository.SessionCodeRepository;
+import com.catan.catanbackend.repository.SessionRecordRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 import java.util.*;
 
 @Service
@@ -41,10 +45,11 @@ public class GameService {
     private final ObjectMapper objectMapper;
     private final TradeService tradeService;
     private final ResourceService resourceService;
+    private final SessionRecordRepository sessionRecordRepository;
     private final PlayerProfileService playerProfileService;
     private final SessionCodeRepository sessionCodeRepository;
 
-    public GameService(SessionService sessionService, RobberBlockerRepository robberBlockerRepository, SessionPlayerService sessionPlayerService, RobberMoveBlockerRepository robberMoveBlockerRepository, TileService tileService, DevCardService devCardService, PlacementService placementService, NotificationService notificationService, ObjectMapper objectMapper, TradeService tradeService, ResourceService resourceService, PlayerProfileService playerProfileService, SessionCodeRepository sessionCodeRepository) {
+    public GameService(SessionService sessionService, RobberBlockerRepository robberBlockerRepository, SessionPlayerService sessionPlayerService, RobberMoveBlockerRepository robberMoveBlockerRepository, TileService tileService, DevCardService devCardService, PlacementService placementService, NotificationService notificationService, ObjectMapper objectMapper, TradeService tradeService, ResourceService resourceService, SessionRecordRepository sessionRecordRepository, PlayerProfileService playerProfileService, SessionCodeRepository sessionCodeRepository) {
         this.sessionService = sessionService;
         this.robberBlockerRepository = robberBlockerRepository;
         this.sessionPlayerService = sessionPlayerService;
@@ -56,6 +61,7 @@ public class GameService {
         this.objectMapper = objectMapper;
         this.tradeService = tradeService;
         this.resourceService = resourceService;
+        this.sessionRecordRepository = sessionRecordRepository;
         this.playerProfileService = playerProfileService;
         this.sessionCodeRepository = sessionCodeRepository;
     }
@@ -217,6 +223,7 @@ public class GameService {
                 }
             }
 
+            sessionRecordRepository.saveAndFlush(new SessionRecord(player1.get().getUser(), player1.get().getSession().getStartedAt(), OffsetDateTime.now()));
         }
         return player1;
     }

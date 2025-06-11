@@ -1,6 +1,7 @@
 package com.catan.catanbackend;
 
 import com.catan.catanbackend.config.EncryptionTestConfig;
+import com.catan.catanbackend.model.ResourceGroup;
 import com.catan.catanbackend.model.Session;
 import com.catan.catanbackend.model.SessionPlayer;
 import com.catan.catanbackend.model.dto.*;
@@ -24,6 +25,7 @@ import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.fail;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -146,6 +148,15 @@ class OtherSessionTests {
         assertThat(session).isPresent();
         assertThat(session.get().getId()).isEqualTo(sessionCode.getId());
         assertThat(sessionService.getPlayers(sessionCode.getId())).hasSize(1);
+
+        mvcResult = mockMvc.perform(get("/api/game/resources")
+                .header(AUTH_HEADER, logInResponse1.getFullToken())
+                .contentType(MediaType.APPLICATION_JSON)).andExpect(status().isOk()).andReturn();
+
+        contentAsString = mvcResult.getResponse().getContentAsString();
+        ResourceGroup resourceGroup = objectMapper.readValue(contentAsString, ResourceGroup.class);
+        assertThat(resourceGroup).isNotNull();
+        assertThat(resourceGroup.getBrick()).isEqualTo(10);
     }
 
     @Test

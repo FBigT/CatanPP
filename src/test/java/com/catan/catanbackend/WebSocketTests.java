@@ -1259,7 +1259,7 @@ class WebSocketTests {
             }
         });
 
-        int millis = 2000;
+        int millis = 1000;
         int timeout = 15;
 
         Thread.sleep(millis);
@@ -1426,7 +1426,7 @@ class WebSocketTests {
         receivedUser1 = gameFuture1.poll(timeout, TimeUnit.SECONDS);
         receivedUser2 = gameFuture2.poll(timeout, TimeUnit.SECONDS);
         receivedUser3 = gameFuture3.poll(timeout, TimeUnit.SECONDS);
-
+//ovdje
         assertThat(receivedUser1).isNotNull().isEqualTo(receivedUser2).isEqualTo(receivedUser3);
 
         receivedUser1 = gameFuture1.poll(timeout, TimeUnit.SECONDS);

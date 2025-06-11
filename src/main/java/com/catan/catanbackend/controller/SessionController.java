@@ -132,35 +132,4 @@ public class SessionController {
         sessionSaveService.deleteSave(id);
         return new ResponseEntity<>(HttpStatus.OK);
     }
-
-    @GetMapping("/my-sessions")
-    public ResponseEntity<List<SessionSummaryDto>> getAllUserSessions(@RequestHeader(name = "Authorization") String token) {
-        if (!token.startsWith(TOKEN_TYPE)) {
-            return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
-        }
-
-        Long userId = tokenService.getUserIdFromJwtToken(token.split(" ")[1]);
-
-        List<Session> sessions = sessionService.getAllSessionsByUser(userId);
-        List<SessionSummaryDto> result = sessions.stream()
-                .map(mapper::mapSessionToSummaryDto)
-                .toList();
-
-        return ResponseEntity.ok(result);
-    }
-
-    @PostMapping("/enter/{id}")
-    public ResponseEntity<Void> enterSession(@PathVariable Long id, @RequestHeader(name = "Authorization") String token) {
-        if (!token.startsWith(TOKEN_TYPE)) {
-            return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
-        }
-
-        Optional<SessionSave> save = sessionSaveService.findById(id);
-        if (save.isEmpty()) {
-            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
-        }
-
-        sessionSaveService.loadSave(save.get().getSaveJson());
-        return new ResponseEntity<>(HttpStatus.OK);
-    }
 }

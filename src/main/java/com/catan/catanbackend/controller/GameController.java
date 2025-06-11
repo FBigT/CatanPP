@@ -32,30 +32,6 @@ public class GameController {
         this.mapper = mapper;
     }
 
-    @PostMapping("/deposit")
-    public ResponseEntity<Void> depositResources(@RequestBody ResourceGroup resourceGroup,
-                                                 @RequestHeader(name="Authorization") String token) {
-        if (!token.startsWith("Bearer")) {
-            return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
-        }
-        Long userId = tokenService.getUserIdFromJwtToken(token.split(" ")[1]);
-
-        Optional<RobberDebtBlocker> debt = gameService.findDebtByUserId(userId);
-        if (debt.isEmpty()) {
-            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
-        }
-
-        // Validate the resourceGroup + check it matches the debt amount.
-        // If everything is okay, proceed; otherwise return BAD_REQUEST.
-        if (!resourceGroup.validate()
-                || !Objects.equals(debt.get().getAmount(), resourceGroup.getSum())
-                || !gameService.settleDebtByUserId(debt.get(), userId, resourceGroup)) {
-            return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
-        }
-
-        return new ResponseEntity<>(HttpStatus.OK);
-    }
-
     @GetMapping("/resources")
     public ResponseEntity<ResourceGroup> getCurrentPlayerResources(@RequestHeader(name="Authorization") String token) {
         if (!token.startsWith("Bearer ")) {

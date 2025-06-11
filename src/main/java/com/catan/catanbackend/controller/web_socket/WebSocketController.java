@@ -170,7 +170,14 @@ public class WebSocketController {
             Object movePayload = ((List<?>) payload).get(0);
             Object endTurnPayload = ((List<?>) payload).get(1);
             messagingTemplate.convertAndSend(publicDestination, new GameMoveDto(gameMoveType.name(), objectMapper.convertValue(movePayload, Map.class)));
-            messagingTemplate.convertAndSend(publicDestination, new GameMoveDto(GameMoveTypeEnum.END_TURN.name(), objectMapper.convertValue(endTurnPayload, Map.class)));
+            new Thread(() -> {
+                try {
+                    Thread.sleep(50);
+                    messagingTemplate.convertAndSend(publicDestination, new GameMoveDto(GameMoveTypeEnum.END_TURN.name(), objectMapper.convertValue(endTurnPayload, Map.class)));
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                }
+            }).start();
         } else {
             messagingTemplate.convertAndSend(publicDestination, new GameMoveDto(gameMoveType.name(), objectMapper.convertValue(payload, Map.class)));
         /*if (gameMoveType == GameMoveTypeEnum.TRADE_OFFER) {
