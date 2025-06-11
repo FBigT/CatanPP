@@ -566,6 +566,8 @@ public class BoardGen : MonoBehaviour
 
             GameObject tileObj = Instantiate(hexTilePrefab, pos, Quaternion.identity);
 
+            tileList.Add(tileObj.GetComponent<HexTile>());
+
             if (tileObj.GetComponent<MeshCollider>() == null)
             {
                 MeshCollider meshCollider = tileObj.AddComponent<MeshCollider>();
@@ -591,6 +593,7 @@ public class BoardGen : MonoBehaviour
                 if (Vector3.Distance(tile.transform.position, vertex.Position) < hexSize + 0.1f)
                 {
                     vertex.nearbyTiles.Add(tile);
+                    tile.VertexPoints.Add(vertex);
                 }
             }
         }
