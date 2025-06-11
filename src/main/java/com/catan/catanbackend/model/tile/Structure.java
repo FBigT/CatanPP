@@ -29,6 +29,7 @@ public class Structure {
     @JoinColumn(name = "session_player_id", nullable = false)
     private SessionPlayer owner;
 
+    @NotNull
     @ToString.Exclude @EqualsAndHashCode.Exclude
     @JsonIgnore
     @OneToOne(mappedBy = "structure", fetch = FetchType.EAGER)

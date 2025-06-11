@@ -95,16 +95,26 @@ public class PlacementService {
             }
         }
 
+        // Create the structure with required fields
         Structure structure = new Structure(sp, tile, cornerIndex, structureTypeRepository.findByEnumOrCreate(structureType));
-        structure = structureRepository.save(structure);
 
-        Optional<TileCornerMap> tileCornerMap = tile.getTileCornerMaps().stream().filter(x -> x.getCornerIndex() == cornerIndex).findFirst();
+// Find the TileCorner for the given cornerIndex
+        Optional<TileCornerMap> tileCornerMap = tile.getTileCornerMaps().stream()
+                .filter(x -> x.getCornerIndex() == cornerIndex)
+                .findFirst();
+
         if (tileCornerMap.isPresent()) {
             TileCorner tileCorner = tileCornerMap.get().getCorner();
+
+            // Set the corner on the structure before saving (required for validation)
             structure.setCorner(tileCorner);
+
+            // Save structure first, so it is persisted with all required fields set
+            structure = structureRepository.save(structure);
+
+            // Now set the structure on the tile corner and save tile corner
             tileCorner.setStructure(structure);
             tileCornerRepository.save(tileCorner);
-            structureRepository.save(structure);
         }
 
         return structure;

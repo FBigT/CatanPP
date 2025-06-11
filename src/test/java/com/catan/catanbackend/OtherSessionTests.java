@@ -149,7 +149,7 @@ class OtherSessionTests {
         assertThat(session.get().getId()).isEqualTo(sessionCode.getId());
         assertThat(sessionService.getPlayers(sessionCode.getId())).hasSize(1);
 
-        mvcResult = mockMvc.perform(get("/api/game/resources")
+        mvcResult = mockMvc.perform(get("/api/game/resources/"+sessionCode.getCode())
                 .header(AUTH_HEADER, logInResponse1.getFullToken())
                 .contentType(MediaType.APPLICATION_JSON)).andExpect(status().isOk()).andReturn();
 

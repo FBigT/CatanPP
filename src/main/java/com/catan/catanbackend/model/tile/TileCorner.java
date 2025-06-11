@@ -31,7 +31,7 @@ public class TileCorner {
     private Session session;
 
     @JsonIgnore
-    @OneToOne(fetch = FetchType.EAGER)
+    @OneToOne(fetch = FetchType.EAGER, cascade = CascadeType.PERSIST)
     @JoinColumn(name = "structure_id")
     private Structure structure;
 

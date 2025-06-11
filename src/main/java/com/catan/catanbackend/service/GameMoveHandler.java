@@ -321,7 +321,7 @@ public class GameMoveHandler {
             }
             case END_TURN -> {
                 EndTurnResponseDto endTurnResponseDto = getEndTurnResponseDto(session, false, sessionPlayer);
-                notificationService.sendChatMessage( bySessionId.get().getCode(), new ChatMessage("System",  new RawChatMessage("Current turn: " + endTurnResponseDto.getTurnNumber())));
+                notificationService.sendChatMessage( bySessionId.get().getCode(), new ChatMessage("System",  new RawChatMessage( sessionPlayer.getName()+ "ended their turn. Current turn: " + endTurnResponseDto.getTurnNumber())));
                 return endTurnResponseDto;
             }
             case ROBBER_MOVE -> {
@@ -495,6 +495,10 @@ public class GameMoveHandler {
         Long sessionId = session.getId();
         //checkIfSessionValid(session);
         //checkIfSessionBlocked(sessionId);
+
+        if (!session.getCurrentPlayer().getId().equals(sessionPlayer.getId())) {
+            throw new IllegalArgumentException(sessionPlayer.getName() + " is not the current player");
+        }
 
         //Gets the next player
         Optional<SessionPlayer> nextPlayer = sessionService.getNextPlayer(sessionId);
