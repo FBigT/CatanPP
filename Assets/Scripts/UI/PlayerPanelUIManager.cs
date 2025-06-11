@@ -5,17 +5,30 @@ using static UnityEngine.GraphicsBuffer;
 
 public class PlayerPanelUIManager : MonoBehaviour
 {
+    public static PlayerPanelUIManager Instance { get; private set; }
+
     [SerializeField] private List<PlayerPanelUI> playerPanels = new();
     [SerializeField] private ColorPalette colorPalette;
 
     private int currentIndex = 0;
     private int activePlayerCount = 0;
 
+    private void Awake()
+    {
+        if (Instance == null)
+        {
+            Instance = this;
+            DontDestroyOnLoad(gameObject);
+        }
+        else
+        {
+            Destroy(gameObject);
+        }
+    }
+
     void Start()
     {
         UpdatePanelStates();
-
-        InitializePlayers(new List<string> { "Alice", "Bob", "Charlie" });
     }
 
     public void InitializePlayers(List<string> playerNames)

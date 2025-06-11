@@ -73,6 +73,7 @@ public class BoardGen : MonoBehaviour
     #region Unity Methods
     private void Awake()
     {
+        blockPanel.gameObject.SetActive(true);
         Debug.Log("[BoardGen] Awake() started");
         if (Instance == null)
         {
@@ -87,16 +88,16 @@ public class BoardGen : MonoBehaviour
             return;
         }
 
-        // Subscribe to map events early
-        SubscribeToMapEvents();
-        Debug.Log("[BoardGen] Awake() completed - waiting for TradingManager.OnPlayersLoaded");
-
+        WebSocketService.OnMapGenerated += HandleMapReceived;
         WebSocketService.OnDiceResponse += GetDiceData;
         WebSocketService.OnEndTurn += GetEndTurn;
         PuchaseUIManager.OnStructureBuilt += HandleStructurePlaced;
         WebSocketService.OnPlaceStructure += GetStructurePlacedConfirmation;
         PuchaseUIManager.OnRoadBuilt += HandleRoadPlaced;
         WebSocketService.OnPlaceRoad += GetRoadPlacedConfirmation;
+
+        WebSocketService.OnRobberMoved += HandleRobberMoveResponse;
+        Assets.Scripts.GameMode.Trading.TradingManager.OnPlayersLoaded += HandlePlayersLoaded;
     }
 
     private void OnDestroy()
@@ -110,19 +111,14 @@ public class BoardGen : MonoBehaviour
         PuchaseUIManager.OnRoadBuilt -= HandleRoadPlaced;
         WebSocketService.OnPlaceRoad -= GetRoadPlacedConfirmation;
 
+        WebSocketService.OnRobberMoved -= HandleRobberMoveResponse;
         Assets.Scripts.GameMode.Trading.TradingManager.OnPlayersLoaded -= HandlePlayersLoaded;
     }
 
     private void Start()
     {
-        Debug.Log("[BoardGen] Start() called");
-        WebSocketService.OnRobberMoved += HandleRobberMoveResponse;
-        // Subscribe to TradingManager's OnPlayersLoaded event (same as DevCardManager)
-        Assets.Scripts.GameMode.Trading.TradingManager.OnPlayersLoaded += HandlePlayersLoaded;
-        Debug.Log("[BoardGen] ✅ Subscribed to TradingManager.OnPlayersLoaded event");
-
-        // Initialize session data
         StartCoroutine(InitializeSessionData());
+        PlayerPanelUIManager.Instance.InitializePlayers(new List<string> { "Alice", "Bob", "Charlie" });
     }
     #endregion
 
@@ -680,17 +676,8 @@ public class BoardGen : MonoBehaviour
     #endregion
 
     #region Map
-    private void SubscribeToMapEvents()
-    {
-        try
-        {
-            WebSocketService.OnMapGenerated += HandleMapReceived;
-        }
-        catch (Exception ex)
-        {
-            Debug.LogError($"[BoardGen] ❌ Failed to subscribe to map events: {ex.Message}");
-        }
-    }
+
+    public RectTransform blockPanel;
 
     private IEnumerator RequestMapFromBackend()
     {
@@ -721,6 +708,8 @@ public class BoardGen : MonoBehaviour
     }
     private void HandleMapReceived(GenerateMapDto mapData)
     {
+        blockPanel.gameObject.SetActive(false);
+
         if (isGenerated)
             return;
 
@@ -743,15 +732,15 @@ public class BoardGen : MonoBehaviour
 
         if (!playersLoaded)
             return;
-        
+
 
         if (!WebSocketService.Connected)
             return;
-        
 
-        if (cachedSessionPlayerId <= 0) 
+
+        if (cachedSessionPlayerId <= 0)
             return;
-        
+
 
         try
         {
@@ -802,11 +791,14 @@ public class BoardGen : MonoBehaviour
 
     public void GetEndTurn(EndTurnResponse t)
     {
+        DoSetupPhase();
+
         Debug.Log("[BoardGen] EndTurn received from WebSocket - handling end turn logic");
 
         DevCardManager.Instance.LoadPlayerCards();
         DevCardManager.Instance.SetCardPlayable();
     }
+
     #endregion
 
     #region Structure
@@ -860,7 +852,7 @@ public class BoardGen : MonoBehaviour
     public void GetDiceData(DiceResultDto diceResult)
     {
         Debug.Log($"[Dice Result] 🎲 {diceResult.username} rolled a {diceResult.rollResult}");
- 
+
         foreach (var entry in diceResult.userResourcesGained)
         {
             string user = entry.Key;
@@ -911,5 +903,52 @@ public class BoardGen : MonoBehaviour
         MoveThiefTo(newTile);
     }
 
+    #endregion
+
+    #region Setup phase
+    public bool setupPhaseActive = true;
+    public int tempPlayerIndex = 0;
+    public int tempForwardAndBackwardCount = 0;
+    public int tempMaxPlayers = 3;
+
+    public void DoSetupPhase()
+    {
+        //init setup, chage to implementation, this is only local for testing
+        if (setupPhaseActive)
+        {
+            // If still placing in setup
+            if (tempForwardAndBackwardCount < 2)
+            {
+                if (tempForwardAndBackwardCount % 2 == 0) // Forward
+                {
+                    if (tempPlayerIndex < tempMaxPlayers)
+                    {
+                        PlayerPanelUIManager.Instance.StepForward();
+                        tempPlayerIndex++;
+                    }
+                    else
+                    {
+                        tempPlayerIndex = tempMaxPlayers - 1;
+                        tempForwardAndBackwardCount++;
+                    }
+                }
+                else // Backward
+                {
+                    if (tempPlayerIndex > 0)
+                    {
+                        PlayerPanelUIManager.Instance.StepBackward();
+                        tempPlayerIndex--;
+                    }
+                    else
+                    {
+                        tempPlayerIndex = 0;
+                        tempForwardAndBackwardCount++;
+                        setupPhaseActive = false;
+                        Debug.Log("[Setup] Setup phase complete.");
+                    }
+                }
+            }
+        }
+    }
     #endregion
 }
