@@ -1,24 +1,17 @@
-﻿using Assets;
-using Assets.Scripts.DevCards.Core;
+﻿using Assets.Scripts.DevCards.Core;
 using Assets.Scripts.Dtos;
 using Assets.Scripts.Dtos.GameMoveResponses;
 using Assets.Scripts.Enums;
-using Assets.Scripts.GameMode.Trading.Models;
-using Assets.Scripts.User;
 using Assets.Scripts.Utils;
 using Catan.UI;
 using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
-using System.Threading.Tasks;
-using Unity.VisualScripting;
 using UnityEditor;
-using UnityEditor.PackageManager.Requests;
 using UnityEngine;
 using UnityEngine.Networking;
 using UnityEngine.UI;
-using static UnityEngine.GraphicsBuffer;
 
 public class BoardGen : MonoBehaviour
 {
@@ -106,8 +99,8 @@ public class BoardGen : MonoBehaviour
         PuchaseUIManager.OnRoadBuilt += HandleRoadPlaced;
         WebSocketService.OnPlaceRoad += GetRoadPlacedConfirmation;
 
-        PuchaseUIManager.OnStructureUpgrade -= HandleStructureUpgrade;
-        WebSocketService.OnUpgradeStructure -= GetStructureUpgradeConfirmation;
+        PuchaseUIManager.OnStructureUpgrade += HandleStructureUpgrade;
+        WebSocketService.OnUpgradeStructure += GetStructureUpgradeConfirmation;
 
         WebSocketService.OnRobberMoved += HandleRobberMoveResponse;
         Assets.Scripts.GameMode.Trading.TradingManager.OnPlayersLoaded += HandlePlayersLoaded;
@@ -1171,6 +1164,7 @@ public class BoardGen : MonoBehaviour
 
 
     #endregion
+
     #region victory
     private void HandleVictory(VictoryDto victory)
     {
