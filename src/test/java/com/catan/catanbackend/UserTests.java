@@ -257,6 +257,25 @@ class UserTests {
     }
 
     @Test
+    void testAnonymize() throws Exception {
+        LogInResponse logInResponse = registerAndLogin(new RegisterForm(NEW_USERNAME, NEW_PASSWORD, MAIL));
+
+        mockMvc.perform(get("/api/users/" + logInResponse.getUserId())
+                        .header(HttpHeaders.AUTHORIZATION, logInResponse.getFullToken()))
+                .andExpect(status().isOk());
+
+        //We cannot delete other user (jwt holder id has to match parameter id)
+        mockMvc.perform(delete("/api/users/forget/anonymize")
+                        .header(HttpHeaders.AUTHORIZATION, logInResponse.getFullToken()))
+                .andExpect(status().isOk());
+
+        //Not found because we deleted our authenticated user
+        mockMvc.perform(get("/api/users" + logInResponse.getUserId())
+                        .header(HttpHeaders.AUTHORIZATION, logInResponse.getFullToken()))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
     void testUpdate() throws Exception {
         LogInResponse logInResponse = registerAndLogin(new RegisterForm(NEW_USERNAME, NEW_PASSWORD, MAIL));
 

@@ -163,6 +163,4 @@ public class SessionController {
         sessionSaveService.loadSave(save.get().getSaveJson());
         return new ResponseEntity<>(HttpStatus.OK);
     }
-
-
 }

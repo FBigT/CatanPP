@@ -10,6 +10,8 @@ import com.catan.catanbackend.model.helper.StructureTypeEnum;
 import com.catan.catanbackend.model.tile.Structure;
 import com.catan.catanbackend.model.tile.Tile;
 import com.catan.catanbackend.model.tile.TileCorner;
+import com.catan.catanbackend.repository.RobberBlockerRepository;
+import com.catan.catanbackend.repository.RobberMoveBlockerRepository;
 import com.catan.catanbackend.repository.tiles.RoadRepository;
 import com.catan.catanbackend.repository.tiles.StructureRepository;
 import com.catan.catanbackend.repository.tiles.TileCornerRepository;
@@ -69,6 +71,8 @@ class WebSocketTests {
 
     @PersistenceContext
     private EntityManager entityManager;
+    private final RobberBlockerRepository blockerRepository;
+    private final RobberMoveBlockerRepository robberMoveBlockerRepository;
     private final UserService userService;
     private final Mapper mapper;
     private final MockMvc mockMvc;
@@ -111,7 +115,9 @@ class WebSocketTests {
 
     private SessionCode sessionCode;
 
-    WebSocketTests(UserService userService, Mapper mapper, MockMvc mockMvc, ObjectMapper objectMapper, SessionService sessionService, JdbcTemplate jdbc, RoadRepository roadRepository, TileService tileService, StructureRepository structureRepository, SessionPlayerService sessionPlayerService, TileCornerRepository tileCornerRepository, SessionSaveService sessionSaveService, DevCardService devCardService, EncryptionUtils encryptionUtils) {
+    WebSocketTests(RobberBlockerRepository blockerRepository, RobberMoveBlockerRepository robberMoveBlockerRepository, UserService userService, Mapper mapper, MockMvc mockMvc, ObjectMapper objectMapper, SessionService sessionService, JdbcTemplate jdbc, RoadRepository roadRepository, TileService tileService, StructureRepository structureRepository, SessionPlayerService sessionPlayerService, TileCornerRepository tileCornerRepository, SessionSaveService sessionSaveService, DevCardService devCardService, EncryptionUtils encryptionUtils) {
+        this.blockerRepository = blockerRepository;
+        this.robberMoveBlockerRepository = robberMoveBlockerRepository;
         this.userService = userService;
         this.mapper = mapper;
         this.mockMvc = mockMvc;
@@ -369,7 +375,7 @@ class WebSocketTests {
 
         turnOffSetup();
 
-        stompSession2.send(getStompHeaders(sendGameTopic, logInResponse2), new GameMoveDto(GameMoveTypeEnum.MAP_GEN.name(), map));
+        stompSession2.send(getStompHeaders(sendGameTopic, logInResponse2), new GameMoveDto(GameMoveTypeEnum.REQUEST_MAP.name(), map));
         GameMoveDto received2 = gameFuture2.get(5, TimeUnit.SECONDS);
 
         assertThat(received1).isNotNull();
@@ -513,6 +519,8 @@ class WebSocketTests {
 
         assertThat(structure).isNotNull();
         assertThat(structure.getCorner()).isEqualTo(tileCorner);
+        assertThat(structureRepository.findAll()).hasSize(1);
+        assertThat(structureRepository.findAll().stream().filter(x -> Objects.equals(x.getStructureType().getName(), StructureTypeEnum.CITY.name()))).hasSize(1);
     }
 
     @Test
@@ -634,6 +642,22 @@ class WebSocketTests {
         assertThat(receivedUser2).isNotNull().isEqualTo(publicReceive1).isNotEqualTo(secretReceive);
         assertThat(buyCardResponseDto).isNotNull();
         assertThat(buyCardResponseDto.getNumberOfCards()).isEqualTo(1);
+        PrivateBuyCardResponse privateBuyCardResponse = objectMapper.convertValue(secretReceive.getMoveData(), PrivateBuyCardResponse.class);
+        Thread.sleep(500);
+
+        stompSession1.send(getStompHeaders(sendGameTopic, logInResponse1), new GameMoveDto(GameMoveTypeEnum.REQUEST_DEV_CARDS.name(), null));
+
+        Thread.sleep(500);
+
+        publicReceive1 = gameFuture1.poll(5, TimeUnit.SECONDS);
+        receivedUser2 = gameFuture2.poll(5, TimeUnit.SECONDS);
+
+        assertThat(publicReceive1).isNotNull().isEqualTo(receivedUser2);
+        DevCardsListResponseDto devCardsListResponseDto = objectMapper.convertValue(publicReceive1.getMoveData(), DevCardsListResponseDto.class);
+        assertThat(devCardsListResponseDto).isNotNull();
+        assertThat(devCardsListResponseDto.getDevCards()).isNotNull();
+        assertThat(devCardsListResponseDto.getDevCards()).hasSize(1);
+        assertThat(devCardsListResponseDto.getDevCards().stream().findFirst().get().getId()).isEqualTo(privateBuyCardResponse.getCardId());
     }
 
     @Test
@@ -1089,6 +1113,105 @@ class WebSocketTests {
     }
 
     @Test
+    void testRobber() throws Exception {
+        BlockingQueue<GameMoveDto> gameFuture1 = new LinkedBlockingQueue<>();
+        BlockingQueue<GameMoveDto> gameFuture2 = new LinkedBlockingQueue<>();
+
+        String gameTopic = "/game/move/" + sessionCode.getCode();
+        String sendGameTopic = "/send/move/" + sessionCode.getCode();
+
+        stompSession1.subscribe(getStompHeaders(gameTopic, logInResponse1), new StompFrameHandler() {
+            @Override
+            @NonNull
+            public Type getPayloadType(@NonNull StompHeaders headers) {
+                return GameMoveDto.class;
+            }
+
+            @Override
+            public void handleFrame(@NonNull StompHeaders headers, Object payload) {
+                Assertions.assertTrue(gameFuture1.offer((GameMoveDto) payload));
+            }
+        });
+        stompSession2.subscribe(getStompHeaders(gameTopic, logInResponse2), new StompFrameHandler() {
+            @Override
+            @NonNull
+            public Type getPayloadType(@NonNull StompHeaders headers) {
+                return GameMoveDto.class;
+            }
+
+            @Override
+            public void handleFrame(@NonNull StompHeaders headers, Object payload) {
+                Assertions.assertTrue(gameFuture2.offer((GameMoveDto) payload));
+            }
+        });
+
+        Thread.sleep(500);
+
+        generateMap(sendGameTopic, gameFuture1, gameFuture2);
+
+        GameMoveDto receivedUser1;
+        GameMoveDto receivedUser2;
+
+        turnOffSetup();
+
+        Thread.sleep(500);
+        DiceResultDto diceResultDto;
+        do {
+            stompSession1.send(getStompHeaders(sendGameTopic, logInResponse1), new GameMoveDto(GameMoveTypeEnum.DICE_ROLL.name(), null));
+
+            Thread.sleep(500);
+
+            receivedUser1 = gameFuture1.poll(5, TimeUnit.SECONDS);
+            receivedUser2 = gameFuture2.poll(5, TimeUnit.SECONDS);
+
+            assertThat(receivedUser1).isNotNull();
+            assertThat(receivedUser2).isNotNull().isEqualTo(receivedUser1);
+
+            diceResultDto = objectMapper.convertValue(receivedUser1.getMoveData(), DiceResultDto.class);
+
+            assertThat(diceResultDto).isNotNull();
+            assertThat(diceResultDto.getUsername()).isEqualTo(user1.getUsername());
+        } while (diceResultDto.getRollResult() != 7);
+        RobberMoveDto robberMoveDto = new RobberMoveDto(0, 0, 1, 0);
+        assertThat(robberMoveBlockerRepository.findAll()).hasSize(1);
+
+        Thread.sleep(500);
+
+        Map<String, Object> map = objectMapper.convertValue(robberMoveDto, new TypeReference<>() {});
+        stompSession1.send(getStompHeaders(sendGameTopic, logInResponse1), new GameMoveDto(GameMoveTypeEnum.ROBBER_MOVE.name(), map));
+
+        Thread.sleep(500);
+
+        receivedUser1 = gameFuture1.poll(5, TimeUnit.SECONDS);
+        receivedUser2 = gameFuture2.poll(5, TimeUnit.SECONDS);
+
+        assertThat(receivedUser1).isNotNull().isEqualTo(receivedUser2);
+        assertThat(robberMoveBlockerRepository.findAll()).isEmpty();
+        assertThat(blockerRepository.findAll()).hasSize(2);
+
+        ResourceGroup resourceGroup = new ResourceGroup(5, 5, 5, 5, 5, 5, 5, 5, 5);
+
+        map = objectMapper.convertValue(resourceGroup, new TypeReference<>() {});
+        stompSession1.send(getStompHeaders(sendGameTopic, logInResponse1), new GameMoveDto(GameMoveTypeEnum.PAY_DEBT.name(), map));
+
+        Thread.sleep(500);
+
+        receivedUser1 = gameFuture1.poll(5, TimeUnit.SECONDS);
+        receivedUser2 = gameFuture2.poll(5, TimeUnit.SECONDS);
+        assertThat(receivedUser1).isNotNull().isEqualTo(receivedUser2);
+
+        map = objectMapper.convertValue(resourceGroup, new TypeReference<>() {});
+        stompSession2.send(getStompHeaders(sendGameTopic, logInResponse1), new GameMoveDto(GameMoveTypeEnum.PAY_DEBT.name(), map));
+
+        Thread.sleep(500);
+
+        receivedUser1 = gameFuture1.poll(5, TimeUnit.SECONDS);
+        receivedUser2 = gameFuture2.poll(5, TimeUnit.SECONDS);
+        assertThat(receivedUser1).isNotNull().isEqualTo(receivedUser2);
+        assertThat(blockerRepository.findAll()).isEmpty();
+    }
+
+    @Test
     void testSetupPhase() throws Exception {
         BlockingQueue<GameMoveDto> gameFuture1 = new LinkedBlockingQueue<>();
         BlockingQueue<GameMoveDto> gameFuture2 = new LinkedBlockingQueue<>();
@@ -1136,7 +1259,7 @@ class WebSocketTests {
             }
         });
 
-        int millis = 1500;
+        int millis = 2000;
         int timeout = 15;
 
         Thread.sleep(millis);
@@ -1190,6 +1313,12 @@ class WebSocketTests {
 
         assertThat(receivedUser1).isNotNull().isEqualTo(receivedUser2).isEqualTo(receivedUser3);
 
+        receivedUser1 = gameFuture1.poll(timeout, TimeUnit.SECONDS);
+        receivedUser2 = gameFuture2.poll(timeout, TimeUnit.SECONDS);
+        receivedUser3 = gameFuture3.poll(timeout, TimeUnit.SECONDS);
+
+        assertThat(receivedUser1).isNotNull().isEqualTo(receivedUser2).isEqualTo(receivedUser3);
+
         /// Player 2
         map = objectMapper.convertValue(new PlaceStructureDto(1, 1, 2, StructureTypeEnum.SETTLEMENT.name()), new TypeReference<>() {});
         orderedSessions.get(1).send(getStompHeaders(sendGameTopic, logInResponse1), new GameMoveDto(GameMoveTypeEnum.PLACE_STRUCTURE.name(), map));
@@ -1206,6 +1335,12 @@ class WebSocketTests {
         orderedSessions.get(1).send(getStompHeaders(sendGameTopic, logInResponse1), new GameMoveDto(GameMoveTypeEnum.PLACE_ROAD.name(), map));
 
         Thread.sleep(millis);
+
+        receivedUser1 = gameFuture1.poll(timeout, TimeUnit.SECONDS);
+        receivedUser2 = gameFuture2.poll(timeout, TimeUnit.SECONDS);
+        receivedUser3 = gameFuture3.poll(timeout, TimeUnit.SECONDS);
+
+        assertThat(receivedUser1).isNotNull().isEqualTo(receivedUser2).isEqualTo(receivedUser3);
 
         receivedUser1 = gameFuture1.poll(timeout, TimeUnit.SECONDS);
         receivedUser2 = gameFuture2.poll(timeout, TimeUnit.SECONDS);
@@ -1236,6 +1371,12 @@ class WebSocketTests {
 
         assertThat(receivedUser1).isNotNull().isEqualTo(receivedUser2).isEqualTo(receivedUser3);
 
+        receivedUser1 = gameFuture1.poll(timeout, TimeUnit.SECONDS);
+        receivedUser2 = gameFuture2.poll(timeout, TimeUnit.SECONDS);
+        receivedUser3 = gameFuture3.poll(timeout, TimeUnit.SECONDS);
+
+        assertThat(receivedUser1).isNotNull().isEqualTo(receivedUser2).isEqualTo(receivedUser3);
+
         /// Player 3
         map = objectMapper.convertValue(new PlaceStructureDto(0, 1, 3, StructureTypeEnum.SETTLEMENT.name()), new TypeReference<>() {});
         orderedSessions.get(2).send(getStompHeaders(sendGameTopic, logInResponse1), new GameMoveDto(GameMoveTypeEnum.PLACE_STRUCTURE.name(), map));
@@ -1259,6 +1400,12 @@ class WebSocketTests {
 
         assertThat(receivedUser1).isNotNull().isEqualTo(receivedUser2).isEqualTo(receivedUser3);
 
+        receivedUser1 = gameFuture1.poll(timeout, TimeUnit.SECONDS);
+        receivedUser2 = gameFuture2.poll(timeout, TimeUnit.SECONDS);
+        receivedUser3 = gameFuture3.poll(timeout, TimeUnit.SECONDS);
+
+        assertThat(receivedUser1).isNotNull().isEqualTo(receivedUser2).isEqualTo(receivedUser3);
+
         /// Player 2
         map = objectMapper.convertValue(new PlaceStructureDto(-1, 0, 3, StructureTypeEnum.SETTLEMENT.name()), new TypeReference<>() {});
         orderedSessions.get(1).send(getStompHeaders(sendGameTopic, logInResponse1), new GameMoveDto(GameMoveTypeEnum.PLACE_STRUCTURE.name(), map));
@@ -1275,6 +1422,12 @@ class WebSocketTests {
         orderedSessions.get(1).send(getStompHeaders(sendGameTopic, logInResponse1), new GameMoveDto(GameMoveTypeEnum.PLACE_ROAD.name(), map));
 
         Thread.sleep(millis);
+
+        receivedUser1 = gameFuture1.poll(timeout, TimeUnit.SECONDS);
+        receivedUser2 = gameFuture2.poll(timeout, TimeUnit.SECONDS);
+        receivedUser3 = gameFuture3.poll(timeout, TimeUnit.SECONDS);
+
+        assertThat(receivedUser1).isNotNull().isEqualTo(receivedUser2).isEqualTo(receivedUser3);
 
         receivedUser1 = gameFuture1.poll(timeout, TimeUnit.SECONDS);
         receivedUser2 = gameFuture2.poll(timeout, TimeUnit.SECONDS);
@@ -1307,6 +1460,17 @@ class WebSocketTests {
 
         assertThat(structureRepository.findAll()).hasSize(6);
         assertThat(roadRepository.findAll()).hasSize(6);
+
+        Thread.sleep(millis);
+        orderedSessions.get(0).send(getStompHeaders(sendGameTopic, logInResponse1), new GameMoveDto(GameMoveTypeEnum.TURN_ORDER.name(), null));
+        Thread.sleep(millis);
+        receivedUser1 = gameFuture1.poll(timeout, TimeUnit.SECONDS);
+        receivedUser2 = gameFuture2.poll(timeout, TimeUnit.SECONDS);
+        receivedUser3 = gameFuture3.poll(timeout, TimeUnit.SECONDS);
+
+        assertThat(receivedUser1).isNotNull().isEqualTo(receivedUser2).isEqualTo(receivedUser3);
+        TurnOrderResponseDto dto = objectMapper.convertValue(receivedUser1.getMoveData(), TurnOrderResponseDto.class);
+        assertThat(dto.getUsernames()).hasSize(3);
     }
 
     //Utils

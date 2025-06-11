@@ -193,15 +193,12 @@ public class SessionService {
         if (sessionPlayers.isPresent() && sessionPlayers.get().size() == 1) {
             SessionPlayer sp = sessionPlayers.get().get(0);
             if (sp.getActive()) {
+                sp.setActive(false);
                 sessionPlayerService.updateSessionPlayer(sp);
                 return true;
             }
         }
         return false;
-    }
-
-    public List<Session> getSessionsByHostId(Long hostId) {
-        return sessionRepository.findByHostId(hostId);
     }
 
     public Optional<Session> getActiveSessionsByHostId(Long hostId) {

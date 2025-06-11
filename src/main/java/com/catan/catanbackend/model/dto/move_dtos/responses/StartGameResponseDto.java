@@ -10,7 +10,7 @@ import java.util.List;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class StartGmeResponseDto {
+public class StartGameResponseDto {
     List<TileDto> tiles;
     List<String> turnOrder;
 }

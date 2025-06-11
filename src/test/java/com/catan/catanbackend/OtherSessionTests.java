@@ -166,6 +166,29 @@ class OtherSessionTests {
     }
 
     @Test
+    void testLeaveSession() throws Exception {
+        setupSession();
+
+        MvcResult mvcResult = mockMvc.perform(post("/api/sessions/join/"+sessionCodeDto.getCode())
+                .header(AUTH_HEADER, logInResponse2.getFullToken())
+                .contentType(MediaType.APPLICATION_JSON)).andExpect(status().isOk()).andReturn();
+
+        String contentAsString = mvcResult.getResponse().getContentAsString();
+        SessionCodeDto sessionCode = objectMapper.readValue(contentAsString, SessionCodeDto.class);
+        assertThat(sessionCode).isNotNull();
+        assertThat(sessionCode.getId()).isEqualTo(sessionCodeDto.getId());
+        assertThat(sessionCode.getCode()).isEqualTo(sessionCodeDto.getCode());
+
+        assertThat(sessionService.getPlayers(sessionCode.getId())).hasSize(2);
+
+        mockMvc.perform(post("/api/sessions/leave/"+sessionCodeDto.getCode())
+                .header(AUTH_HEADER, logInResponse2.getFullToken())
+                .contentType(MediaType.APPLICATION_JSON)).andExpect(status().isOk());
+
+        assertThat(sessionService.getPlayers(sessionCode.getId()).stream().filter(SessionPlayer::getActive).toList()).hasSize(1);
+    }
+
+    @Test
     void testCloseSession() throws Exception {
         setupSession();
         Optional<Session> sessionById = sessionService.getSessionById(sessionCodeDto.getId());

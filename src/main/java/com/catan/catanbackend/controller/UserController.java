@@ -142,12 +142,6 @@ public class UserController {
         return new ResponseEntity<>(encryptedResponse, HttpStatus.OK);
     }
 
-    //@PreAuthorize("isAuthenticated()")
-    @GetMapping
-    public List<User> getAllUsers() {
-        return userService.getAllUsers();
-    }
-
     @GetMapping("/username/{username}")
     public ResponseEntity<UserDto> getUserByUsername(@PathVariable String username) {
         Optional<User> user = userService.getUserByUsername(username);

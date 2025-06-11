@@ -27,7 +27,7 @@ public class RobberMoveBlocker {
 
     @JsonIgnore
     @NotNull
-    @OneToOne(fetch = FetchType.LAZY, optional = false)
+    @OneToOne(fetch = FetchType.EAGER, optional = false)
     @JoinColumn(name = "session_player_id", nullable = false)
     private SessionPlayer sessionPlayer;
 

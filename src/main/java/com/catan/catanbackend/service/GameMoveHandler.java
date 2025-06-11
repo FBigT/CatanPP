@@ -7,6 +7,8 @@ import com.catan.catanbackend.model.dto.*;
 import com.catan.catanbackend.model.dto.move_dtos.*;
 import com.catan.catanbackend.model.dto.move_dtos.responses.*;
 import com.catan.catanbackend.model.tile.*;
+import com.catan.catanbackend.repository.RobberBlockerRepository;
+import com.catan.catanbackend.repository.RobberMoveBlockerRepository;
 import com.catan.catanbackend.repository.SessionCodeRepository;
 import com.catan.catanbackend.repository.TradeOfferRepository;
 import com.catan.catanbackend.repository.tiles.RoadRepository;
@@ -33,6 +35,8 @@ public class GameMoveHandler {
     private final DiceRollService diceRollService;
     private final DevCardService devCardService;
     private final GameService gameService;
+    private final RobberMoveBlockerRepository robberMoveBlockerRepository;
+    private final RobberBlockerRepository roberBlockerRepository;
     private final ResourceService resourceService;
     private final SessionService sessionService;
     private final Mapper mapper;
@@ -46,7 +50,7 @@ public class GameMoveHandler {
     private final SessionCodeRepository sessionCodeRepository;
 
 
-    public GameMoveHandler(PlacementService placementService, ObjectMapper objectMapper, TileService tileService, TileCornerRepository tileCornerRepository, TileEdgeRepository tileEdgeRepository, MoveBlockerService moveBlockerService, DiceRollService diceRollService, DevCardService devCardService, GameService gameService, ResourceService resourceService, SessionService sessionService, Mapper mapper, RoadRepository roadRepository, StructureRepository structureRepository, NotificationService notificationService, PlayerProfileService playerProfileService, TradeService tradeService, SimpMessagingTemplate messagingTemplate, TradeOfferRepository tradeOfferRepository, SessionCodeRepository sessionCodeRepository) {
+    public GameMoveHandler(PlacementService placementService, ObjectMapper objectMapper, TileService tileService, TileCornerRepository tileCornerRepository, TileEdgeRepository tileEdgeRepository, MoveBlockerService moveBlockerService, DiceRollService diceRollService, DevCardService devCardService, GameService gameService, RobberMoveBlockerRepository robberMoveBlockerRepository, RobberBlockerRepository roberBlockerRepository, ResourceService resourceService, SessionService sessionService, Mapper mapper, RoadRepository roadRepository, StructureRepository structureRepository, NotificationService notificationService, PlayerProfileService playerProfileService, TradeService tradeService, SimpMessagingTemplate messagingTemplate, TradeOfferRepository tradeOfferRepository, SessionCodeRepository sessionCodeRepository) {
         this.placementService = placementService;
         this.objectMapper = objectMapper;
         this.tileService = tileService;
@@ -56,6 +60,8 @@ public class GameMoveHandler {
         this.diceRollService = diceRollService;
         this.devCardService = devCardService;
         this.gameService = gameService;
+        this.robberMoveBlockerRepository = robberMoveBlockerRepository;
+        this.roberBlockerRepository = roberBlockerRepository;
         this.resourceService = resourceService;
         this.sessionService = sessionService;
         this.mapper = mapper;
@@ -181,7 +187,7 @@ public class GameMoveHandler {
                 session.setInSetup(true);
                 sessionService.save(session);
 
-                return new StartGmeResponseDto(tileService.findBySessionId(sessionId).stream().map(mapper::mapTileToTileDto).toList(),
+                return new StartGameResponseDto(tileService.findBySessionId(sessionId).stream().map(mapper::mapTileToTileDto).toList(),
                         sessionService.getPlayersInTurnOrder(sessionId).stream().map(SessionPlayer::getName).toList());
             }
 
@@ -319,7 +325,7 @@ public class GameMoveHandler {
             case ROBBER_MOVE -> {
                 //checkIfSessionValid(session);
                 //checkIfSessionBlocked(sessionId);
-                if (moveBlockerService.isSessionBlocked(sessionId) && moveBlockerService.isPlayerBlocked(sessionPlayer.getId())) {
+                if (moveBlockerService.isSessionBlocked(sessionId) && !moveBlockerService.isPlayerBlocked(sessionPlayer.getId())) {
                     RobberMoveDto robberMoveDto = objectMapper.convertValue(gameMoveDto.getMoveData(), RobberMoveDto.class);
 
                     RobberMoveResponseDto robberMoveResponseDto = placementService.moveRobber(robberMoveDto, sessionPlayer);
@@ -329,6 +335,13 @@ public class GameMoveHandler {
                                             " moved the robber and stole " +
                                             robberMoveResponseDto.getResourceName() + " from " +
                                             robberMoveResponseDto.getVictimName())));
+
+                    List<RobberMoveBlocker> bySessionPlayerSessionId = robberMoveBlockerRepository.findBySessionPlayerSessionId(sessionId);
+                    bySessionPlayerSessionId.stream().filter(x -> x.getSessionPlayer().getId().equals(sessionPlayer.getId())).findFirst().ifPresent(x -> {
+                       robberMoveBlockerRepository.delete(x);
+                       robberMoveBlockerRepository.flush();
+                    });
+
                     return robberMoveResponseDto;
                 } else {
                     throw new IllegalArgumentException("You cannot move the robber now");

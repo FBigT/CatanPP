@@ -102,6 +102,7 @@ public class GameService {
         Optional<SessionPlayer> player = sessionPlayerService.findCurrentSessionPlayerByUserId(userId);
         if (player.isPresent() && resourceService.subtractResources(player.get(), resourceGroup)) {
             robberBlockerRepository.delete(debt);
+            robberBlockerRepository.flush();
             return true;
         }
         return false;
