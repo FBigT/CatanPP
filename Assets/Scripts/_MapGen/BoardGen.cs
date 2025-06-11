@@ -839,6 +839,7 @@ public class BoardGen : MonoBehaviour
     {
         Debug.Log("[BoardGen] 🏁 EndTurn called - sending end turn request to WebSocket");
         SetButtonsActive(false);
+
         await WebSocketService.SendEndTurn();
     }
 
@@ -848,6 +849,7 @@ public class BoardGen : MonoBehaviour
 
         Debug.Log("[BoardGen] EndTurn received from WebSocket - handling end turn logic");
 
+        PlayerPanelUIManager.Instance.StepForward();
         if (t.currentPlayerName == USERNAME)
         {
             SetButtonsActive(true);
@@ -870,16 +872,12 @@ public class BoardGen : MonoBehaviour
         //DoSetupPhase();
 
         Debug.Log("[BoardGen] STARTGAME received from WebSocket - handling end turn logic " + USERNAME);
-        for (int i = 0; i < t.turnOrder.Count; i++) {
-            Debug.Log(t.turnOrder.ElementAt(i));
-        }
+        
         PlayerPanelUIManager.Instance.InitializePlayers(t.turnOrder);
         if (t.turnOrder.First() == USERNAME)
         {
-            Debug.Log("YOU ARE UP");
             SetButtonsActive(true);
         } else {
-            Debug.Log("WAIT YOUR TURN");
             SetButtonsActive(false);
         }
 
