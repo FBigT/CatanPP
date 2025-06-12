@@ -284,7 +284,7 @@ public class PlacementService {
         Tile tile = tileService.findById(tileId)
                 .orElseThrow(() -> new IllegalArgumentException("Tile not found"));
         Optional<TileCorner> optionalTileCorner = tile.getTileCorner(cornerIndex);
-        if (tileId == 7) {
+        if (tileId == 3) {
             System.out.println();
         }
 
