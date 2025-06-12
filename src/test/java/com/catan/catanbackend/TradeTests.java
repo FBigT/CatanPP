@@ -3,6 +3,7 @@ package com.catan.catanbackend;
 import com.catan.catanbackend.config.EncryptionTestConfig;
 import com.catan.catanbackend.model.ResourceGroup;
 import com.catan.catanbackend.model.dto.*;
+import com.catan.catanbackend.model.dto.move_dtos.responses.TradeResponseMessage;
 import com.catan.catanbackend.service.Mapper;
 import com.catan.catanbackend.service.UserService;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -128,4 +129,25 @@ class TradeTests {
                         .content(objectMapper.writeValueAsString(dto)))
                 .andExpect(status().isOk());
     }
+
+    @Test
+    void testHandleTradeResponseAccepted() throws Exception {
+        LogInResponse playerA = registerAndLogin(new RegisterForm("playerA", "pass", "a@test.com")); // initiator
+        LogInResponse playerB = registerAndLogin(new RegisterForm("playerB", "pass", "b@test.com")); // responder
+
+        TradeResponseMessage response = new TradeResponseMessage();
+        response.setSessionId(1L);
+        response.setFromUser(playerB.getUserId().toString());  // Responder
+        response.setToUser(playerA.getUserId().toString());    // Initiator
+        response.setAccepted(true);
+        response.setOffered(new ResourceGroup(1, 0, 0, 0, 0, 0, 0, 0, 0));   // What A originally offered
+        response.setRequested(new ResourceGroup(0, 0, 0, 1, 0, 0, 0, 0, 0)); // What A wanted
+
+        mockMvc.perform(post("/api/trade/response")
+                        .header(HttpHeaders.AUTHORIZATION, playerB.getFullToken())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(response)))
+                .andExpect(status().isOk());
+    }
+
 }
