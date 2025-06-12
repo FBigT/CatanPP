@@ -863,13 +863,10 @@ public class BoardGen : MonoBehaviour
         if (isMyTurn)
         {
             SetButtonsActive(true);
-<<<<<<< Updated upstream
             // CRITICAL: Load cards FIRST, then set playable state
             StartCoroutine(LoadCardsAndSetPlayable());
-=======
             rolled = false;
             currentTurn = true;
->>>>>>> Stashed changes
         }
         else
         {
