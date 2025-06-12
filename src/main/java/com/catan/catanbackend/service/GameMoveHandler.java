@@ -683,14 +683,11 @@ public class GameMoveHandler {
     }
 
     public static Point2D.Double getCorner(int r, int q, int cornerIndex) {
-        // center of this hex in unit‐space
         double cx = Math.sqrt(3) * (q + r/2.0);
         double cy = 1.5     * r;
 
-        // angle to this corner (deg)
-        double ang = Math.toRadians(60 * cornerIndex - 30);
+        double ang = Math.toRadians(60 * cornerIndex + 30);
 
-        // offset from center (radius=1)
         double dx =  Math.cos(ang);
         double dy =  Math.sin(ang);
 

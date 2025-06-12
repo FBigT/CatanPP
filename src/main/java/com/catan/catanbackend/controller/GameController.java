@@ -32,21 +32,18 @@ public class GameController {
         this.mapper = mapper;
     }
 
-    @GetMapping("/resources/{sessioncode}")
-    public ResponseEntity<ResourceGroup> getCurrentPlayerResources(@RequestHeader(name="Authorization") String token, @PathVariable String sessioncode) {
+    @GetMapping("/resources/{sessioncode}/{username}")
+    public ResponseEntity<ResourceGroup> getCurrentPlayerResources(@RequestHeader(name="Authorization") String token, @PathVariable String sessioncode, @PathVariable String username) {
         if (!token.startsWith("Bearer ")) {
             return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
         }
 
-        String parsedToken = token.substring("Bearer ".length());
-        Long userId = tokenService.getUserIdFromJwtToken(parsedToken);
+        Optional<SessionPlayer> first = sessionPlayerService.findPlayersBySessionCode(sessioncode).stream().filter(x -> Objects.equals(x.getName(), username)).findFirst();
 
-        Optional<SessionPlayer> currentPlayer = sessionPlayerService.findPlayerBySessionCodeAndUserId(sessioncode,userId);
-        if (currentPlayer.isEmpty()) {
-            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+        if (first.isPresent()) {
+            ResourceGroup rg = mapper.mapSessionPlayerToResource(first.get());
+            return new ResponseEntity<>(rg, HttpStatus.OK);
         }
-
-        ResourceGroup rg = mapper.mapSessionPlayerToResource(currentPlayer.get());
-        return new ResponseEntity<>(rg, HttpStatus.OK);
+        return new ResponseEntity<>(HttpStatus.NOT_FOUND);
     }
 }

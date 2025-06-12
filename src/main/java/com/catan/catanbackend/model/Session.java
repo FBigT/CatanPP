@@ -21,7 +21,7 @@ import java.time.OffsetDateTime;
 @JsonIgnoreProperties({ "hibernateLazyInitializer", "handler" })
 public class Session {
     public Session(User host, int maxPlayers){
-        this(host, maxPlayers, 10);
+        this(host, maxPlayers, 5);
     }
 
     public Session(User host, int maxPlayers, int victoryCondition){

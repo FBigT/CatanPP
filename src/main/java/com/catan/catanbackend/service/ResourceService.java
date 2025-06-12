@@ -51,6 +51,7 @@ public class ResourceService {
             case SHEEP -> sessionPlayer.setSheep(sessionPlayer.getSheep() + amount);
             case SILVER -> sessionPlayer.setSilver(sessionPlayer.getSilver() + amount);
             case GOLD -> sessionPlayer.setGold(sessionPlayer.getGold() + amount);
+            case WHEAT -> sessionPlayer.setWheat(sessionPlayer.getWheat() + amount);
         }
 
         resourceGroup.addResource(resourceType, amount);
