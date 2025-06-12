@@ -21,6 +21,7 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.awt.geom.Point2D;
 import java.time.OffsetDateTime;
@@ -79,6 +80,7 @@ public class GameMoveHandler {
 
     }
 
+    @Transactional
     public Object handleGameMove(GameMoveTypeEnum gameMoveTypeEnum, GameMoveDto gameMoveDto, SessionPlayer sessionPlayer) {
         final Long sessionId = sessionPlayer.getSession().getId();
         Optional<Session> sessionById = sessionService.getSessionById(sessionId);
@@ -354,7 +356,7 @@ public class GameMoveHandler {
                 //checkIfSessionValid(session);
                 int result = diceRollService.rollDice();
                 if (result == 7){
-                    gameService.activateRobber(sessionPlayer, true);
+                    gameService.activateRobber(sessionPlayer, false);
                 }
 
                 //Find tiles with matching numbers
@@ -362,8 +364,10 @@ public class GameMoveHandler {
                 Map<SessionPlayer, ResourceGroup> gainedResourceGroups = new HashMap<>();
                 for (Tile affectedTile : affectedTiles) {
                     //Find structures on the corners
-                    affectedTile.getTileCornerMaps().stream().map(tileCornerMap -> tileCornerMap.getCorner().getStructure())
-                            .filter(Objects::nonNull).forEach(structure -> {
+                    List<Structure> structures = affectedTile.getTileCornerMaps().stream().map(tileCornerMap -> tileCornerMap.getCorner().getStructure())
+                            .filter(Objects::nonNull).toList();
+
+                    for (Structure structure : structures) {
                         gainedResourceGroups.computeIfAbsent(structure.getOwner(), x -> new ResourceGroup());
 
                         //If city gain 2
@@ -375,7 +379,7 @@ public class GameMoveHandler {
                             resourceService.addResource(ResourceType.valueOf(affectedTile.getTileType().getResource().getName()),
                                     1, structure.getOwner(), gainedResourceGroups.get(structure.getOwner()));
                         }
-                    });
+                    }
                 }
                 Map<String, ResourceGroup> resultMap = gainedResourceGroups.entrySet().stream()
                         .collect(Collectors.toMap(

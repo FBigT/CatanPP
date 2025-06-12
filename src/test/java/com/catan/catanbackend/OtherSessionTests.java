@@ -6,6 +6,7 @@ import com.catan.catanbackend.model.Session;
 import com.catan.catanbackend.model.SessionPlayer;
 import com.catan.catanbackend.model.dto.*;
 import com.catan.catanbackend.service.*;
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
@@ -21,6 +22,7 @@ import org.springframework.test.context.TestConstructor;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 
+import java.util.List;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.fail;
@@ -157,6 +159,14 @@ class OtherSessionTests {
         ResourceGroup resourceGroup = objectMapper.readValue(contentAsString, ResourceGroup.class);
         assertThat(resourceGroup).isNotNull();
         assertThat(resourceGroup.getBrick()).isEqualTo(10);
+
+        mvcResult = mockMvc.perform(get("/api/session-players/session/"+sessionCode.getId())
+                .header(AUTH_HEADER, logInResponse1.getFullToken())
+                .contentType(MediaType.APPLICATION_JSON)).andExpect(status().isOk()).andReturn();
+
+        contentAsString = mvcResult.getResponse().getContentAsString();
+        List<SessionPlayerDto> sessionPlayerDtos = objectMapper.readValue(contentAsString, new TypeReference<>() {});
+        assertThat(sessionPlayerDtos).hasSize(1);
     }
 
     @Test
