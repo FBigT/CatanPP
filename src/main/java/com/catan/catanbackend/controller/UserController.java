@@ -75,26 +75,6 @@ public class UserController {
         return new ResponseEntity<>(encryptedResponse, HttpStatus.OK);
     }
 
-    @PostMapping("/login/bad")
-    public ResponseEntity<LogInResponse> login(@RequestBody LogInForm logInForm) {
-        Authentication authentication = authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(logInForm.getUsername(), logInForm.getPassword()));
-
-        SecurityContextHolder.getContext()
-                .setAuthentication(authentication);
-        UserDetailsImpl userDetails = (UserDetailsImpl) authentication.getPrincipal();
-
-        Optional<User> user = userService.findById(userDetails.getId());
-        if (user.isEmpty())
-            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
-        if (Boolean.TRUE.equals(!user.get().getActive()) || Boolean.TRUE.equals(user.get().getIsGuest())) {
-            return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
-        }
-
-        String jwt = tokenService.generateJwtToken(authentication);
-        LogInResponse logInResponse = new LogInResponse(userDetails.getId(), userDetails.getUsername(), jwt, refreshTokenService.createIfNotExists(user.get()).getToken());
-        return new ResponseEntity<>(logInResponse, HttpStatus.OK);
-    }
-
     @PostMapping("/login/guest")
     public ResponseEntity<EncryptedResponse> guestLogin(@RequestBody EncryptedMessage encryptedMessage) {
         DecryptedMessage decryptedMessage = mapper.mapToObject(encryptedMessage, RefreshRequest.class);
