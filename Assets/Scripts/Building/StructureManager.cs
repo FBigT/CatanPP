@@ -82,15 +82,11 @@ public class StructureManager : MonoBehaviour
             return false;
         }
 
-        if (!ep.IsConnectedToPlayer(player))
-        {
-            Debug.Log("StructureManager: No connection to existing player road or structure.");
-            return false;
-        }
+        if (player == null) return false;
 
-        ep.Build(player);
+        ep.Build("N/A");
         ep.AddComponent<PlayerMarker>();
-        ep.GetComponent<PlayerMarker>().SetColorForThisStructure(Color.cyan);
+        ep.GetComponent<PlayerMarker>().SetColorForThisStructure(PlayerPanelUIManager.Instance.GetColorByUsername((string)ep.owner));
         return true;
     }
 }

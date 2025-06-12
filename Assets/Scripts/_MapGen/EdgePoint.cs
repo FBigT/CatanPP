@@ -81,6 +81,7 @@ public class EdgePoint : MonoBehaviour
         owner = player;
         SetHighlightVisible(false); // Hide visual once built
         RoadGenerator.AlignRoad(this.gameObject, pointA.transform.position, pointB.transform.position, roadMaterial);
+        
     }
 
     public int GetEdgeIndexRelativeToTile(HexTile tile, EdgePoint edge)

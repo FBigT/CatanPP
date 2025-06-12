@@ -1,8 +1,6 @@
 using System.Collections.Generic;
 using UnityEditor;
 using UnityEngine;
-using static UnityEngine.GraphicsBuffer;
-
 public class PlayerPanelUIManager : MonoBehaviour
 {
     public static PlayerPanelUIManager Instance { get; private set; }
@@ -12,6 +10,8 @@ public class PlayerPanelUIManager : MonoBehaviour
 
     private int currentIndex = 0;
     private int activePlayerCount = 0;
+
+    private Dictionary<string, Color> playerColorMap = new();
 
     private void Awake()
     {
@@ -41,18 +41,26 @@ public class PlayerPanelUIManager : MonoBehaviour
 
         colorPalette.ResetPalette();
         activePlayerCount = playerNames.Count;
+        playerColorMap.Clear();
 
         for (int i = 0; i < playerPanels.Count; i++)
         {
             if (i < playerNames.Count)
             {
+                string name = playerNames[i];
+
                 playerPanels[i].gameObject.SetActive(true);
-                playerPanels[i].SetName(playerNames[i]);
+                playerPanels[i].SetName(name);
 
                 if (colorPalette.TryGetColor(out Color color))
+                {
                     playerPanels[i].SetColor(color);
+                    playerColorMap[name] = color;
+                }
                 else
+                {
                     Debug.LogWarning("Not enough colors in palette.");
+                }
             }
             else
             {
@@ -98,6 +106,14 @@ public class PlayerPanelUIManager : MonoBehaviour
     public int GetCurrentIndex()
     {
         return currentIndex;
+    }
+    public Color GetColorByUsername(string username)
+    {
+        if (playerColorMap.TryGetValue(username, out var color))
+            return color;
+
+        Debug.LogWarning($"No color found for player '{username}'");
+        return Color.clear;
     }
 }
 

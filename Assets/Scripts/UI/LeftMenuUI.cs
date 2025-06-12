@@ -139,13 +139,13 @@ namespace Catan.UI
                         return false;
                     }
 
-                    if (StructureManager.Instance.TryPlaceRoad(ep, "debug"))
+                    if (StructureManager.Instance.TryPlaceRoad(ep, BoardGen.Instance.currentUser))
                     {
                         EdgePoint.ShowPlacementHighlights = false;
                         return true;
                     }
 
-                    if (StructureManager.Instance.TryPlaceRoad(ep, "debug")) // Replace with real player ID
+                    if (StructureManager.Instance.TryPlaceRoad(ep, BoardGen.Instance.currentUser)) // Replace with real player ID
                     {
                         return true;
                     }

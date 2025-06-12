@@ -146,7 +146,7 @@ namespace Catan.UI
                     if (!Physics.Raycast(ray, out RaycastHit hitRoad, roadLayerMask)) return false;
 
                     EdgePoint ep = hitRoad.collider.GetComponent<EdgePoint>();
-                    if (ep == null || !StructureManager.Instance.TryPlaceRoad(ep, "debug"))
+                    if (ep == null || !StructureManager.Instance.TryPlaceRoad(ep, BoardGen.Instance.currentUser))
                     {
                         Debug.Log("Invalid or failed road placement.");
                         return false;

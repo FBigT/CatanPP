@@ -133,7 +133,7 @@ public class BoardGen : MonoBehaviour
     private void Start()
     {
         StartCoroutine(InitializeSessionData());
-        PlayerPanelUIManager.Instance.InitializePlayers(new List<string> { "Alice", "Bob", "Charlie" });
+        //PlayerPanelUIManager.Instance.InitializePlayers(new List<string> { "Alice", "Bob", "Charlie" });
     }
     #endregion
 
@@ -897,6 +897,7 @@ public class BoardGen : MonoBehaviour
     #endregion
 
     #region Structure
+    public string currentUser;
     private async void HandleStructurePlaced(PurchaseType type, VertexPoint vo)
     {
         var tile = vo.nearbyTiles[0];

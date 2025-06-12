@@ -21,7 +21,8 @@ public class VertexPoint : MonoBehaviour
     public void Build(StructureType structureType)
     {
         type = structureType;
-        owner = "debug";
+        if ((string)owner == null)
+            owner = "N/A";
 
         foreach (Transform child in transform)
         {
@@ -30,7 +31,7 @@ public class VertexPoint : MonoBehaviour
             var a = child.gameObject.GetComponent<PlayerMarker>();
             if (a != null)
             {
-                a.SetColorForThisStructure(Color.cyan);
+                a.SetColorForThisStructure(PlayerPanelUIManager.Instance.GetColorByUsername((string)owner));
             }
         }
 
