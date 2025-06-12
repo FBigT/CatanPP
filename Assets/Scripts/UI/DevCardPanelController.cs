@@ -5,6 +5,8 @@ using System.Collections.Generic;
 using Assets.Scripts.Models;
 using Assets.Scripts.DevCards.Core;
 
+
+
 public class DevCardPanelController : MonoBehaviour
 {
     [Header("UI References")]
@@ -12,7 +14,7 @@ public class DevCardPanelController : MonoBehaviour
     public Button buyDevCardButton;
     public Transform cardContainer;
     public GameObject cardItemPrefab;
-
+    
     [Header("Card Icons")]
     public Sprite knightIcon;
     public Sprite victoryPointIcon;

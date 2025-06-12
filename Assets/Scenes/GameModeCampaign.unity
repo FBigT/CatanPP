@@ -4493,6 +4493,7 @@ MonoBehaviour:
   victoryPointIcon: {fileID: 21300000, guid: f79ed540e251c974c84a729e9fb05b45, type: 3}
   roadBuildingIcon: {fileID: 21300000, guid: 03879c08ea05eb645910734e6e3c0722, type: 3}
   yearOfPlentyIcon: {fileID: 21300000, guid: 55c79ed02bddc9442a5df3198f18be3e, type: 3}
+  cardItemTemplate: {fileID: 9197481963319205126, guid: b3f114d2f2783fc41b2a27859b949eb2, type: 3}
 --- !u!114 &597205190
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -18774,7 +18775,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 7767528661798030020, guid: 57012f12d3fe8654f8b63c958455dc97, type: 3}
       propertyPath: m_LocalPosition.x
-      value: 17.76778
+      value: 2.6573923
       objectReference: {fileID: 0}
     - target: {fileID: 7767528661798030020, guid: 57012f12d3fe8654f8b63c958455dc97, type: 3}
       propertyPath: m_LocalPosition.y
@@ -18782,7 +18783,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 7767528661798030020, guid: 57012f12d3fe8654f8b63c958455dc97, type: 3}
       propertyPath: m_LocalPosition.z
-      value: 37.45942
+      value: 34.05826
       objectReference: {fileID: 0}
     - target: {fileID: 7767528661798030020, guid: 57012f12d3fe8654f8b63c958455dc97, type: 3}
       propertyPath: m_LocalRotation.w

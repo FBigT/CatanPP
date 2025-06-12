@@ -858,14 +858,16 @@ public class BoardGen : MonoBehaviour
         if (t.currentPlayerName == USERNAME)
         {
             SetButtonsActive(true);
+            DevCardManager.Instance.SetCardPlayable();
         }
         else 
         {
             SetButtonsActive(false);
+            DevCardManager.Instance.SetCardUnplayable();
         }
 
         DevCardManager.Instance.LoadPlayerCards();
-        DevCardManager.Instance.SetCardPlayable();
+        
 
         RefreshUI();
     }

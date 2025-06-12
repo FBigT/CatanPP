@@ -798,11 +798,36 @@ namespace Assets.Scripts.DevCards.Core
         }
         public void SetCardPlayable()
         {
-            foreach (var item in playerCards)
+            Debug.Log("=== SETTING CARDS PLAYABLE ===");
+            foreach (var card in playerCards)
             {
-                item.playable = true;
+                if (!card.used)
+                {
+                    card.playable = true;
+                    Debug.Log($"Enabled: {card.type} (ID: {card.id})");
+                }
             }
+
+            OnCardsUpdated?.Invoke(playerCards);
+            Debug.Log($"Total playable cards: {playerCards.Count(c => c.playable && !c.used)}");
         }
+
+
+        public void SetCardUnplayable()
+        {
+            foreach (var card in playerCards)
+            {
+                if (!card.used) // Only affect unused cards
+                {
+                    card.playable = false;
+                }
+            }
+
+            // Notify UI of the change
+            OnCardsUpdated?.Invoke(playerCards);
+            DebugLog("All unused cards set to unplayable");
+        }
+
         private void OnDestroy()
         {
             DebugLog("DevCardManager destroyed - unsubscribing from events");

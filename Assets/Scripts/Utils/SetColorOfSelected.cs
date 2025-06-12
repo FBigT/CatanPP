@@ -3,14 +3,14 @@ using UnityEditor;
 
 public static class SetColorOfSelected
 {
-    [MenuItem("Tools/Apply Red Color to Selected %#r")]
-    public static void ApplyColorToSelected()
+    
+    /*public static void ApplyColorToSelected()
     {
         Color targetColor = Color.red; 
         SetColor(targetColor);
-    }
+    }*/
 
-    public static void SetColor(Color color)
+    /*public static void SetColor(Color color)
     {
         foreach (GameObject obj in Selection.gameObjects)
         {
@@ -26,5 +26,5 @@ public static class SetColorOfSelected
                 }
             }
         }
-    }
+    }*/
 }
