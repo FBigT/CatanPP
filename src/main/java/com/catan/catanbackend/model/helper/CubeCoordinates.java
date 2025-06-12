@@ -4,11 +4,27 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.util.Objects;
+
 @AllArgsConstructor
-@NoArgsConstructor
 @Data
 public class CubeCoordinates {
-    Integer x;
-    Integer y;
-    Integer z;
+    private final int x;
+    private final int y;
+    private final int z;
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof CubeCoordinates that)) return false;
+        // now works as intended
+        return x == that.x
+                && y == that.y
+                && z == that.z;
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(x, y, z);
+    }
 }

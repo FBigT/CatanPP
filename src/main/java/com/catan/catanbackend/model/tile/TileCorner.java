@@ -1,6 +1,7 @@
 package com.catan.catanbackend.model.tile;
 
 import com.catan.catanbackend.model.Session;
+import com.catan.catanbackend.model.helper.CubeCoordinates;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -9,13 +10,14 @@ import lombok.*;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 @Entity
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 @JsonIgnoreProperties({ "hibernateLazyInitializer", "handler" })
-@Table(name = "tile_corners")
+@Table(name = "tile_corners", uniqueConstraints = @UniqueConstraint(columnNames = {"x", "y", "z", "session_id"}))
 public class TileCorner {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -52,11 +54,15 @@ public class TileCorner {
     public boolean equals(Object o) {
         if (this == o) return true;
         if (!(o instanceof TileCorner that)) return false;
-        return id != null && id.equals(that.id);
+        return Objects.equals(x, that.x) && Objects.equals(y, that.y) && Objects.equals(z, that.z);
     }
 
     @Override
     public int hashCode() {
-        return 31 + (id != null ? id.hashCode() : 0);
+        return Objects.hash(x, y, z);
+    }
+
+    public CubeCoordinates getCoordinates() {
+        return new CubeCoordinates(x, y, z);
     }
 }

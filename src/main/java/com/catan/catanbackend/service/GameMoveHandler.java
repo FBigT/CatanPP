@@ -17,6 +17,8 @@ import com.catan.catanbackend.repository.tiles.TileCornerRepository;
 import com.catan.catanbackend.repository.tiles.TileEdgeRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.validation.constraints.NotNull;
+import lombok.AllArgsConstructor;
+import lombok.Data;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 
@@ -76,19 +78,46 @@ public class GameMoveHandler {
 
     }
 
-    private record CornerPair(TileCorner a, TileCorner b) {
-            private CornerPair(@NotNull TileCorner a, @NotNull TileCorner b) {
+    public final class CornerPair {
+        private final TileCorner a;
+        private final TileCorner b;
+
+        public CornerPair(TileCorner a, TileCorner b) {
+            // sort them by cube coords
+            if (compare(a, b) <= 0) {
                 this.a = a;
                 this.b = b;
+            } else {
+                this.a = b;
+                this.b = a;
             }
+        }
 
-            @Override
-            public boolean equals(Object o) {
-                if (this == o) return true;
-                if (!(o instanceof CornerPair that)) return false;
-                return Objects.equals(a, that.a) && Objects.equals(b, that.b);
-            }
+        private static int compare(TileCorner c1, TileCorner c2) {
+            int cmp = Integer.compare(c1.getX(), c2.getX());
+            if (cmp != 0) return cmp;
+            cmp = Integer.compare(c1.getY(), c2.getY());
+            if (cmp != 0) return cmp;
+            return Integer.compare(c1.getZ(), c2.getZ());
+        }
 
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (!(o instanceof CornerPair that)) return false;
+            return Objects.equals(a, that.a) && Objects.equals(b, that.b);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(a, b);
+        }
+
+        @Override
+        public String toString() {
+            return "(" + a.getX()+","+a.getY()+","+a.getZ() +
+                    ")<->(" + b.getX()+","+b.getY()+","+b.getZ() + ")";
+        }
     }
 
     public Object handleGameMove(GameMoveTypeEnum gameMoveTypeEnum, GameMoveDto gameMoveDto, SessionPlayer sessionPlayer) {
@@ -576,14 +605,19 @@ public class GameMoveHandler {
 
     public void generateCornersAndEdges(List<Tile> tiles) {
         Map<CubeCoordinates, TileCorner> cornerMap = new HashMap<>();
-        Map<CornerPair, TileEdge> edgeMap = new HashMap<>();
+        Map<EdgeKey, TileEdge> edgeMap = new HashMap<>();
 
         for (Tile tile : tiles) {
+            int q = tile.getX();  // Axial coordinate q
+            int r = tile.getY();  // Axial coordinate r
+            int s = -q - r;       // Derived cube coordinate s
+
             TileCorner[] tileCorners = new TileCorner[6];
 
+            // Generate corners
             for (int i = 0; i < 6; i++) {
-                CubeCoordinates coordinates = getCornerCoordinates(tile.getX(), tile.getY(), tile.getZ(), i);
-                TileCorner corner = cornerMap.computeIfAbsent(coordinates, c -> {
+                CubeCoordinates coords = getCornerCoordinates(q, r, s, i);
+                TileCorner corner = cornerMap.computeIfAbsent(coords, c -> {
                     TileCorner tc = new TileCorner();
                     tc.setX(c.getX());
                     tc.setY(c.getY());
@@ -596,22 +630,24 @@ public class GameMoveHandler {
                 tcm.setTile(tile);
                 tcm.setCorner(corner);
                 tcm.setCornerIndex(i);
-
                 tile.getTileCornerMaps().add(tcm);
                 corner.getTileCornerMaps().add(tcm);
 
                 tileCorners[i] = corner;
             }
 
+            // Generate edges
             for (int i = 0; i < 6; i++) {
-                TileCorner cornerA = tileCorners[i];
-                TileCorner cornerB = tileCorners[(i + 1) % 6];
-                CornerPair key = new CornerPair(cornerA, cornerB);
+                CubeCoordinates coordA = tileCorners[i].getCoordinates();
+                CubeCoordinates coordB = tileCorners[(i + 1) % 6].getCoordinates();
+                EdgeKey key = new EdgeKey(coordA, coordB);
 
                 TileEdge edge = edgeMap.computeIfAbsent(key, k -> {
+                    TileCorner a = cornerMap.get(k.c1);
+                    TileCorner b = cornerMap.get(k.c2);
                     TileEdge te = new TileEdge();
-                    te.setCornerA(k.a);
-                    te.setCornerB(k.b);
+                    te.setCornerA(a);
+                    te.setCornerB(b);
                     te.setSession(tile.getSession());
                     return te;
                 });
@@ -620,13 +656,138 @@ public class GameMoveHandler {
                 tem.setTile(tile);
                 tem.setEdge(edge);
                 tem.setEdgeIndex(i);
-
                 tile.getTileEdgeMaps().add(tem);
                 edge.getTileEdgeMaps().add(tem);
             }
-
         }
+
         tileService.saveAll(tiles);
+
+
+        cornerMap.values().forEach(corner -> {
+            long edgeCount = edgeMap.values().stream()
+                    .filter(e -> e.getCornerA().equals(corner) || e.getCornerB().equals(corner))
+                    .count();
+            if (edgeCount != 3) {
+                System.err.printf("Invalid corner at (%d,%d,%d) with %d edges%n",
+                        corner.getX(), corner.getY(), corner.getZ(), edgeCount);
+            }
+        });
+
+        Map<CubeCoordinates, Integer> cornerEdgeCount = new HashMap<>();
+        edgeMap.values().forEach(edge -> {
+            cornerEdgeCount.merge(edge.getCornerA().getCoordinates(), 1, Integer::sum);
+            cornerEdgeCount.merge(edge.getCornerB().getCoordinates(), 1, Integer::sum);
+        });
+
+        cornerEdgeCount.forEach((coords, count) -> {
+            if (count != 3) {
+                System.err.printf("Invalid corner at %s with %d edges%n", coords, count);
+            }
+        });
+
+        System.out.println("========== Corner Map ==========");
+        for (Map.Entry<CubeCoordinates, TileCorner> entry : cornerMap.entrySet()) {
+            CubeCoordinates coords = entry.getKey();
+            TileCorner corner = entry.getValue();
+            int maps = corner.getTileCornerMaps().size();
+            System.out.printf("Corner at %s — Used in %d tile(s)\n", coords, maps);
+        }
+
+        System.out.println("\n========== Edge Map ==========");
+        for (Map.Entry<EdgeKey, TileEdge> entry : edgeMap.entrySet()) {
+            EdgeKey key = entry.getKey();
+            TileEdge edge = entry.getValue();
+            int maps = edge.getTileEdgeMaps().size();
+            System.out.printf("Edge between %s — Used in %d tile(s)\n", key, maps);
+        }
+
+        System.out.println("\n========== Summary ==========");
+        System.out.printf("Total tiles: %d\n", tiles.size());
+        System.out.printf("Unique corners: %d\n", cornerMap.size());
+        System.out.printf("Unique edges: %d\n", edgeMap.size());
+
+        int totalCornerMaps = tiles.stream().mapToInt(t -> t.getTileCornerMaps().size()).sum();
+        int totalEdgeMaps = tiles.stream().mapToInt(t -> t.getTileEdgeMaps().size()).sum();
+        System.out.printf("Total corner map entries: %d (expected: %d)\n", totalCornerMaps, tiles.size() * 6);
+        System.out.printf("Total edge map entries: %d (expected: %d)\n", totalEdgeMaps, tiles.size() * 6);
+
+    }
+
+    @Data
+    @AllArgsConstructor
+    public class AxialCoordinates {
+        private int q;
+        private int r;
+    }
+
+    public AxialCoordinates toAxialCoordinates(CubeCoordinates cube) {
+        int q = cube.getX();
+        int r = cube.getY();
+        return new AxialCoordinates(q, r);
+    }
+
+    public final class EdgeKey {
+        private final CubeCoordinates c1;
+        private final CubeCoordinates c2;
+
+        public EdgeKey(CubeCoordinates a, CubeCoordinates b) {
+            // pick lexicographically smaller first
+            if (compare(a, b) <= 0) {
+                this.c1 = a;
+                this.c2 = b;
+            } else {
+                this.c1 = b;
+                this.c2 = a;
+            }
+        }
+
+        private static int compare(CubeCoordinates x, CubeCoordinates y) {
+            int cmp = Integer.compare(x.getX(), y.getX());
+            if (cmp != 0) return cmp;
+            cmp = Integer.compare(x.getY(), y.getY());
+            if (cmp != 0) return cmp;
+            return Integer.compare(x.getZ(), y.getZ());
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (!(o instanceof EdgeKey that)) return false;
+            return c1.equals(that.c1) && c2.equals(that.c2);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(c1, c2);
+        }
+
+        @Override
+        public String toString() {
+            return "(" + c1 + ")<->(" + c2 + ")";
+        }
+    }
+    private static final CubeCoordinates[] CORNER_OFFSETS = {
+            new CubeCoordinates(1, -1, 0),   // NE (0)
+            new CubeCoordinates(1, 0, -1),    // E (1)
+            new CubeCoordinates(0, 1, -1),    // SE (2)
+            new CubeCoordinates(-1, 1, 0),    // SW (3)
+            new CubeCoordinates(-1, 0, 1),    // W (4)
+            new CubeCoordinates(0, -1, 1)     // NW (5)
+    };
+
+    private CubeCoordinates getCornerCoordinates(int axialX, int axialY, int z, int cornerIndex) {
+        // Convert axial to cube coordinates
+        int cubeX = axialX;
+        int cubeZ = axialY;
+        int cubeY = -cubeX - cubeZ;
+
+        CubeCoordinates offset = CORNER_OFFSETS[cornerIndex % 6];
+        return new CubeCoordinates(
+                cubeX + offset.getX(),
+                cubeY + offset.getY(),
+                z + offset.getZ()
+        );
     }
 
     public void placeRobber(Long sessionId) {
@@ -651,14 +812,5 @@ public class GameMoveHandler {
             tile.setHasRobber(true);
             tileService.save(tile);
         }
-    }
-
-    private CubeCoordinates getCornerCoordinates(int x, int y, int z, int cornerIndex) {
-        int[][] offsets = {
-                {1, -1, 0}, {1, 0, -1}, {0, 1, -1},
-                {-1, 1, 0}, {-1, 0, 1}, {0, -1, 1}
-        };
-        int[] offset = offsets[cornerIndex % 6];
-        return new CubeCoordinates(x + offset[0], y + offset[1], z + offset[2]);
     }
 }

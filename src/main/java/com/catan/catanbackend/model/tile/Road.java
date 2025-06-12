@@ -23,7 +23,7 @@ public class Road {
 
     @JsonIgnore
     @NotNull
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @ManyToOne(fetch = FetchType.EAGER, optional = false)
     @JoinColumn(name = "session_player_id", nullable = false)
     private SessionPlayer owner;
 

@@ -12,6 +12,7 @@ import com.catan.catanbackend.model.tile.*;
 import com.catan.catanbackend.repository.SessionCodeRepository;
 import com.catan.catanbackend.repository.tiles.*;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.*;
 
@@ -28,6 +29,7 @@ public class PlacementService {
     private final NotificationService notificationService;
     private final SessionService sessionService;
     private final SessionCodeRepository sessionCodeRepository;
+    private final LongestRoadService longestRoadService;
 
 
     // We add references to these services so we can access the player's resources.
@@ -38,7 +40,7 @@ public class PlacementService {
                             StructureTypeRepository structureTypeRepository,
                             RoadRepository roadRepository,
                             TileEdgeRepository tileEdgeRepository,
-                            TileCornerRepository tileCornerRepository, PlayerProfileService playerProfileService, NotificationService notificationService, SessionService sessionService, SessionCodeRepository sessionCodeRepository,
+                            TileCornerRepository tileCornerRepository, PlayerProfileService playerProfileService, NotificationService notificationService, SessionService sessionService, SessionCodeRepository sessionCodeRepository, LongestRoadService longestRoadService,
                             SessionPlayerService sessionPlayerService) {
         this.tileService = tileService;
         this.structureRepository = structureRepository;
@@ -50,6 +52,7 @@ public class PlacementService {
         this.notificationService = notificationService;
         this.sessionService = sessionService;
         this.sessionCodeRepository = sessionCodeRepository;
+        this.longestRoadService = longestRoadService;
         this.sessionPlayerService = sessionPlayerService;
     }
 
@@ -57,6 +60,8 @@ public class PlacementService {
     // 1) Place a Settlement
     // ----------------------------------------------------
     public Structure placeStructure(Long owner, Long tileId, Integer cornerIndex, StructureTypeEnum structureType, Boolean ignoreCost) {
+        cornerIndex = cornerIndex - 1;
+
         Optional<SessionPlayer> spOpt = sessionPlayerService.findById(owner);
         if (spOpt.isEmpty()) {
             throw new IllegalArgumentException("User has no active session player");
@@ -99,8 +104,9 @@ public class PlacementService {
         Structure structure = new Structure(sp, tile, cornerIndex, structureTypeRepository.findByEnumOrCreate(structureType));
 
 // Find the TileCorner for the given cornerIndex
+        Integer finalCornerIndex = cornerIndex;
         Optional<TileCornerMap> tileCornerMap = tile.getTileCornerMaps().stream()
-                .filter(x -> x.getCornerIndex() == cornerIndex)
+                .filter(x -> x.getCornerIndex() == finalCornerIndex)
                 .findFirst();
 
         if (tileCornerMap.isPresent()) {
@@ -174,7 +180,7 @@ public class PlacementService {
         tileEdge.setRoad(road);
         tileEdgeRepository.save(tileEdge);
 
-        checkForLongestRoad(road);
+        longestRoadService.checkForLongestRoad(road);
 
         return road;
     }
@@ -183,6 +189,8 @@ public class PlacementService {
     // 3) Upgrade a Settlement to City
     // ----------------------------------------------------
     public Structure upgradeSettlementToCity(Long tileId, int cornerIndex, Long ownerId) {
+        cornerIndex = cornerIndex - 1;
+
         Optional<SessionPlayer> spOpt = sessionPlayerService.findById(ownerId);
         if (spOpt.isEmpty()) {
             throw new IllegalArgumentException("User has no active session player");
@@ -276,11 +284,18 @@ public class PlacementService {
         Tile tile = tileService.findById(tileId)
                 .orElseThrow(() -> new IllegalArgumentException("Tile not found"));
         Optional<TileCorner> optionalTileCorner = tile.getTileCorner(cornerIndex);
+        if (tileId == 7) {
+            System.out.println();
+        }
+
         if (optionalTileCorner.isEmpty() || optionalTileCorner.get().getStructure() != null) {
             return false;
         }
         TileCorner tileCorner = optionalTileCorner.get();
         List<TileEdge> tileEdges = tileEdgeRepository.findAllConnectedToCorner(tileCorner);
+        if (tileEdges.size() > 3) {
+            System.out.printf("");
+        }
         for (TileEdge tileEdge : tileEdges) {
             if (tileEdge.getCornerB() != tileCorner && tileEdge.getCornerB().getStructure() != null) {
                 return false;
@@ -322,70 +337,11 @@ public class PlacementService {
             TileCorner otherA = currentEdge.getCornerA();
             TileCorner otherB = currentEdge.getCornerB();
 
-            if (otherA.equals(tileEdge.getCornerA()) || otherA.equals(tileEdge.getCornerB())
-                    || otherB.equals(tileEdge.getCornerA()) || otherB.equals(tileEdge.getCornerB())) {
+            if (otherA.getId().equals(tileEdge.getCornerA().getId()) || otherA.getId().equals(tileEdge.getCornerB().getId())
+                    || otherB.getId().equals(tileEdge.getCornerA().getId()) || otherB.getId().equals(tileEdge.getCornerB().getId())) {
                 return true;
             }
         }
         return false; // or true, depending on your adjacency logic
-    }
-
-    public void checkForLongestRoad(Road road) {
-        TileEdge startEdge = road.getTileEdge();
-        Long ownerId = road.getOwner().getId();
-
-        Set<Long> visited = new HashSet<>();
-        visited.add(road.getId());
-
-        int left = walkRoad(startEdge.getCornerA(), visited, startEdge, ownerId);
-        int right = walkRoad(startEdge.getCornerB(), visited, startEdge, ownerId);
-
-        Integer totalRoadLength = left + 1 + right;
-        if (totalRoadLength > road.getOwner().getSession().getLongestRoadValue() && !road.getOwner().getLongestRoad()) {
-            List<SessionPlayer> players = sessionPlayerService.findPlayerBySessionId(road.getOwner().getSession().getId());
-            players.stream().filter(SessionPlayer::getLongestRoad).forEach(sessionPlayer -> {
-                sessionPlayer.setPlayerScore(sessionPlayer.getPlayerScore() - 2);
-                sessionPlayer.setLongestRoad(false);
-                sessionPlayerService.updateSessionPlayer(sessionPlayer);
-            });
-
-            road.getOwner().getSession().setLongestRoadValue(totalRoadLength);
-            road.getOwner().setLongestRoad(true);
-            road.getOwner().setPlayerScore(road.getOwner().getPlayerScore() + 2);
-
-            sessionPlayerService.updateSessionPlayer(road.getOwner());
-            sessionService.save(road.getOwner().getSession());
-
-            Optional<SessionCode> bySessionId = sessionCodeRepository.findBySessionId(road.getOwner().getSession().getId());
-            if (bySessionId.isPresent()) {
-                SessionCode sessionCode = bySessionId.get();
-                notificationService.sendChatMessage(sessionCode.getCode(),
-                        new ChatMessage("System", new RawChatMessage("A new longest road has been achieved by " + road.getOwner().getName() + " it is " + totalRoadLength)));
-            }
-        }
-    }
-
-    private int walkRoad(TileCorner currentCorner, Set<Long> visitedRoadIds, TileEdge fromEdge, Long ownerId) {
-        int maxLength = 0;
-
-        List<TileEdge> connectedEdges = tileEdgeRepository.findAllConnectedToCorner(currentCorner);
-
-        for (TileEdge edge : connectedEdges) {
-            if (edge.equals(fromEdge)) continue;
-
-            Road road = edge.getRoad();
-            if (road != null
-                    && !visitedRoadIds.contains(road.getId())
-                    && road.getOwner().getId().equals(ownerId)) {
-
-                visitedRoadIds.add(road.getId());
-                TileCorner nextCorner = edge.getCornerA().equals(currentCorner) ? edge.getCornerB() : edge.getCornerA();
-                int pathLength = 1 + walkRoad(nextCorner, visitedRoadIds, edge, ownerId);
-                maxLength = Math.max(maxLength, pathLength);
-                visitedRoadIds.remove(road.getId()); // backtrack for other paths
-            }
-        }
-
-        return maxLength;
     }
 }
