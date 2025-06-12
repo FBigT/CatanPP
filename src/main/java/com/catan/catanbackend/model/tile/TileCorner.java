@@ -1,13 +1,13 @@
 package com.catan.catanbackend.model.tile;
 
 import com.catan.catanbackend.model.Session;
-import com.catan.catanbackend.model.helper.CubeCoordinates;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.awt.geom.Point2D;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -23,9 +23,9 @@ public class TileCorner {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    private Integer x;
-    private Integer y;
-    private Integer z;
+    private Double x;
+    private Double y;
+    private Double z;
 
     @JsonIgnore
     @ManyToOne(fetch = FetchType.LAZY)
@@ -54,15 +54,15 @@ public class TileCorner {
     public boolean equals(Object o) {
         if (this == o) return true;
         if (!(o instanceof TileCorner that)) return false;
-        return Objects.equals(x, that.x) && Objects.equals(y, that.y) && Objects.equals(z, that.z);
+        return Objects.equals(x, that.x) && Objects.equals(y, that.y);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(x, y, z);
+        return Objects.hash(x, y);
     }
 
-    public CubeCoordinates getCoordinates() {
-        return new CubeCoordinates(x, y, z);
+    public Point2D.Double getCoordinates() {
+        return new Point2D.Double(this.x, this.y);
     }
 }

@@ -1267,6 +1267,10 @@ class WebSocketTests {
 
         Thread.sleep(millis);
 
+        /*stompSession1.send(getStompHeaders(sendGameTopic, logInResponse1), new GameMoveDto(GameMoveTypeEnum.START_GAME.name(), null));
+
+        Thread.sleep(millis);
+*/
         Map<Long, StompSession> futureMap = new HashMap<>();
         futureMap.put(logInResponse1.getUserId(), stompSession1);
         futureMap.put(logInResponse2.getUserId(), stompSession2);

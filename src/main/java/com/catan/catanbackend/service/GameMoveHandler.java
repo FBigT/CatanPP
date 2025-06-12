@@ -22,6 +22,7 @@ import lombok.Data;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 
+import java.awt.geom.Point2D;
 import java.time.OffsetDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -76,48 +77,6 @@ public class GameMoveHandler {
         this.tradeOfferRepository = tradeOfferRepository;
         this.sessionCodeRepository = sessionCodeRepository;
 
-    }
-
-    public final class CornerPair {
-        private final TileCorner a;
-        private final TileCorner b;
-
-        public CornerPair(TileCorner a, TileCorner b) {
-            // sort them by cube coords
-            if (compare(a, b) <= 0) {
-                this.a = a;
-                this.b = b;
-            } else {
-                this.a = b;
-                this.b = a;
-            }
-        }
-
-        private static int compare(TileCorner c1, TileCorner c2) {
-            int cmp = Integer.compare(c1.getX(), c2.getX());
-            if (cmp != 0) return cmp;
-            cmp = Integer.compare(c1.getY(), c2.getY());
-            if (cmp != 0) return cmp;
-            return Integer.compare(c1.getZ(), c2.getZ());
-        }
-
-        @Override
-        public boolean equals(Object o) {
-            if (this == o) return true;
-            if (!(o instanceof CornerPair that)) return false;
-            return Objects.equals(a, that.a) && Objects.equals(b, that.b);
-        }
-
-        @Override
-        public int hashCode() {
-            return Objects.hash(a, b);
-        }
-
-        @Override
-        public String toString() {
-            return "(" + a.getX()+","+a.getY()+","+a.getZ() +
-                    ")<->(" + b.getX()+","+b.getY()+","+b.getZ() + ")";
-        }
     }
 
     public Object handleGameMove(GameMoveTypeEnum gameMoveTypeEnum, GameMoveDto gameMoveDto, SessionPlayer sessionPlayer) {
@@ -604,24 +563,26 @@ public class GameMoveHandler {
     }
 
     public void generateCornersAndEdges(List<Tile> tiles) {
-        Map<CubeCoordinates, TileCorner> cornerMap = new HashMap<>();
+        Map<Point2D.Double, TileCorner> cornerMap = new HashMap<>();
         Map<EdgeKey, TileEdge> edgeMap = new HashMap<>();
 
         for (Tile tile : tiles) {
-            int q = tile.getX();  // Axial coordinate q
-            int r = tile.getY();  // Axial coordinate r
-            int s = -q - r;       // Derived cube coordinate s
-
             TileCorner[] tileCorners = new TileCorner[6];
 
             // Generate corners
             for (int i = 0; i < 6; i++) {
-                CubeCoordinates coords = getCornerCoordinates(q, r, s, i);
-                TileCorner corner = cornerMap.computeIfAbsent(coords, c -> {
+                Point2D.Double coords = getCorner(tile.getX(), tile.getY(), i);
+
+                double factor = 1e6;
+                double rx = Math.round(coords.x * factor) / factor;
+                double ry = Math.round(coords.y * factor) / factor;
+                Point2D.Double key = new Point2D.Double(rx, ry);
+
+                TileCorner corner = cornerMap.computeIfAbsent(key, c -> {
                     TileCorner tc = new TileCorner();
                     tc.setX(c.getX());
                     tc.setY(c.getY());
-                    tc.setZ(c.getZ());
+                    tc.setZ(0d);
                     tc.setSession(tile.getSession());
                     return tc;
                 });
@@ -638,8 +599,8 @@ public class GameMoveHandler {
 
             // Generate edges
             for (int i = 0; i < 6; i++) {
-                CubeCoordinates coordA = tileCorners[i].getCoordinates();
-                CubeCoordinates coordB = tileCorners[(i + 1) % 6].getCoordinates();
+                Point2D.Double coordA = tileCorners[i].getCoordinates();
+                Point2D.Double coordB = tileCorners[(i + 1) % 6].getCoordinates();
                 EdgeKey key = new EdgeKey(coordA, coordB);
 
                 TileEdge edge = edgeMap.computeIfAbsent(key, k -> {
@@ -669,12 +630,15 @@ public class GameMoveHandler {
                     .filter(e -> e.getCornerA().equals(corner) || e.getCornerB().equals(corner))
                     .count();
             if (edgeCount != 3) {
-                System.err.printf("Invalid corner at (%d,%d,%d) with %d edges%n",
-                        corner.getX(), corner.getY(), corner.getZ(), edgeCount);
+                System.err.printf(
+                        "Invalid corner at (%.6f, %.6f, %.0f) with %d edges%n",
+                        corner.getX(), corner.getY(), corner.getZ(),
+                        edgeCount
+                );
             }
         });
 
-        Map<CubeCoordinates, Integer> cornerEdgeCount = new HashMap<>();
+        Map<Point2D.Double, Integer> cornerEdgeCount = new HashMap<>();
         edgeMap.values().forEach(edge -> {
             cornerEdgeCount.merge(edge.getCornerA().getCoordinates(), 1, Integer::sum);
             cornerEdgeCount.merge(edge.getCornerB().getCoordinates(), 1, Integer::sum);
@@ -687,8 +651,8 @@ public class GameMoveHandler {
         });
 
         System.out.println("========== Corner Map ==========");
-        for (Map.Entry<CubeCoordinates, TileCorner> entry : cornerMap.entrySet()) {
-            CubeCoordinates coords = entry.getKey();
+        for (Map.Entry<Point2D.Double, TileCorner> entry : cornerMap.entrySet()) {
+            Point2D.Double coords = entry.getKey();
             TileCorner corner = entry.getValue();
             int maps = corner.getTileCornerMaps().size();
             System.out.printf("Corner at %s — Used in %d tile(s)\n", coords, maps);
@@ -714,24 +678,26 @@ public class GameMoveHandler {
 
     }
 
-    @Data
-    @AllArgsConstructor
-    public class AxialCoordinates {
-        private int q;
-        private int r;
-    }
+    public static Point2D.Double getCorner(int r, int q, int cornerIndex) {
+        // center of this hex in unit‐space
+        double cx = Math.sqrt(3) * (q + r/2.0);
+        double cy = 1.5     * r;
 
-    public AxialCoordinates toAxialCoordinates(CubeCoordinates cube) {
-        int q = cube.getX();
-        int r = cube.getY();
-        return new AxialCoordinates(q, r);
+        // angle to this corner (deg)
+        double ang = Math.toRadians(60 * cornerIndex - 30);
+
+        // offset from center (radius=1)
+        double dx =  Math.cos(ang);
+        double dy =  Math.sin(ang);
+
+        return new Point2D.Double(cx + dx, cy + dy);
     }
 
     public final class EdgeKey {
-        private final CubeCoordinates c1;
-        private final CubeCoordinates c2;
+        private final Point2D.Double c1;
+        private final Point2D.Double c2;
 
-        public EdgeKey(CubeCoordinates a, CubeCoordinates b) {
+        public EdgeKey(Point2D.Double a, Point2D.Double b) {
             // pick lexicographically smaller first
             if (compare(a, b) <= 0) {
                 this.c1 = a;
@@ -742,12 +708,12 @@ public class GameMoveHandler {
             }
         }
 
-        private static int compare(CubeCoordinates x, CubeCoordinates y) {
-            int cmp = Integer.compare(x.getX(), y.getX());
+        private static int compare(Point2D.Double x, Point2D.Double y) {
+            int cmp = Double.compare(x.getX(), y.getX());
             if (cmp != 0) return cmp;
-            cmp = Integer.compare(x.getY(), y.getY());
+            cmp = Double.compare(x.getY(), y.getY());
             if (cmp != 0) return cmp;
-            return Integer.compare(x.getZ(), y.getZ());
+            return cmp;
         }
 
         @Override
@@ -767,28 +733,7 @@ public class GameMoveHandler {
             return "(" + c1 + ")<->(" + c2 + ")";
         }
     }
-    private static final CubeCoordinates[] CORNER_OFFSETS = {
-            new CubeCoordinates(1, -1, 0),   // NE (0)
-            new CubeCoordinates(1, 0, -1),    // E (1)
-            new CubeCoordinates(0, 1, -1),    // SE (2)
-            new CubeCoordinates(-1, 1, 0),    // SW (3)
-            new CubeCoordinates(-1, 0, 1),    // W (4)
-            new CubeCoordinates(0, -1, 1)     // NW (5)
-    };
 
-    private CubeCoordinates getCornerCoordinates(int axialX, int axialY, int z, int cornerIndex) {
-        // Convert axial to cube coordinates
-        int cubeX = axialX;
-        int cubeZ = axialY;
-        int cubeY = -cubeX - cubeZ;
-
-        CubeCoordinates offset = CORNER_OFFSETS[cornerIndex % 6];
-        return new CubeCoordinates(
-                cubeX + offset.getX(),
-                cubeY + offset.getY(),
-                z + offset.getZ()
-        );
-    }
 
     public void placeRobber(Long sessionId) {
         if (tileService.getRobberTile(sessionId).isPresent()) {
