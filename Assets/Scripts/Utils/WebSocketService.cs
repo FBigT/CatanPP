@@ -280,7 +280,7 @@ namespace Assets.Scripts.Utils
             };
 
             await webSocket.Connect();
-        }
+       }
 
         private static async Task SendConnectFrame()
         {

@@ -598,6 +598,8 @@ public class BoardGen : MonoBehaviour
             }
         }
 
+        //List<VertexPoint> allPoints = FindObjectsByType<VertexPoint>(FindObjectsSortMode.None).ToList();
+        //GenerateEdgePoints(allPoints);
         GenerateEdgePoints(vertexMap.Values.ToList());
 
         Debug.Log("Board constructed from TileDto list.");
@@ -864,6 +866,8 @@ public class BoardGen : MonoBehaviour
 
         DevCardManager.Instance.LoadPlayerCards();
         DevCardManager.Instance.SetCardPlayable();
+
+        RefreshUI();
     }
 
     #endregion
@@ -977,10 +981,13 @@ public class BoardGen : MonoBehaviour
         // Step 4: Find the closest EdgePoint to the estimated position
         EdgePoint closest = null;
         float closestDist = float.MaxValue;
-        float searchRadius = 0.2f;
+        float searchRadius = 3.0f;
 
-        foreach (EdgePoint ep in FindObjectsByType<EdgePoint>(FindObjectsSortMode.None))
+        EdgePoint[] edgePoints = FindObjectsByType<EdgePoint>(FindObjectsSortMode.None);
+
+        foreach (EdgePoint ep in edgePoints)
         {
+            searchRadius = 3f;
             float dist = Vector3.Distance(ep.transform.position, edgeWorldPos);
             if (dist < closestDist && dist <= searchRadius)
             {
@@ -1157,12 +1164,12 @@ public class BoardGen : MonoBehaviour
             {
                 resourceRequest = request;
             }
-        );
+        ); 
         yield return resourceRequest.SendWebRequest();
         // Handle the response
-        if (resourceRequest != null && resourceRequest.result == UnityWebRequest.Result.Success)
+        try
         {
-            try
+            if (resourceRequest.result == UnityWebRequest.Result.Success)
             {
                 string jsonResponse = resourceRequest.downloadHandler.text;
                 Debug.Log($"Received resource data: {jsonResponse}");
@@ -1170,16 +1177,16 @@ public class BoardGen : MonoBehaviour
                 ResourceGroup resources = JsonUtility.FromJson<ResourceGroup>(jsonResponse);
                 UpdateResourcesInUI(resources);
             }
-            catch (Exception e)
+            else
             {
-                Debug.LogError($"Failed to parse resources: {e.Message}");
+                string errorMessage = resourceRequest?.error ?? "Request is null";
+                long responseCode = resourceRequest?.responseCode ?? 0;
+                Debug.LogError($"Failed to fetch resources. Error: {errorMessage}, Status Code: {responseCode}");
             }
         }
-        else
+        catch (Exception e)
         {
-            string errorMessage = resourceRequest?.error ?? "Request is null";
-            long responseCode = resourceRequest?.responseCode ?? 0;
-            Debug.LogError($"Failed to fetch resources. Error: {errorMessage}, Status Code: {responseCode}");
+            Debug.LogError($"Exception during resource handling: {e.Message}");
         }
     }
 
