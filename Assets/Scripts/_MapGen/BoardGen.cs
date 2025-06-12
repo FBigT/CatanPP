@@ -850,27 +850,51 @@ public class BoardGen : MonoBehaviour
 
     public void GetEndTurn(EndTurnResponse t)
     {
-        //DoSetupPhase();
-
         Debug.Log("[BoardGen] EndTurn received from WebSocket - handling end turn logic");
 
         PlayerPanelUIManager.Instance.StepForward();
-        if (t.currentPlayerName == USERNAME)
+
+        bool isMyTurn = (t.currentPlayerName == USERNAME);
+        Debug.Log($"[BoardGen] Is my turn: {isMyTurn}, currentPlayer: {t.currentPlayerName}, USERNAME: {USERNAME}");
+
+        if (isMyTurn)
         {
             SetButtonsActive(true);
-            DevCardManager.Instance.SetCardPlayable();
+            // CRITICAL: Load cards FIRST, then set playable state
+            StartCoroutine(LoadCardsAndSetPlayable());
         }
-        else 
+        else
         {
             SetButtonsActive(false);
-            DevCardManager.Instance.SetCardUnplayable();
+            // For other players, just set unplayable and load
+            
         }
-
-        DevCardManager.Instance.LoadPlayerCards();
-        
 
         RefreshUI();
     }
+
+    // NEW METHOD: Load cards first, then set playable state
+    private IEnumerator LoadCardsAndSetPlayable()
+    {
+        Debug.Log("[BoardGen] 🔄 Loading cards and setting playable for my turn");
+
+        // First, load the latest card data from server
+        DevCardManager.Instance.LoadPlayerCards();
+
+        // Wait 2 frames to ensure WebSocket response is processed
+        yield return null;
+        yield return null;
+
+        // Then set cards as playable for the current player
+        Debug.Log("[BoardGen] 🎮 Setting cards playable after load");
+        DevCardManager.Instance.SetCardPlayable();
+        
+        // Force UI refresh after a small delay
+        yield return new WaitForSeconds(0.1f);
+        DevCardManager.Instance.TriggerCardsUpdated();
+
+    }
+
 
     #endregion
 

@@ -796,6 +796,10 @@ namespace Assets.Scripts.DevCards.Core
                 Debug.Log($"[DevCardManager] {message}");
             }
         }
+        public void TriggerCardsUpdated()
+        {
+            OnCardsUpdated?.Invoke(GetPlayerCards());
+        }
         public void SetCardPlayable()
         {
             Debug.Log("=== SETTING CARDS PLAYABLE ===");
@@ -813,20 +817,7 @@ namespace Assets.Scripts.DevCards.Core
         }
 
 
-        public void SetCardUnplayable()
-        {
-            foreach (var card in playerCards)
-            {
-                if (!card.used) // Only affect unused cards
-                {
-                    card.playable = false;
-                }
-            }
-
-            // Notify UI of the change
-            OnCardsUpdated?.Invoke(playerCards);
-            DebugLog("All unused cards set to unplayable");
-        }
+        
 
         private void OnDestroy()
         {
