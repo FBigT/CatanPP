@@ -27,6 +27,8 @@ public class BoardGen : MonoBehaviour
     private HexTile currentThiefTile;
     public bool isGenerated = false;
     public float hexSize = 1f;
+    private static bool rolled = false;
+    private static bool currentTurn;
 
     private const int radius = 2;
 
@@ -845,32 +847,59 @@ public class BoardGen : MonoBehaviour
         Debug.Log("[BoardGen] 🏁 EndTurn called - sending end turn request to WebSocket");
         SetButtonsActive(false);
 
+        currentTurn = false;
         await WebSocketService.SendEndTurn();
     }
 
     public void GetEndTurn(EndTurnResponse t)
     {
-        //DoSetupPhase();
-
         Debug.Log("[BoardGen] EndTurn received from WebSocket - handling end turn logic");
 
         PlayerPanelUIManager.Instance.StepForward();
-        if (t.currentPlayerName == USERNAME)
+
+        bool isMyTurn = (t.currentPlayerName == USERNAME);
+        Debug.Log($"[BoardGen] Is my turn: {isMyTurn}, currentPlayer: {t.currentPlayerName}, USERNAME: {USERNAME}");
+
+        if (isMyTurn)
         {
             SetButtonsActive(true);
-            DevCardManager.Instance.SetCardPlayable();
+            // CRITICAL: Load cards FIRST, then set playable state
+            StartCoroutine(LoadCardsAndSetPlayable());
+            rolled = false;
+            currentTurn = true;
         }
-        else 
+        else
         {
             SetButtonsActive(false);
-            DevCardManager.Instance.SetCardUnplayable();
+            // For other players, just set unplayable and load
+            
         }
-
-        DevCardManager.Instance.LoadPlayerCards();
-        
 
         RefreshUI();
     }
+
+    // NEW METHOD: Load cards first, then set playable state
+    private IEnumerator LoadCardsAndSetPlayable()
+    {
+        Debug.Log("[BoardGen] 🔄 Loading cards and setting playable for my turn");
+
+        // First, load the latest card data from server
+        DevCardManager.Instance.LoadPlayerCards();
+
+        // Wait 2 frames to ensure WebSocket response is processed
+        yield return null;
+        yield return null;
+
+        // Then set cards as playable for the current player
+        Debug.Log("[BoardGen] 🎮 Setting cards playable after load");
+        DevCardManager.Instance.SetCardPlayable();
+        
+        // Force UI refresh after a small delay
+        yield return new WaitForSeconds(0.1f);
+        DevCardManager.Instance.TriggerCardsUpdated();
+
+    }
+
 
     #endregion
 
@@ -886,12 +915,15 @@ public class BoardGen : MonoBehaviour
         if (t.turnOrder.First() == USERNAME)
         {
             SetButtonsActive(true);
+            currentTurn = true;
         } else {
             SetButtonsActive(false);
+            currentTurn = false;
         }
 
         DevCardManager.Instance.LoadPlayerCards();
         DevCardManager.Instance.SetCardPlayable();
+        RefreshUI();
     }
 
     #endregion
@@ -930,12 +962,12 @@ public class BoardGen : MonoBehaviour
             {
                 vp.owner = dto.username;
                 vp.Build(dto.structureType);
+                RefreshUI();
                 return;
             }
         }
 
         Debug.LogError($"[StructurePlacement] ❌ No VertexPoint found at corner {dto.cornerIndex} on tile ({dto.tileX}, {dto.tileY})");
-        RefreshUI();
     }
 
     #endregion
@@ -1064,15 +1096,18 @@ public class BoardGen : MonoBehaviour
     #region Dice
     public async void RoleDice()
     {
-        if (isRobberMoveInProgress)
+        if (!rolled)
         {
-            Debug.LogWarning("[BoardGen] Cannot roll dice during robber move");
-            return;
+            if (isRobberMoveInProgress)
+            {
+                Debug.LogWarning("[BoardGen] Cannot roll dice during robber move");
+                return;
+            }
+            //rolled = true;
+            Debug.Log("[BoardGen] 🎲 RoleDice called - sending dice roll request to WebSocket");
+            await WebSocketService.SendDiceRoll();
+            RefreshUI();
         }
-
-        Debug.Log("[BoardGen] 🎲 RoleDice called - sending dice roll request to WebSocket");
-        await WebSocketService.SendDiceRoll();
-        RefreshUI();
     }
 
     public void GetDiceData(DiceResultDto diceResult)
@@ -1099,7 +1134,7 @@ public class BoardGen : MonoBehaviour
             _lastDiceTotal = diceResult.rollResult;
         }
         */
-        if (diceResult.rollResult == 7)
+        if (diceResult.rollResult == 7 && currentTurn)
         {
             Debug.Log("[BoardGen] ⚠️ 7 rolled - initiating robber move");
             ThifeManager.Instance.EnableThiefPlacement();
