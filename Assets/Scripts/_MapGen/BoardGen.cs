@@ -1194,7 +1194,7 @@ public class BoardGen : MonoBehaviour
 
         // Use RequestService instead of EndpointUtils
         yield return RequestService.ConstructSimpleWebRequest(
-            EndpointUtils.GetResources+"/"+ LocalStorageService.GetString("session-code"),  
+            EndpointUtils.GetResources+"/"+ LocalStorageService.GetString("session-code") + "/" + USERNAME,  
             Methods.GET,
             true,                        // requiresAuthorization = true for JWT
             null,                        // jsonBody = null for GET request
