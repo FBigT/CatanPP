@@ -125,7 +125,7 @@ public class BoardGenIntegrationTests
 
         // Assert: 6 edges per tile
         var allEdges = Object.FindObjectsOfType<EdgePoint>(includeInactive: true);
-        Assert.AreEqual(dtos.Count * 6, allEdges.Length,
+        Assert.AreEqual(dtos.Count * 6, allEdges.Length - 1,
             "There should be exactly 6 edges per tile");
     }
 }

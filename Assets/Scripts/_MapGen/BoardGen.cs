@@ -76,8 +76,9 @@ public class BoardGen : MonoBehaviour
     {
         Application.targetFrameRate = 120;
         USERNAME = LocalStorageService.GetString("username");
+        if (blockPanel != null)
+            blockPanel.gameObject.SetActive(true);
 
-        blockPanel.gameObject.SetActive(true);
         Debug.Log("[BoardGen] Awake() started");
         if (Instance == null)
         {

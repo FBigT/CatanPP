@@ -32,35 +32,53 @@ public class DebugMenu : Singleton<DebugMenu>, IPointerDownHandler, IDragHandler
         if (debugPanel != null)
             debugPanel.SetActive(false);
 
-        moveThiefButton.onClick.AddListener(() =>
+        if (moveThiefButton != null)
         {
-            ThifeManager.Instance.EnableThiefPlacement();
-        });
+            moveThiefButton.onClick.AddListener(() =>
+            {
+                ThifeManager.Instance.EnableThiefPlacement();
+            });
+        }
 
-        addAllResourcesButton.onClick.AddListener(() =>
+        if (addAllResourcesButton != null)
         {
-            // Your resource logic here
-            AppendLog("+1 to all resources");
-        });
+            addAllResourcesButton.onClick.AddListener(() =>
+            {
+                // Your resource logic here
+                AppendLog("+1 to all resources");
+            });
+        }
 
-        btnStart.onClick.AddListener(() =>
+        if (btnStart != null)
         {
-            WebSocketService.SendStartGame();
-        });
+            btnStart.onClick.AddListener(() =>
+            {
+                WebSocketService.SendStartGame();
+            });
+        }
 
-        addOneResourceButton.onClick.AddListener(() =>
+        if (addOneResourceButton != null)
         {
-            // Your one resource logic here
-            AppendLog("+1 to all resources");
-        });
-        showVictorySceneButton.onClick.AddListener(ShowVictorySceneManually);
+            addOneResourceButton.onClick.AddListener(() =>
+            {
+                // Your one resource logic here
+                AppendLog("+1 to all resources");
+            });
+        }
 
-        clearLogButton.onClick.AddListener(() =>
+        if (showVictorySceneButton != null)
+            showVictorySceneButton.onClick.AddListener(ShowVictorySceneManually);
+
+        if (clearLogButton != null)
         {
-            statusText.text = "";
-        });
+            clearLogButton.onClick.AddListener(() =>
+            {
+                statusText.text = "";
+            });
+        }
 
-        panelRectTransform = debugPanel.GetComponent<RectTransform>();
+        if(panelRectTransform != null)
+            panelRectTransform = debugPanel.GetComponent<RectTransform>();
     }
 
     private void Update()
