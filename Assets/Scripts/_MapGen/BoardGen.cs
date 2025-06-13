@@ -1103,7 +1103,7 @@ public class BoardGen : MonoBehaviour
                 Debug.LogWarning("[BoardGen] Cannot roll dice during robber move");
                 return;
             }
-            //rolled = true;
+            rolled = true;
             Debug.Log("[BoardGen] 🎲 RoleDice called - sending dice roll request to WebSocket");
             await WebSocketService.SendDiceRoll();
             RefreshUI();
