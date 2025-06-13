@@ -158,7 +158,7 @@ class OtherSessionTests {
         contentAsString = mvcResult.getResponse().getContentAsString();
         ResourceGroup resourceGroup = objectMapper.readValue(contentAsString, ResourceGroup.class);
         assertThat(resourceGroup).isNotNull();
-        assertThat(resourceGroup.getBrick()).isEqualTo(10);
+        assertThat(resourceGroup.getBrick()).isEqualTo(5);
 
         mvcResult = mockMvc.perform(get("/api/session-players/session/"+sessionCode.getId())
                 .header(AUTH_HEADER, logInResponse1.getFullToken())

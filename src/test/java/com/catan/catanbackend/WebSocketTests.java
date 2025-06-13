@@ -726,10 +726,10 @@ class WebSocketTests {
         assertThat(tradeResponseDto).isNotNull();
         assertThat(sessionPlayer1).isPresent();
         assertThat(sessionPlayer2).isPresent();
-        assertThat(sessionPlayer1.get().getBrick()).isEqualTo(12);
-        assertThat(sessionPlayer1.get().getSilver()).isEqualTo(8);
-        assertThat(sessionPlayer2.get().getBrick()).isEqualTo(8);
-        assertThat(sessionPlayer2.get().getSilver()).isEqualTo(12);
+        assertThat(sessionPlayer1.get().getBrick()).isEqualTo(7);
+        assertThat(sessionPlayer1.get().getSilver()).isEqualTo(3);
+        assertThat(sessionPlayer2.get().getBrick()).isEqualTo(3);
+        assertThat(sessionPlayer2.get().getSilver()).isEqualTo(7);
     }
 
     @Test
@@ -879,7 +879,7 @@ class WebSocketTests {
                 assertThat(playerScoreDto.getScore()).isEqualTo(playerScore+1);
             }
             case ROAD_BUILDING -> {
-                Map<String, Object> roadMap = objectMapper.convertValue(new Place2RoadsDto(new PlaceRoadDto(0, 0, 2), new PlaceRoadDto(0, 0, 3)), new TypeReference<>() {});
+                Map<String, Object> roadMap = objectMapper.convertValue(new Place2RoadsDto(new PlaceRoadDto(0, 0, 1), new PlaceRoadDto(0, 0, 2)), new TypeReference<>() {});
                 map = objectMapper.convertValue(new DevCardPlayDto(privateBuyCardResponse.getCardId(), roadMap), new TypeReference<>() {
                 });
                 stompSession1.send(getStompHeaders(sendGameTopic, logInResponse1), new GameMoveDto(GameMoveTypeEnum.PLAY_CARD.name(), map));
@@ -1298,7 +1298,7 @@ class WebSocketTests {
         Thread.sleep(millis);
 
         /// Player 1
-        map = objectMapper.convertValue(new PlaceStructureDto(0, 0, 3, StructureTypeEnum.SETTLEMENT.name()), new TypeReference<>() {});
+        map = objectMapper.convertValue(new PlaceStructureDto(0, 1, 2, StructureTypeEnum.SETTLEMENT.name()), new TypeReference<>() {});
         StompSession stompSession = orderedSessions.get(0);
         stompSession.send(getStompHeaders(sendGameTopic, logInResponse1), new GameMoveDto(GameMoveTypeEnum.PLACE_STRUCTURE.name(), map));
 
@@ -1310,7 +1310,7 @@ class WebSocketTests {
 
         assertThat(receivedUser1).isNotNull().isEqualTo(receivedUser2).isEqualTo(receivedUser3);
 
-        map = objectMapper.convertValue(new PlaceRoadDto(0, 0, 2), new TypeReference<>() {});
+        map = objectMapper.convertValue(new PlaceRoadDto(0, 1, 1), new TypeReference<>() {});
         orderedSessions.get(0).send(getStompHeaders(sendGameTopic, logInResponse1), new GameMoveDto(GameMoveTypeEnum.PLACE_ROAD.name(), map));
 
         Thread.sleep(millis);
@@ -1328,7 +1328,7 @@ class WebSocketTests {
         assertThat(receivedUser1).isNotNull().isEqualTo(receivedUser2).isEqualTo(receivedUser3);
 
         /// Player 2
-        map = objectMapper.convertValue(new PlaceStructureDto(1, 0, 2, StructureTypeEnum.SETTLEMENT.name()), new TypeReference<>() {});
+        map = objectMapper.convertValue(new PlaceStructureDto(1, 0, 1, StructureTypeEnum.SETTLEMENT.name()), new TypeReference<>() {});
         orderedSessions.get(1).send(getStompHeaders(sendGameTopic, logInResponse1), new GameMoveDto(GameMoveTypeEnum.PLACE_STRUCTURE.name(), map));
 
         Thread.sleep(millis);
@@ -1339,7 +1339,7 @@ class WebSocketTests {
 
         assertThat(receivedUser1).isNotNull().isEqualTo(receivedUser2).isEqualTo(receivedUser3);
 
-        map = objectMapper.convertValue(new PlaceRoadDto(1, 0, 1), new TypeReference<>() {});
+        map = objectMapper.convertValue(new PlaceRoadDto(1, 0, 0), new TypeReference<>() {});
         orderedSessions.get(1).send(getStompHeaders(sendGameTopic, logInResponse1), new GameMoveDto(GameMoveTypeEnum.PLACE_ROAD.name(), map));
 
         Thread.sleep(millis);
@@ -1357,7 +1357,7 @@ class WebSocketTests {
         assertThat(receivedUser1).isNotNull().isEqualTo(receivedUser2).isEqualTo(receivedUser3);
 
         /// Player 3
-        map = objectMapper.convertValue(new PlaceStructureDto(-1, 0, 3, StructureTypeEnum.SETTLEMENT.name()), new TypeReference<>() {});
+        map = objectMapper.convertValue(new PlaceStructureDto(1, -1, 6, StructureTypeEnum.SETTLEMENT.name()), new TypeReference<>() {});
         orderedSessions.get(2).send(getStompHeaders(sendGameTopic, logInResponse1), new GameMoveDto(GameMoveTypeEnum.PLACE_STRUCTURE.name(), map));
 
         Thread.sleep(millis);
@@ -1368,7 +1368,7 @@ class WebSocketTests {
 
         assertThat(receivedUser1).isNotNull().isEqualTo(receivedUser2).isEqualTo(receivedUser3);
 
-        map = objectMapper.convertValue(new PlaceRoadDto(-1, 0, 2), new TypeReference<>() {});
+        map = objectMapper.convertValue(new PlaceRoadDto(1, -1, 5), new TypeReference<>() {});
         orderedSessions.get(2).send(getStompHeaders(sendGameTopic, logInResponse1), new GameMoveDto(GameMoveTypeEnum.PLACE_ROAD.name(), map));
 
         Thread.sleep(millis);
@@ -1386,7 +1386,7 @@ class WebSocketTests {
         assertThat(receivedUser1).isNotNull().isEqualTo(receivedUser2).isEqualTo(receivedUser3);
 
         /// Player 3
-        map = objectMapper.convertValue(new PlaceStructureDto(0, 1, 5, StructureTypeEnum.SETTLEMENT.name()), new TypeReference<>() {});
+        map = objectMapper.convertValue(new PlaceStructureDto(0, -1, 5, StructureTypeEnum.SETTLEMENT.name()), new TypeReference<>() {});
         orderedSessions.get(2).send(getStompHeaders(sendGameTopic, logInResponse1), new GameMoveDto(GameMoveTypeEnum.PLACE_STRUCTURE.name(), map));
 
         Thread.sleep(millis);
@@ -1397,7 +1397,7 @@ class WebSocketTests {
 
         assertThat(receivedUser1).isNotNull().isEqualTo(receivedUser2).isEqualTo(receivedUser3);
 
-        map = objectMapper.convertValue(new PlaceRoadDto(0, 1, 4), new TypeReference<>() {});
+        map = objectMapper.convertValue(new PlaceRoadDto(0, -1, 4), new TypeReference<>() {});
         orderedSessions.get(2).send(getStompHeaders(sendGameTopic, logInResponse1), new GameMoveDto(GameMoveTypeEnum.PLACE_ROAD.name(), map));
 
         Thread.sleep(millis);
@@ -1415,7 +1415,7 @@ class WebSocketTests {
         assertThat(receivedUser1).isNotNull().isEqualTo(receivedUser2).isEqualTo(receivedUser3);
 
         /// Player 2
-        map = objectMapper.convertValue(new PlaceStructureDto(0, -1, 3, StructureTypeEnum.SETTLEMENT.name()), new TypeReference<>() {});
+        map = objectMapper.convertValue(new PlaceStructureDto(-1, 0, 4, StructureTypeEnum.SETTLEMENT.name()), new TypeReference<>() {});
         orderedSessions.get(1).send(getStompHeaders(sendGameTopic, logInResponse1), new GameMoveDto(GameMoveTypeEnum.PLACE_STRUCTURE.name(), map));
 
         Thread.sleep(millis);
@@ -1426,7 +1426,7 @@ class WebSocketTests {
 
         assertThat(receivedUser1).isNotNull().isEqualTo(receivedUser2).isEqualTo(receivedUser3);
 
-        map = objectMapper.convertValue(new PlaceRoadDto(0, -1, 2), new TypeReference<>() {});
+        map = objectMapper.convertValue(new PlaceRoadDto(-1, 0, 3), new TypeReference<>() {});
         orderedSessions.get(1).send(getStompHeaders(sendGameTopic, logInResponse1), new GameMoveDto(GameMoveTypeEnum.PLACE_ROAD.name(), map));
 
         Thread.sleep(millis);
@@ -1444,7 +1444,7 @@ class WebSocketTests {
         assertThat(receivedUser1).isNotNull().isEqualTo(receivedUser2).isEqualTo(receivedUser3);
 
         /// Player 1
-        map = objectMapper.convertValue(new PlaceStructureDto(1, -1, 3, StructureTypeEnum.SETTLEMENT.name()), new TypeReference<>() {});
+        map = objectMapper.convertValue(new PlaceStructureDto(-1, 1, 3, StructureTypeEnum.SETTLEMENT.name()), new TypeReference<>() {});
         orderedSessions.get(0).send(getStompHeaders(sendGameTopic, logInResponse1), new GameMoveDto(GameMoveTypeEnum.PLACE_STRUCTURE.name(), map));
 
         Thread.sleep(millis);
@@ -1455,7 +1455,7 @@ class WebSocketTests {
 
         assertThat(receivedUser1).isNotNull().isEqualTo(receivedUser2).isEqualTo(receivedUser3);
 
-        map = objectMapper.convertValue(new PlaceRoadDto(1, -1, 2), new TypeReference<>() {});
+        map = objectMapper.convertValue(new PlaceRoadDto(-1, 1, 2), new TypeReference<>() {});
         orderedSessions.get(0).send(getStompHeaders(sendGameTopic, logInResponse1), new GameMoveDto(GameMoveTypeEnum.PLACE_ROAD.name(), map));
 
         Thread.sleep(millis);
