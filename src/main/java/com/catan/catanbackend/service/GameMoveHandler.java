@@ -575,7 +575,7 @@ public class GameMoveHandler {
 
             // Generate corners
             for (int i = 0; i < 6; i++) {
-                Point2D.Double coords = getCorner(tile.getX(), tile.getY(), i);
+                Point2D.Double coords = getCorner(tile.getY(), tile.getX(), i);
 
                 double factor = 1e6;
                 double rx = Math.round(coords.x * factor) / factor;

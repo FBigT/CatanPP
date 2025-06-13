@@ -38,7 +38,7 @@ public class TileEdge {
     private Session session;
 
     @JsonIgnore
-    @OneToOne(fetch = FetchType.LAZY)
+    @OneToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "road_id")
     private Road road;
 

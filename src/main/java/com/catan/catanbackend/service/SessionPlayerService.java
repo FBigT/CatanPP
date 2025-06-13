@@ -28,15 +28,15 @@ public class SessionPlayerService {
     }
 
     private void assignInitialResources(SessionPlayer player) {
-        player.setBrick(10);
-        player.setCrystal(10);
-        player.setOre(10);
-        player.setRice(10);
-        player.setSheep(10);
-        player.setSilver(10);
-        player.setGold(10);
-        player.setWood(10);
-        player.setWheat(10);
+        player.setBrick(5);
+        player.setCrystal(5);
+        player.setOre(5);
+        player.setRice(5);
+        player.setSheep(5);
+        player.setSilver(5);
+        player.setGold(5);
+        player.setWood(5);
+        player.setWheat(5);
     }
 
     public SessionPlayer updateSessionPlayer(SessionPlayer sessionPlayer) {
