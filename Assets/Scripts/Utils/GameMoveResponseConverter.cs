@@ -77,6 +77,7 @@ namespace Assets.Scripts.Utils
                     GameMoveType.MAP_GEN => DeserializeWithLogging<GenerateMapDto>(moveDataToken, serializer, "MAP_GEN"),
                     GameMoveType.REQUEST_MAP => DeserializeWithLogging<GenerateMapDto>(moveDataToken, serializer, "REQUEST_MAP"),
                     GameMoveType.PAY_DEBT => DeserializeWithLogging<PayDebtResponse>(moveDataToken, serializer, "PAY_DEBT"),
+                    GameMoveType.VICTORY => DeserializeWithLogging<VictoryDto>(moveDataToken, serializer, "VICTORY"),
 
                     _ => throw new JsonSerializationException($"Unknown GameMoveType: {gameMoveType}"),
                 };
